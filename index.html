@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101c15">
+  <meta name="description" content="Світло: безкоштовний Android-застосунок із графіками відключень Черкасиобленерго, віджетами на головному екрані та погодою. Для Христинівки й інших населених пунктів області.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Світло. Знай, коли буде світло">
+  <meta property="og:description" content="Графіки відключень, два Android-віджети та погода. Безкоштовно, без реклами й реєстрації.">
+  <meta property="og:image" content="https://sergioyankovenko.github.io/svitlo/assets/share-card.png">
+  <meta property="og:url" content="https://sergioyankovenko.github.io/svitlo/">
+  <meta name="color-scheme" content="dark">
+  <title>Світло • Графік відключень на твоєму екрані</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <style>
+    :root{--bg:#101c15;--bg2:#18291e;--panel:#1d3125;--panel2:#233c2d;--ink:#eff6e9;--muted:#acbead;--lime:#d0e8aa;--amber:#ebbc67;--pink:#e38b90;--line:#38513f;--max:1120px}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--bg);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    a{color:inherit} img{max-width:100%;display:block}button{font:inherit}
+    .wrap{width:min(calc(100% - 42px),var(--max));margin-inline:auto}
+    .skip{position:absolute;top:-100px;left:15px;background:var(--lime);padding:12px;color:var(--bg);z-index:999}
+    .skip:focus{top:15px}
+    header{position:sticky;top:0;z-index:80;border-bottom:1px solid #d1eab617;background:#111f19e8;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:77px}
+    .brand{display:inline-flex;align-items:center;gap:10px;font-weight:850;text-decoration:none;font-size:23px;letter-spacing:-.8px}
+    .bolt{width:36px;height:36px;display:grid;place-items:center;background:#226c51;border-radius:12px;box-shadow:inset 0 0 0 1px #c9e2ba2e}
+    .bolt svg{width:24px;height:26px;fill:#f1e6a6}
+    .nav-links{display:flex;align-items:center;gap:30px;font-size:14px;color:#d7e5d8}
+    .nav-links a{text-decoration:none;white-space:nowrap}.nav-links a:hover{color:var(--lime)}
+    .nav-cta{padding:11px 17px;border-radius:10px;background:#d2e6b6;color:#173022;text-decoration:none;font-weight:750;font-size:14px;white-space:nowrap}
+    .hero{background:radial-gradient(ellipse at 83% 44%,#315e3b6e 0,#14241a2b 36%,transparent 65%),radial-gradient(circle at -10% 0,#28442b60 0,transparent 48%);position:relative;overflow:hidden}
+    .hero:after{position:absolute;content:"";inset:auto 0 0;background:linear-gradient(transparent,#101c15);height:105px;pointer-events:none}
+    .hero-inner{display:grid;grid-template-columns:1.05fr 1fr;align-items:center;gap:44px;min-height:700px;padding-top:68px;padding-bottom:80px}
+    .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid #68846977;border-radius:999px;background:#294b333f;color:#d7e7c5;font-size:13px;font-weight:630;letter-spacing:.1px}
+    .pulse{width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 5px #d0e8aa17}
+    h1{font-weight:850;font-size:clamp(44px,5.2vw,73px);line-height:1.075;letter-spacing:-2.8px;max-width:680px;margin:24px 0 24px}
+    h1 span{color:var(--lime)}
+    .lead{font-size:clamp(17px,1.6vw,20px);line-height:1.68;color:#c3d0c3;max-width:545px;margin:0 0 33px}
+    .buttons{display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+    .btn{display:inline-flex;justify-content:center;align-items:center;gap:10px;border:0;border-radius:14px;padding:16px 24px;text-decoration:none;font-weight:760;letter-spacing:-.1px;transition:transform .2s,background .2s;font-size:15px}
+    .btn:hover{transform:translateY(-2px)}
+    .btn-primary{background:#d0e8aa;color:#193122;box-shadow:0 10px 35px #030e061f}
+    .btn-primary:hover{background:#e4f5c7}
+    .btn-outline{border:1px solid #59735e;background:#20372a70;color:#e4f0e4}
+    .btn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .micro{font-size:12.5px;color:#9fb5a2;margin-top:19px}
+    .hero-art{position:relative;height:620px;display:flex;align-items:center;justify-content:center;isolation:isolate}
+    .hero-orb{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle at 33% 25%,#4c8056 0,#264730 45%,#1b2e2277 74%,transparent);filter:blur(12px);z-index:-1;opacity:.85}
+    .phone{border:6px solid #4b6552;border-radius:41px;background:#06110c;box-shadow:0 30px 65px #0009,inset 0 0 0 2px #ffffff23;overflow:hidden;position:relative}
+    .phone:before{content:"";position:absolute;width:80px;height:17px;background:#060d09;border-radius:0 0 15px 15px;top:0;left:calc(50% - 40px);z-index:2}
+    .phone-main{width:287px;transform:rotate(2.5deg) translate(52px,5px);box-shadow:0 34px 85px #010903ad}
+    .phone-main img{width:100%;height:auto}
+    .widget-float{position:absolute;left:-39px;bottom:32px;width:365px;height:230px;transform:rotate(-5deg);border-radius:26px;border:4px solid #5a735d;background:#193021;box-shadow:0 28px 54px #010903ac;overflow:hidden}
+    .widget-float img{width:100%;height:100%;object-fit:cover;object-position:center top}
+    .glass-note{position:absolute;right:0;bottom:24px;display:flex;align-items:center;gap:9px;background:#e3f0ce;border-radius:13px;color:#1c3121;box-shadow:0 12px 25px #0005;padding:11px 13px;font-weight:750;font-size:13px;transform:rotate(4deg)}
+    .glass-note span{color:#2d6e44;font-size:22px}
+    .sec{padding:88px 0}
+    .sec-head{max-width:750px;margin-bottom:33px}
+    .kicker{text-transform:uppercase;color:var(--lime);letter-spacing:1.8px;font-weight:800;font-size:12px;margin:0 0 14px}
+    h2{font-size:clamp(31px,3.5vw,49px);letter-spacing:-1.8px;line-height:1.17;margin:0 0 17px}
+    .desc{color:var(--muted);font-size:17px;max-width:610px;line-height:1.7;margin:0}
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .feature{padding:28px;border:1px solid #48604b9c;border-radius:23px;background:linear-gradient(148deg,#233a2c,#182b20);min-height:240px}
+    .feature-icon{width:48px;height:48px;border:1px solid #bde8b645;border-radius:14px;background:#2f5139;display:flex;align-items:center;justify-content:center;font-size:23px;margin-bottom:27px}
+    .feature:nth-child(2) .feature-icon{background:#554626;border-color:#caa95d55}
+    .feature:nth-child(3) .feature-icon{background:#47415b;border-color:#aaa1d255}
+    h3{font-size:22px;line-height:1.23;letter-spacing:-.6px;margin:0 0 10px}
+    .feature p{color:#b7c9b9;margin:0;font-size:14px;line-height:1.7}
+    .showcase{background:#15241c;border-block:1px solid #2f4636}
+    .gallery{display:grid;grid-template-columns:1.15fr .85fr;gap:22px}
+    .gallery-main,.gallery-side{border:1px solid #3a5240;background:#1b3123;border-radius:27px;overflow:hidden}
+    .gallery-main{padding:40px 36px 0;display:grid;grid-template-columns:1fr 300px;gap:25px;min-height:485px}
+    .gallery-text p,.gallery-side p{font-size:15px;color:#b7caba;line-height:1.65}
+    .gallery-text h3{font-size:29px;max-width:340px;margin-top:17px}
+    .gallery-image{align-self:end;max-height:450px;overflow:hidden;border-radius:25px 25px 0 0;border:5px solid #486550;border-bottom:0;box-shadow:0 18px 30px #07120b80;cursor:zoom-in}
+    .gallery-image img{width:100%;display:block}
+    .gallery-side{padding:32px;display:flex;flex-direction:column;justify-content:space-between;min-height:485px}
+    .mini-window{height:240px;border-radius:18px;background:#102018;overflow:hidden;position:relative;border:2px solid #426048;cursor:zoom-in;box-shadow:0 18px 30px #08140b52}
+    .mini-window img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+    .mini-window:after{content:"";position:absolute;inset:auto 0 0;height:70px;background:linear-gradient(transparent,#102018);pointer-events:none}
+    .screens{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:19px}
+    .small-shot{border:1px solid #415b48;background:#1b3325;border-radius:16px;padding:11px;font-size:12px;color:#bdcebc;text-align:center;cursor:zoom-in}
+    .small-shot img{width:100%;height:140px;object-fit:cover;object-position:top;border-radius:9px;margin-bottom:10px}
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;counter-reset:step}
+    .step{padding:26px;border:1px solid #3a5441;background:#1a2b21;border-radius:22px}
+    .step-n{display:inline-flex;align-items:center;justify-content:center;background:#d0e8aa;color:#203324;width:39px;height:39px;border-radius:12px;font-weight:850;margin-bottom:19px}
+    .step p{margin:0;color:#b5c7b6;font-size:14px;line-height:1.68}
+    .download-section{padding:55px 0 95px}
+    .download-panel{padding:55px 55px 45px;border:1px solid #78976b7c;border-radius:30px;background:radial-gradient(circle at 90% 0,#4e764638,transparent 43%),linear-gradient(128deg,#2a4933,#1a3023 75%);display:flex;justify-content:space-between;align-items:center;gap:40px}
+    .download-panel h2{margin-bottom:13px}
+    .download-panel p{color:#c0d2bf;max-width:550px;margin:0}
+    .download-panel .right{flex-shrink:0;text-align:center}
+    .download-panel .right .btn{width:100%}
+    .checksum{font-size:11px;color:#a6bca7;margin-top:15px;overflow-wrap:anywhere}
+    .faq{background:#14231a;border-top:1px solid #2e4435;padding:67px 0 75px}
+    .faqs{display:grid;grid-template-columns:1fr 1fr;gap:24px 48px}
+    .faq-item h3{font-size:17px;margin-bottom:7px}
+    .faq-item p{font-size:14px;color:#b1c4b4;line-height:1.75;margin:0}
+    .faq-item a{color:#d5eab7}
+    footer{border-top:1px solid #304538;padding:28px 0 32px;color:#9fb3a2;font-size:13px}
+    .foot{display:flex;align-items:center;justify-content:space-between;gap:20px}.foot strong{color:#d9e8d4}
+    .foot .foot-links{display:flex;gap:18px;flex-wrap:wrap}
+    .foot a{color:#a7c5aa;text-decoration:none}.foot a:hover{text-decoration:underline}
+    .modal{border:1px solid #61775f;border-radius:18px;padding:20px 20px 14px;background:#14241b;color:white;max-width:min(95vw,620px);max-height:95vh;box-shadow:0 20px 100px #000c}
+    .modal::backdrop{background:#030703db;backdrop-filter:blur(4px)}
+    .modal img{max-height:79vh;max-width:100%;object-fit:contain;margin:auto;border-radius:12px}
+    .modal button{color:#dcebd8;background:#34543e;border:1px solid #688268;border-radius:10px;float:right;cursor:pointer;padding:7px 12px;margin-bottom:10px}
+    button[data-full]:focus-visible,.btn:focus-visible,a:focus-visible{outline:3px solid #f8d78a;outline-offset:3px}
+    @media(max-width:1000px){.hero-inner{gap:10px}.hero-art{height:590px}.phone-main{width:252px;transform:translate(33px,0) rotate(2deg)}.widget-float{width:310px;left:-15px;bottom:20px}.gallery-main{grid-template-columns:1fr 215px;gap:10px;padding-inline:28px}}
+    @media(max-width:780px){.nav{min-height:68px}.nav-links{display:none}.hero-inner{grid-template-columns:1fr;padding-top:56px;min-height:unset;padding-bottom:44px}.hero h1{max-width:650px}.hero-art{height:610px;max-width:530px;width:100%;margin:auto}.phone-main{width:255px;transform:translate(52px,-12px) rotate(2.5deg)}.widget-float{width:345px;left:0;bottom:20px}.features,.steps{grid-template-columns:1fr}.feature{min-height:unset}.gallery{grid-template-columns:1fr}.gallery-main{grid-template-columns:1fr 240px}.gallery-side{min-height:400px}.download-panel{flex-direction:column;align-items:stretch;padding:35px}.download-panel .right{text-align:left}.faqs{grid-template-columns:1fr}.sec{padding:65px 0}}
+    @media(max-width:520px){.wrap{width:min(calc(100% - 32px),var(--max))}.nav-cta{font-size:12px;padding:10px 12px}.brand{font-size:21px}.hero-inner{padding-top:47px}.hero h1{font-size:clamp(41px,11.5vw,59px);letter-spacing:-1.9px}.lead{font-size:16px}.buttons{align-items:stretch}.buttons>.btn{width:100%}.hero-art{height:490px}.hero-orb{width:350px;height:350px}.phone-main{width:214px;transform:translate(52px,-15px) rotate(3deg)}.widget-float{width:min(300px,80vw);left:0;bottom:18px}.glass-note{bottom:0;font-size:11px;right:-6px}.gallery-main{grid-template-columns:1fr;min-height:0;padding:26px 26px 0}.gallery-image{width:210px;margin:20px auto 0;height:280px}.gallery-side{padding:25px}.feature{padding:25px}.download-panel{padding:28px 22px}.download-panel h2{font-size:33px}.foot{flex-direction:column;align-items:flex-start}.sec{padding:59px 0}.kicker{font-size:11px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Перейти до змісту</a>
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="#top" aria-label="Світло, на початок сторінки"><span class="bolt" aria-hidden="true"><svg viewBox="0 0 28 32"><path d="M17.1 1.3 5.5 17h8l-2.1 13.5L24 12.4h-8.6l1.7-11.1Z"/></svg></span> Світло</a>
+      <nav class="nav-links" aria-label="Основне меню"><a href="#features">Можливості</a><a href="#screens">Скриншоти</a><a href="#install">Як встановити</a></nav>
+      <a class="nav-cta" href="downloads/Svitlo-1.0.2.apk" download="Svitlo-1.0.2.apk">Завантажити APK ↓</a>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="wrap hero-inner">
+        <div>
+          <span class="eyebrow"><span class="pulse"></span> Для Христинівки та Черкащини</span>
+          <h1>Знай, коли<br>буде <span>світло.</span></h1>
+          <p class="lead">Графік відключень на сьогодні й завтра, прямо на головному екрані телефона. Планові, аварійні та погодинні відключення в одному зручному застосунку.</p>
+          <div class="buttons">
+            <a class="btn btn-primary" href="downloads/Svitlo-1.0.2.apk" download="Svitlo-1.0.2.apk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg> Завантажити безкоштовно</a>
+            <a class="btn btn-outline" href="#screens">Подивитися застосунок ↗</a>
+          </div>
+          <p class="micro">Android 8.0+ · Версія 1.0.2 · Без реклами та реєстрації · ≈ 2 МБ</p>
+        </div>
+        <div class="hero-art" aria-label="Реальні скриншоти програми Світло та її віджетів">
+          <div class="hero-orb"></div>
+          <div class="phone phone-main"><img src="assets/app-screen.webp" alt="Застосунок Світло: графіки відключень на сьогодні й завтра та погода" width="520" height="1156" fetchpriority="high"></div>
+          <div class="widget-float"><img src="assets/widget-highlight.webp" alt="Віджети Світло на головному екрані Android" width="717" height="451" loading="lazy"></div>
+          <div class="glass-note"><span>✓</span> Віджети на екрані</div>
+        </div>
+      </div>
+    </section>
+    <section class="sec" id="features">
+      <div class="wrap">
+        <div class="sec-head"><p class="kicker">МЕНШЕ НЕВИЗНАЧЕНОСТІ</p><h2>Все важливе, без зайвого</h2><p class="desc">Створено для звичайного щоденного використання: відкрив телефон і одразу бачиш, що відбувається зі світлом.</p></div>
+        <div class="features">
+          <article class="feature"><span class="feature-icon" aria-hidden="true">⚡</span><h3>Три типи відключень</h3><p>Погодинні графіки, планові роботи та аварійні відключення. Опублікована інформація оператора в одному місці.</p></article>
+          <article class="feature"><span class="feature-icon" aria-hidden="true">◷</span><h3>Оновлюється сам</h3><p>За замовчуванням приблизно щогодини. Якщо хочеш перевірити зараз, є кнопка ручного оновлення.</p></article>
+          <article class="feature"><span class="feature-icon" aria-hidden="true">☁</span><h3>Погода поруч із графіком</h3><p>Температура й умови погоди для населеного пункту твоєї адреси, просто у застосунку та віджеті.</p></article>
+        </div>
+      </div>
+    </section>
+    <section class="sec showcase" id="screens">
+      <div class="wrap">
+        <div class="sec-head"><p class="kicker">ЯК ЦЕ ВИГЛЯДАЄ</p><h2>Графік завжди під рукою</h2><p class="desc">Це справжні скриншоти працюючої Android-версії, а не концепт.</p></div>
+        <div class="gallery">
+          <div class="gallery-main">
+            <div class="gallery-text"><p class="kicker">У ЗАСТОСУНКУ</p><h3>Сьогодні, завтра та найближче ввімкнення</h3><p>Події на часовій шкалі, усі джерела та зрозуміле пояснення, коли графік ще не визначений.</p></div>
+            <button data-full="assets/app-screen.webp" data-alt="Головний екран застосунку Світло" class="gallery-image" aria-label="Збільшити скриншот головного екрана" style="padding:0;background:transparent"><img src="assets/app-screen.webp" alt="Головний екран застосунку Світло" loading="lazy" width="520" height="1156"></button>
+          </div>
+          <div class="gallery-side">
+            <div><p class="kicker">НА ГОЛОВНОМУ ЕКРАНІ</p><h3>Віджет, який не треба відкривати</h3><p>Два розміри на вибір. Побачити години та погоду можна, навіть не заходячи в застосунок.</p></div>
+            <button data-full="assets/widgets.webp" data-alt="Два варіанти віджета на Android" class="mini-window" aria-label="Збільшити скриншот віджетів" style="padding:0"><img src="assets/widget-highlight.webp" alt="Два варіанти віджета на Android" loading="lazy" width="700" height="1278"></button>
+          </div>
+        </div>
+        <div class="screens">
+          <button class="small-shot" data-full="assets/widgets.webp" data-alt="Віджети Світло"><img src="assets/widgets.webp" alt="Скріншот віджетів" loading="lazy" width="700" height="1278">Віджети 4×3 і 4×2 ↗</button>
+          <button class="small-shot" data-full="assets/details.webp" data-alt="Подробиці планових, аварійних і погодинних відключень"><img src="assets/details.webp" alt="Подробиці всіх відключень" loading="lazy" width="520" height="1156">Дані з усіх трьох джерел ↗</button>
+        </div>
+      </div>
+    </section>
+    <section class="sec" id="install">
+      <div class="wrap">
+        <div class="sec-head"><p class="kicker">ТРИ ПРОСТІ КРОКИ</p><h2>Встановити можна без Play Market</h2><p class="desc">Застосунок поширюється безкоштовно як APK-файл. Реєструватися або створювати акаунт не потрібно.</p></div>
+        <div class="steps">
+          <article class="step"><span class="step-n">01</span><h3>Завантаж APK</h3><p>Натисни кнопку завантаження на цій сторінці та відкрий файл <strong>Svitlo-1.0.2.apk</strong> на Android-телефоні.</p></article>
+          <article class="step"><span class="step-n">02</span><h3>Дозволь встановлення</h3><p>Android може попросити дозволити встановлення саме з браузера або файлового менеджера. Після встановлення цей дозвіл можна вимкнути.</p></article>
+          <article class="step"><span class="step-n">03</span><h3>Обери свою адресу</h3><p>Вкажи філію, населений пункт, вулицю та будинок. Підтвердь адресу й додай віджет на головний екран.</p></article>
+        </div>
+      </div>
+    </section>
+    <section class="download-section" id="download">
+      <div class="wrap">
+        <div class="download-panel">
+          <div><p class="kicker">БЕЗКОШТОВНО ДЛЯ ANDROID</p><h2>Менше сюрпризів.<br>Більше впевненості.</h2><p>Завантаж «Світло» та поділися посиланням із рідними або сусідами. Без реклами, підписок і прихованих платежів.</p></div>
+          <div class="right"><a class="btn btn-primary" href="downloads/Svitlo-1.0.2.apk" download="Svitlo-1.0.2.apk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg> Завантажити APK · 1.0.2</a><div class="checksum">SHA-256:<br><span id="hash">ebbc9013fc3cb3aac7c4a90a3e4099cdae9964598320a3fc616ec6219919bbbf</span></div></div>
+        </div>
+      </div>
+    </section>
+    <section class="faq" id="privacy">
+      <div class="wrap"><div class="sec-head"><p class="kicker">ВАЖЛИВО ЗНАТИ</p><h2>Коротко про безпеку та дані</h2></div>
+        <div class="faqs">
+          <div class="faq-item"><h3>Чи потрібен особовий рахунок?</h3><p>Ні. Обираєш адресу з довідника оператора, а застосунок визначає відповідний рахунок для запитів автоматично. Якщо адреса неоднозначна, він повідомить про це.</p></div>
+          <div class="faq-item"><h3>Чи збирає застосунок персональні дані?</h3><p>Немає реєстрації, реклами, власного сервера чи аналітики. Вибрана адреса й технічний ідентифікатор рахунку зберігаються локально на телефоні. Необхідні запити відправляються сервісу Черкасиобленерго. Перевірка місця для погоди є необов'язковою та потребує дозволу.</p></div>
+          <div class="faq-item"><h3>Чи це офіційний застосунок?</h3><p>Ні. Це незалежний безкоштовний застосунок. Дані про відключення надходять із сервісу <a href="https://www.cherkasyoblenergo.com/off" rel="noopener noreferrer" target="_blank">АТ «Черкасиобленерго»</a>, але розробник не є представником оператора.</p></div>
+          <div class="faq-item"><h3>Чи показує він, що світло є зараз?</h3><p>Ні. «Світло» показує опубліковані графіки, а не вимірює напругу в будинку. Якщо даних немає або вони застаріли, це не гарантує наявності електроенергії.</p></div>
+          <div class="faq-item"><h3>Як часто оновлюються дані?</h3><p>За замовчуванням приблизно раз на годину, якщо Android та мережа дозволяють фонову роботу. У застосунку доступне ручне оновлення й налаштування інтервалу.</p></div>
+          <div class="faq-item"><h3>Звідки погода?</h3><p>Погодні дані: <a href="https://open-meteo.com/" rel="noopener noreferrer" target="_blank">Open-Meteo</a> (CC BY 4.0). Довідкові назви місць: <a href="https://www.geonames.org/" rel="noopener noreferrer" target="_blank">GeoNames</a>. Запити погоди не містять особового рахунку чи повної адреси.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer><div class="wrap foot"><div><strong>⚡ Світло</strong> · Незалежний безкоштовний застосунок для Android.<br>Не є офіційним продуктом АТ «Черкасиобленерго».</div><div class="foot-links"><a href="#top">На початок ↑</a><a href="#install">Встановлення</a><a href="#privacy">Про дані</a></div></div></footer>
+  <dialog class="modal" id="shotDialog" aria-label="Збільшений скриншот"><button type="button" id="closeDialog">Закрити ✕</button><img src="" alt="" id="modalImage"></dialog>
+  <script>
+    const dialog=document.getElementById('shotDialog');
+    const modalImage=document.getElementById('modalImage');
+    document.querySelectorAll('[data-full]').forEach(btn=>btn.addEventListener('click',()=>{modalImage.src=btn.dataset.full;modalImage.alt=btn.dataset.alt||'Скриншот застосунку';dialog.showModal()}));
+    document.getElementById('closeDialog').addEventListener('click',()=>dialog.close());
+    dialog.addEventListener('click',(e)=>{if(e.target===dialog)dialog.close()});
+  </script>
+</body>
+</html>
