@@ -1,0 +1,3 @@
+app/vendor/** -diff -whitespace
+server/operator-chain.js -diff
+server/operator-certificates.js -diff

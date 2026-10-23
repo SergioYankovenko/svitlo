@@ -1,0 +1,7 @@
+project_id = "svitlo"
+[auth]
+enable_anonymous_sign_ins = true
+[functions.svitlo-api]
+verify_jwt = false # Explicit auth.getUser validation in handler supports current signing keys.
+[functions.svitlo-jobs]
+verify_jwt = false
