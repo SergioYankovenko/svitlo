@@ -1,4 +1,4 @@
-const CACHE = "svitlo-pwa-7c0d05dda4bb",
+const CACHE = "svitlo-pwa-e76f5048842e",
   ROOT = new URL("./", self.location.href);
 // Build writes the complete hashed app-shell list here, including the bundled client library.
 const SHELL = [
@@ -22,7 +22,7 @@ self.addEventListener("install", (event) =>
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((c) => c.addAll(SHELL.map((p) => new URL(p, ROOT).href))),
+      .then((c) => c.addAll(SHELL.map((p) => new Request(new URL(p, ROOT), { cache: "reload" })))),
   ),
 );
 self.addEventListener("activate", (event) =>

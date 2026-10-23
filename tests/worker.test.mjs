@@ -23,6 +23,7 @@ function worker() {
   const context = {
     URL,
     Response,
+    Request,
     self,
     caches: {
       open: async () => ({
@@ -51,8 +52,8 @@ async function dispatch(fn, event = {}) {
 test("service worker precaches app shell inside GitHub Pages subpath", async () => {
   const w = worker();
   await dispatch(w.handlers.install);
-  assert(w.calls[0].urls.includes(w.root + "vendor/supabase.js"));
-  assert(w.calls[0].urls.every((u) => u.startsWith(w.root)));
+  assert(w.calls[0].urls.some((r) => r.url === w.root + "vendor/supabase.js"));
+  assert(w.calls[0].urls.every((u) => u.url.startsWith(w.root)));
 });
 test("offline navigation returns cached application shell", async () => {
   const w = worker(),
@@ -130,3 +131,5 @@ test("local diagnostics record display failure without claiming success", async 
   );
   assert.equal(w.receipts[1].error, "NotAllowedError");
 });
+
+test("app updates bypass stale browser HTTP cache", async () => { const w = worker(); await dispatch(w.handlers.install); assert(w.calls[0].urls.every(r => r.cache === "reload")); });

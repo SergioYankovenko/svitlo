@@ -639,6 +639,7 @@ async function startup() {
     if ("serviceWorker" in navigator) {
       registration = await navigator.serviceWorker.register("./sw.js", {
         scope: "./",
+        updateViaCache: "none",
       });
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
