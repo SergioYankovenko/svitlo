@@ -1,3 +1,9 @@
+import {
+  powerIcon,
+  summaryIcon,
+  weatherIcon,
+  weatherDescription,
+} from "./lib/icons.js";
 import { request, configured, forgetSession } from "./api.js";
 import {
   dayKey,
@@ -53,7 +59,6 @@ const state = {
   explicit: false,
 };
 let registration,
-  installPrompt,
   refreshToken = 0,
   calendarDay = dayKey(),
   statusTimer;
@@ -137,7 +142,7 @@ function home(p, now) {
             `${clock(x.start)}–${clock(x.end)}: ${{ clear: "зі світлом", unknown: "немає точних даних", hourly: "погодинне відключення", planned: "планові роботи", emergency: "аварійне відключення" }[x.kind]}`,
         )
         .join("; ");
-      return `<div class="hour ${out ? "outage" : ""} ${unknown ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" style="background:linear-gradient(to right,${grad})" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">${out ? "ϟ̸" : unknown ? "?" : "ϟ"}</span><span aria-hidden="true">${clock(h.start)}</span></div>`;
+      return `<div class="hour ${out ? "outage" : ""} ${unknown ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" style="background:linear-gradient(to right,${grad})" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">${powerIcon(out, unknown && !out)}</span><span aria-hidden="true">${clock(h.start)}</span></div>`;
     })
     .join("");
   return `<section class="card address"><label for="active-address" class="sr-only">Ваша адреса</label><div class="address-picker"><span aria-hidden="true">${esc(p.name ? p.name + ": " + p.address.label : p.address.label)} ▾</span><select class="address-select" id="active-address">${state.profiles.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name ? x.name + ": " + x.address.label : x.address.label)}</option>`).join("")}</select></div><div class="row">${action("add", "Додати адресу")}${action("manage", "Керувати адресами")}</div></section><section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня">${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${stale ? '<p class="notice">Оновлення недоступне або дані застаріли. Збережений графік може змінитися.</p>' : ""}${s.available ? `<div class="hours">${hours}</div>` : '<p class="empty">Графік не сформовано</p>'}<div class="legend"><span><i style="background:var(--hourly)"></i>ГПВ</span><span><i style="background:var(--planned)"></i>Планові роботи</span><span><i style="background:var(--emergency)"></i>Аварійні</span></div><div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
@@ -148,11 +153,11 @@ function home(p, now) {
         ]
           .map(
             ([icon, label, n]) =>
-              `<article class="card"><p class="stat-label"><i aria-hidden="true">${icon}</i>${label}</p><p class="stat-value">${duration(n)}</p><small>за графіком</small></article>`,
+              `<article class="card"><p class="stat-label"><i aria-hidden="true">${summaryIcon(label === "Зі світлом")}</i>${label}</p><p class="stat-value">${duration(n)}</p><small>за графіком</small></article>`,
           )
           .join("")}</section>`
       : '<section class="card"><h2>Немає точних даних</h2></section>'
-  }<section class="card weather"><small>СЬОГОДНІ</small><div class="weather-now"><strong class="temperature">${w ? Math.round(w.temperature) + "°" : "—°"}</strong><div><h2>${esc(p.address.city)}</h2><p class="muted">${w ? weatherText(w.code) : "Погода поки недоступна"}</p></div></div>${w ? `<div class="weather-hours" aria-label="Погода на 24 години">${w.hours.map((h) => `<div class="weather-hour"><small>${clock(h.time)}</small><b>${Math.round(h.temp)}°</b></div>`).join("")}</div><small>Оновлено ${stamp(w.checkedAt)}${Date.now() - w.checkedAt > 7200000 ? " · збережені дані" : ""}</small>` : ""}<p class="privacy"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · CC BY 4.0 · GeoNames</p></section><div class="row">${action("share", "Поширити графік")}</div>`;
+  }<section class="card weather"><small>СЬОГОДНІ</small><div class="weather-now"><span class="weather-current-icon">${weatherIcon(w?.code, w?.isDay !== false)}</span><strong class="temperature">${w ? Math.round(w.temperature) + "°" : "—°"}</strong><div><h2>${esc(p.address.city)}</h2><p class="muted">${w ? weatherDescription(w.code) : "Погода поки недоступна"}</p></div></div>${w ? `<div class="weather-hours" aria-label="Погода на 24 години">${w.hours.map((h) => `<div class="weather-hour"><small>${clock(h.time)}</small>${weatherIcon(h.code, h.isDay !== false)}<b>${Math.round(h.temp)}°</b></div>`).join("")}</div><small>Оновлено ${stamp(w.checkedAt)}${Date.now() - w.checkedAt > 7200000 ? " · збережені дані" : ""}</small>` : ""}<p class="privacy"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · CC BY 4.0 · GeoNames</p></section><div class="row">${action("share", "Поширити графік")}</div>`;
 }
 function messages(p) {
   const items = p?.messages || [];
@@ -179,23 +184,9 @@ function options(p) {
     )
     .join(
       "",
-    )}<label>Нагадувати за<select id="lead" ${p ? "" : "disabled"}>${[5, 15, 30, 60].map((n) => `<option value="${n}" ${+(prefs.lead || 30) === n ? "selected" : ""}>${n} хв</option>`).join("")}</select></label><div class="stack">${action("push", state.push ? "Вимкнути push-сповіщення" : "Увімкнути push-сповіщення", !p ? "disabled" : "")}</div><p class="install-note">На iPhone сповіщення доступні з iOS 16.4 після додавання на Початковий екран. Дозвіл запитується лише після натискання кнопки. Час доставки залежить від системи.</p></section><section class="card"><h2>Оновлення</h2><p class="notice">Сервер перевіряє графіки щогодини. При відкритті завантажується останній результат.</p>${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити зараз", state.busy || !p ? "disabled" : "")}</section><section class="card"><h2>Встановити «Світло»</h2><p class="install-note">iPhone: «Поділитися» → «На Початковий екран». Android: меню браузера → «Встановити застосунок».</p>${installPrompt ? '<div class="stack">' + action("install", "Встановити") + "</div>" : ""}</section><section class="card"><h2>Ваші дані</h2><p class="privacy">Адреса та підписка зберігаються на сервері «Світло» для оновлень і сповіщень. Погода визначається для населеного пункту. На пристрої зберігається офлайн-копія. Очищення даних браузера може втратити доступ до збережених адрес.</p><div class="stack">${action("erase", "Видалити мої дані", 'class="danger"')}</div></section><section class="card"><div class="stack">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div></section><p class="privacy">Світло PWA · 1.0.0<br>Дані: Черкасиобленерго. Фактичний час відключень може змінюватися.</p></div>`;
+    )}<label>Нагадувати за<select id="lead" ${p ? "" : "disabled"}>${[5, 15, 30, 60].map((n) => `<option value="${n}" ${+(prefs.lead || 30) === n ? "selected" : ""}>${n} хв</option>`).join("")}</select></label><div class="stack">${action("push", state.push ? "Вимкнути push-сповіщення" : "Увімкнути push-сповіщення", !p ? "disabled" : "")}</div><p class="install-note">На iPhone сповіщення доступні з iOS 16.4 після додавання на Початковий екран. Дозвіл запитується лише після натискання кнопки. Час доставки залежить від системи.</p></section><section class="card"><h2>Оновлення</h2><p class="notice">Сервер перевіряє графіки щогодини. При відкритті завантажується останній результат.</p>${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити зараз", state.busy || !p ? "disabled" : "")}</section><section class="card"><h2>Ваші дані</h2><p class="privacy">Адреса та підписка зберігаються на сервері «Світло» для оновлень і сповіщень. Погода визначається для населеного пункту. На пристрої зберігається офлайн-копія. Очищення даних браузера може втратити доступ до збережених адрес.</p><div class="stack">${action("erase", "Видалити мої дані", 'class="danger"')}</div></section><div class="stack">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div></div>`;
 }
-function weatherText(code) {
-  return code === 0
-    ? "Ясно"
-    : code <= 3
-      ? "Мінлива хмарність"
-      : code < 50
-        ? "Туман"
-        : code < 70
-          ? "Дощ"
-          : code < 80
-            ? "Сніг"
-            : code < 95
-              ? "Зливи"
-              : "Гроза";
-}
+
 function bind() {
   document.querySelectorAll("[data-tab]").forEach(
     (el) =>
@@ -320,12 +311,6 @@ async function runAction(action) {
     if (action === "previous") return navigateWeek(-1);
     if (action === "next") return navigateWeek(1);
     if (action === "push") return togglePush();
-    if (action === "install") {
-      await installPrompt.prompt();
-      installPrompt = null;
-      render();
-      return;
-    }
     if (action === "share") {
       const p = profile(),
         s = dayState(p.snapshot, state.date),
@@ -379,6 +364,7 @@ async function weather(id) {
   if (
     cached &&
     cached.city === p.address.city &&
+    typeof cached.isDay === "boolean" &&
     Date.now() - cached.checkedAt < 3600000
   )
     return;
@@ -658,11 +644,6 @@ async function startup() {
     render();
   }
 }
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  installPrompt = e;
-  if (state.tab === "options") render();
-});
 window.addEventListener("online", () => {
   render();
   refresh();

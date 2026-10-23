@@ -5,6 +5,7 @@ import fs from "node:fs";
 function worker() {
   const handlers = {},
     calls = [],
+    receipts = [],
     root = "https://example.com/svitlo/app/";
   const self = {
     location: { href: root + "sw.js" },
@@ -21,9 +22,13 @@ function worker() {
   };
   const context = {
     URL,
+    Response,
     self,
     caches: {
-      open: async () => ({ addAll: async (urls) => calls.push({ urls }) }),
+      open: async () => ({
+        addAll: async (urls) => calls.push({ urls }),
+        put: async (url, response) => receipts.push(await response.json()),
+      }),
       match: async (key) => ({ offline: key }),
       keys: async () => [],
     },
@@ -32,7 +37,7 @@ function worker() {
     },
   };
   vm.runInNewContext(fs.readFileSync("app/sw.js", "utf8"), context);
-  return { handlers, calls, context, root };
+  return { handlers, calls, context, root, receipts };
 }
 async function dispatch(fn, event = {}) {
   let pending;
@@ -100,4 +105,28 @@ test("notification click opens the requested day within app scope", async () => 
   const u = new URL(w.calls[0].url);
   assert.equal(u.pathname, "/svitlo/app/");
   assert.equal(u.searchParams.get("date"), "2026-10-26");
+});
+test("local diagnostics distinguish received push and created notification", async () => {
+  const w = worker();
+  await dispatch(w.handlers.push, {
+    data: { json: () => ({ title: "Test" }) },
+  });
+  assert.deepEqual(
+    w.receipts.map((r) => r.stage),
+    ["received", "created"],
+  );
+});
+test("local diagnostics record display failure without claiming success", async () => {
+  const w = worker();
+  w.context.self.registration.showNotification = async () => {
+    throw new DOMException("Denied", "NotAllowedError");
+  };
+  await assert.rejects(() =>
+    dispatch(w.handlers.push, { data: { json: () => ({}) } }),
+  );
+  assert.deepEqual(
+    w.receipts.map((r) => r.stage),
+    ["received", "failed"],
+  );
+  assert.equal(w.receipts[1].error, "NotAllowedError");
 });

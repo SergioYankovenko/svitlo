@@ -1,4 +1,4 @@
-const CACHE = "svitlo-pwa-d67fd0ec2ffc",
+const CACHE = "svitlo-pwa-be56abcdb870",
   ROOT = new URL("./", self.location.href);
 // Build writes the complete hashed app-shell list here, including the bundled client library.
 const SHELL = [
@@ -9,6 +9,7 @@ const SHELL = [
   "./api.js",
   "./config.js",
   "./lib/time.js",
+  "./lib/icons.js",
   "./lib/parsers.js",
   "./lib/schedule.js",
   "./manifest.webmanifest",
@@ -59,9 +60,13 @@ self.addEventListener("fetch", (event) => {
 async function recordPush(stage, error = "") {
   try {
     const cache = await caches.open(CACHE);
-    await cache.put(new URL("push-receipt.json", ROOT).href,
-      Response.json({ at: Date.now(), stage, error }));
-  } catch { /* Local diagnostics must not prevent notification delivery. */ }
+    await cache.put(
+      new URL("push-receipt.json", ROOT).href,
+      Response.json({ at: Date.now(), stage, error }),
+    );
+  } catch {
+    /* Local diagnostics must not prevent notification delivery. */
+  }
 }
 self.addEventListener("push", (event) =>
   event.waitUntil(
@@ -71,21 +76,28 @@ self.addEventListener("push", (event) =>
       try {
         p = event.data?.json() || {};
       } catch {}
-      try { await self.registration.showNotification(
-        String(p.title || "Світло").slice(0, 160),
-        {
-          body: String(p.body || "З’явилося оновлення графіка.").slice(0, 300),
-          icon: new URL("icons/icon-192.png", ROOT).href,
-          badge: new URL("icons/icon-192.png", ROOT).href,
-          tag: String(p.tag || "svitlo").slice(0, 160),
-          data: {
-            date: /^\d{4}-\d{2}-\d{2}$/.test(p.date) ? p.date : null,
-            profile: /^[0-9a-f-]{36}$/.test(p.profile) ? p.profile : null,
+      try {
+        await self.registration.showNotification(
+          String(p.title || "Світло").slice(0, 160),
+          {
+            body: String(p.body || "З’явилося оновлення графіка.").slice(
+              0,
+              300,
+            ),
+            icon: new URL("icons/icon-192.png", ROOT).href,
+            badge: new URL("icons/icon-192.png", ROOT).href,
+            tag: String(p.tag || "svitlo").slice(0, 160),
+            data: {
+              date: /^\d{4}-\d{2}-\d{2}$/.test(p.date) ? p.date : null,
+              profile: /^[0-9a-f-]{36}$/.test(p.profile) ? p.profile : null,
+            },
           },
-        },
-      );
-      await recordPush("created");
-      } catch(error) { await recordPush("failed", String(error.name)); throw error; }
+        );
+        await recordPush("created");
+      } catch (error) {
+        await recordPush("failed", String(error.name));
+        throw error;
+      }
     })(),
   ),
 );

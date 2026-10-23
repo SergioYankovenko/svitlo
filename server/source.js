@@ -163,6 +163,8 @@ export class Source {
   async feed(now = Date.now(), previous = {}) {
     if (this.publicCache && this.publicCache.checkedAt > now - 3600000)
       return this.publicCache;
+    if (previous.checkedAt > now - 3600000 && Array.isArray(previous.plans))
+      return (this.publicCache = previous);
     if (this.pending) return this.pending;
     this.pending = this.loadFeed(now, previous)
       .then((v) => ((this.publicCache = v), v))
@@ -219,7 +221,7 @@ export class Source {
               id: `plan:${key}:${p.revision}`,
               date: p.date,
               queue: p.queue,
-              title: `${changed ? "Оновлено" : "Опубліковано"} графік на ${p.date}`,
+              title: `${changed || /оновлен/i.test(a.title) ? "Оновлено" : "Опубліковано"} графік на ${p.date}`,
               updatedAt:
                 changed && p.publishedAt <= old.publishedAt
                   ? now
@@ -341,8 +343,8 @@ export class Source {
         new URLSearchParams({
           latitude: String(location.latitude),
           longitude: String(location.longitude),
-          current: "temperature_2m,weather_code",
-          hourly: "temperature_2m,weather_code",
+          current: "temperature_2m,weather_code,is_day",
+          hourly: "temperature_2m,weather_code,is_day",
           forecast_days: "2",
           timezone: "UTC",
           timeformat: "unixtime",
@@ -356,11 +358,13 @@ export class Source {
       checkedAt: Date.now(),
       temperature: forecast.current.temperature_2m,
       code: forecast.current.weather_code,
+      isDay: forecast.current.is_day === 1,
       hours: forecast.hourly.time
         .map((t, i) => ({
           time: t * 1000,
           temp: forecast.hourly.temperature_2m[i],
           code: forecast.hourly.weather_code[i],
+          isDay: forecast.hourly.is_day[i] === 1,
         }))
         .filter((x) => x.time >= Date.now() - 3600000)
         .slice(0, 24),

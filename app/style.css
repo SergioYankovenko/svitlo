@@ -674,3 +674,48 @@ dialog .row {
   white-space: nowrap;
   overflow-wrap: normal;
 }
+
+.icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  vertical-align: middle;
+}
+.hour .icon {
+  width: 17px;
+  height: 23px;
+  display: block;
+}
+.stat-label i {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.stat-label .icon {
+  width: 24px;
+  height: 24px;
+}
+.weather-current-icon {
+  color: var(--accent);
+  display: flex;
+}
+.weather-current-icon .icon {
+  width: 44px;
+  height: 44px;
+}
+.weather-now {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+.weather-now > div {
+  flex: 1;
+  min-width: 140px;
+}
+.weather-hour .icon {
+  display: block;
+  margin: 12px auto 4px;
+  width: 28px;
+  height: 28px;
+  color: var(--accent);
+}
