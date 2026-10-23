@@ -32,14 +32,22 @@ export async function request(action, data = {}) {
     headers.apikey = config.publishableKey;
     headers.Authorization = "Bearer " + session.access_token;
   }
-  const r = await fetch(config.apiUrl, {
+  return post(config.apiUrl, {
     method: "POST",
     headers,
     body: JSON.stringify({ action, ...data }),
     signal: AbortSignal.timeout(120000),
     cache: "no-store",
   });
-  const payload = await r.json();
+}
+export async function post(url, options, fetcher = fetch) {
+  let r, payload;
+  try {
+    r = await fetcher(url, options);
+    payload = await r.json();
+  } catch {
+    throw Error("Оновлення тимчасово недоступне. Показуємо збережені дані.");
+  }
   if (!r.ok) throw Error(payload.error || "Перевірка тимчасово недоступна");
   return payload;
 }
