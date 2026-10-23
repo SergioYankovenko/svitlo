@@ -58,6 +58,10 @@ const state = {
   push: false,
   explicit: false,
 };
+let installPrompt,
+  installDismissed = false,
+  installHelp = false,
+  installed = false;
 let registration,
   refreshToken = 0,
   calendarDay = dayKey(),
@@ -90,6 +94,22 @@ const action = (id, label, extra = "") =>
   `<button data-action="${id}" ${extra}>${label}</button>`;
 const external = (url, label) =>
   `<a class="button" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+function installNotice() {
+  if (
+    installed ||
+    installDismissed ||
+    navigator.standalone ||
+    window.matchMedia("(display-mode: standalone)").matches
+  )
+    return "";
+  const ios =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const help = ios
+    ? "Натисніть «Поділитися» → «На Початковий екран» у Safari."
+    : "Відкрийте меню браузера → «Встановити застосунок» або «Додати на головний екран». Якщо відкрито всередині іншого застосунку, спершу відкрийте посилання у браузері.";
+  return `<aside class="install-banner" aria-label="Встановлення Світло"><strong>Встановіть «Світло» на телефон</strong><div class="actions">${action("install", "Встановити", 'class="primary"')}${action("dismiss-install", "Пізніше")}</div>${installHelp ? `<p class="install-note" role="status">${help}</p>` : ""}</aside>`;
+}
 function render() {
   theme();
   const p = profile(),
@@ -99,7 +119,7 @@ function render() {
     (p) => (p.messages = mergeHistory(p.messages || [], [], now)),
   );
   $("#app").innerHTML =
-    `<div class="shell"><header class="top"><h1 class="brand">Світло<span>${p?.snapshot?.queue ? "Черга " + esc(p.snapshot.queue) : "Для Черкащини"}</span></h1>${timer ? `<p class="countdown">${esc(timer.label)}${timer.minutes !== undefined ? "<br><strong>" + duration(timer.minutes) + "</strong>" : ""}</p>` : ""}</header>${!navigator.onLine ? '<div class="offline">Ви офлайн · показуємо збережені дані</div>' : ""}${state.error ? `<p class="notice" role="status">${esc(state.error)}</p>` : ""}<main id="content">${state.tab === "home" ? home(p, now) : state.tab === "messages" ? messages(p, now) : options(p)}</main></div><nav class="nav" aria-label="Основне меню">${[
+    `<div class="shell"><header class="top"><h1 class="brand">Світло<span>${p?.snapshot?.queue ? "Черга " + esc(p.snapshot.queue) : "Для Черкащини"}</span></h1>${timer ? `<p class="countdown">${esc(timer.label)}${timer.minutes !== undefined ? "<br><strong>" + duration(timer.minutes) + "</strong>" : ""}</p>` : ""}</header>${!navigator.onLine ? '<div class="offline">Ви офлайн · показуємо збережені дані</div>' : ""}${state.error ? `<p class="notice" role="status">${esc(state.error)}</p>` : ""}${installNotice()}<main id="content">${state.tab === "home" ? home(p, now) : state.tab === "messages" ? messages(p, now) : options(p)}</main></div><nav class="nav" aria-label="Основне меню">${[
       ["home", "Головна"],
       ["messages", "Повідомлення"],
       ["options", "Опції"],
@@ -113,7 +133,7 @@ function render() {
 }
 function home(p, now) {
   if (!p)
-    return `<section class="card empty"><div class="sun" aria-hidden="true">☀</div><h2>Знайте, коли буде світло</h2><p>Додайте адресу, щоб бачити ваш графік, погоду та зміни відключень.</p>${action("add", "Додати адресу", 'class="primary"')}${!configured() ? '<p class="install-note">Вебзастосунок підготовлено. Підключення сервера триває.</p>' : ""}</section><section class="card"><h2>Світло під рукою</h2><p class="install-note">На iPhone: «Поділитися» → «На Початковий екран». На Android: меню браузера → «Встановити застосунок».</p></section>`;
+    return `<section class="card empty"><div class="sun" aria-hidden="true">☀</div><h2>Знайте, коли буде світло</h2><p>Додайте адресу, щоб бачити ваш графік, погоду та зміни відключень.</p>${action("add", "Додати адресу", 'class="primary"')}${!configured() ? '<p class="install-note">Вебзастосунок підготовлено. Підключення сервера триває.</p>' : ""}</section>`;
   const s = dayState(p.snapshot, state.date, now),
     days = week(state.week),
     w = state.weather[p.id],
@@ -311,6 +331,22 @@ async function runAction(action) {
     if (action === "previous") return navigateWeek(-1);
     if (action === "next") return navigateWeek(1);
     if (action === "push") return togglePush();
+    if (action === "dismiss-install") {
+      installDismissed = true;
+      render();
+      return;
+    }
+    if (action === "install") {
+      if (installPrompt) {
+        const prompt = installPrompt;
+        installPrompt = null;
+        await prompt.prompt();
+        const choice = await prompt.userChoice;
+        if (choice.outcome === "accepted") installed = true;
+      } else installHelp = true;
+      render();
+      return;
+    }
     if (action === "share") {
       const p = profile(),
         s = dayState(p.snapshot, state.date),
@@ -644,6 +680,19 @@ async function startup() {
     render();
   }
 }
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  render();
+});
+window.addEventListener("appinstalled", () => {
+  installed = true;
+  installPrompt = null;
+  render();
+});
+window
+  .matchMedia("(display-mode: standalone)")
+  .addEventListener("change", render);
 window.addEventListener("online", () => {
   render();
   refresh();

@@ -719,3 +719,23 @@ dialog .row {
   height: 28px;
   color: var(--accent);
 }
+
+.install-banner {
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--accent);
+  border-radius: 18px;
+}
+.install-banner .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.install-banner .actions button {
+  flex: 1;
+  min-width: 100px;
+}
+.install-banner p {
+  margin-bottom: 0;
+}
