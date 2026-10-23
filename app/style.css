@@ -739,3 +739,44 @@ dialog .row {
 .install-banner p {
   margin-bottom: 0;
 }
+
+select[hidden] {
+  display: none !important;
+}
+.picker-trigger {
+  width: 100%;
+  text-align: left;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.address-picker .picker-trigger {
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  padding: 8px 0;
+}
+.picker-dialog h2 {
+  padding-right: 36px;
+  margin: 0 0 20px;
+}
+.picker-dialog input {
+  margin-bottom: 16px;
+}
+.picker-list {
+  display: grid;
+  gap: 8px;
+}
+.picker-option {
+  text-align: left;
+  overflow-wrap: anywhere;
+  padding: 14px 16px;
+  border: 2px solid transparent;
+}
+.picker-option[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.picker-option[aria-pressed="true"]::after {
+  content: " ✓";
+}

@@ -1,3 +1,4 @@
+import { enhancePickers } from "./lib/pickers.js";
 import {
   powerIcon,
   summaryIcon,
@@ -130,6 +131,7 @@ function render() {
       )
       .join("")}</nav>`;
   bind();
+  enhancePickers();
 }
 function home(p, now) {
   if (!p)
@@ -165,7 +167,7 @@ function home(p, now) {
       return `<div class="hour ${out ? "outage" : ""} ${unknown ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" style="background:linear-gradient(to right,${grad})" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">${powerIcon(out, unknown && !out)}</span><span aria-hidden="true">${clock(h.start)}</span></div>`;
     })
     .join("");
-  return `<section class="card address"><label for="active-address" class="sr-only">Ваша адреса</label><div class="address-picker"><span aria-hidden="true">${esc(p.name ? p.name + ": " + p.address.label : p.address.label)} ▾</span><select class="address-select" id="active-address">${state.profiles.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name ? x.name + ": " + x.address.label : x.address.label)}</option>`).join("")}</select></div><div class="row">${action("add", "Додати адресу")}${action("manage", "Керувати адресами")}</div></section><section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня">${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${stale ? '<p class="notice">Оновлення недоступне або дані застаріли. Збережений графік може змінитися.</p>' : ""}${s.available ? `<div class="hours">${hours}</div>` : '<p class="empty">Графік не сформовано</p>'}<div class="legend"><span><i style="background:var(--hourly)"></i>ГПВ</span><span><i style="background:var(--planned)"></i>Планові роботи</span><span><i style="background:var(--emergency)"></i>Аварійні</span></div><div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
+  return `<section class="card address"><label for="active-address" class="sr-only">Ваша адреса</label><div class="address-picker"><select class="address-select" id="active-address">${state.profiles.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name ? x.name + ": " + x.address.label : x.address.label)}</option>`).join("")}</select></div><div class="row">${action("add", "Додати адресу")}${action("manage", "Керувати адресами")}</div></section><section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня">${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${stale ? '<p class="notice">Оновлення недоступне або дані застаріли. Збережений графік може змінитися.</p>' : ""}${s.available ? `<div class="hours">${hours}</div>` : '<p class="empty">Графік не сформовано</p>'}<div class="legend"><span><i style="background:var(--hourly)"></i>ГПВ</span><span><i style="background:var(--planned)"></i>Планові роботи</span><span><i style="background:var(--emergency)"></i>Аварійні</span></div><div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
     s.totals
       ? `<section class="stats" aria-label="Підсумок дня">${[
           ["☀", "Зі світлом", s.totals.on],
@@ -422,6 +424,7 @@ function dialog(title, html) {
   const d = $("#address-dialog");
   d.innerHTML = `<button class="dialog-close" aria-label="Закрити">×</button><h2 id="dialog-title">${title}</h2>${html}`;
   d.querySelector(".dialog-close").onclick = () => d.close();
+  enhancePickers(d);
   d.showModal();
   return d;
 }
@@ -717,6 +720,6 @@ function rollover() {
 }
 setInterval(() => {
   rollover();
-  if (state.tab === "home" && !$("#address-dialog").open) render();
+  if (state.tab === "home" && !document.querySelector("dialog[open]")) render();
 }, 60000);
 startup();
