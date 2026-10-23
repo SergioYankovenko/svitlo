@@ -1,4 +1,4 @@
-const CACHE = "svitlo-pwa-5138e1f63da4",
+const CACHE = "svitlo-pwa-d67fd0ec2ffc",
   ROOT = new URL("./", self.location.href);
 // Build writes the complete hashed app-shell list here, including the bundled client library.
 const SHELL = [
@@ -56,14 +56,22 @@ self.addEventListener("fetch", (event) => {
   if (SHELL.some((p) => new URL(p, ROOT).href === u.href))
     event.respondWith(caches.match(r).then((cached) => cached || fetch(r)));
 });
+async function recordPush(stage, error = "") {
+  try {
+    const cache = await caches.open(CACHE);
+    await cache.put(new URL("push-receipt.json", ROOT).href,
+      Response.json({ at: Date.now(), stage, error }));
+  } catch { /* Local diagnostics must not prevent notification delivery. */ }
+}
 self.addEventListener("push", (event) =>
   event.waitUntil(
     (async () => {
+      await recordPush("received");
       let p = {};
       try {
         p = event.data?.json() || {};
       } catch {}
-      await self.registration.showNotification(
+      try { await self.registration.showNotification(
         String(p.title || "Світло").slice(0, 160),
         {
           body: String(p.body || "З’явилося оновлення графіка.").slice(0, 300),
@@ -76,6 +84,8 @@ self.addEventListener("push", (event) =>
           },
         },
       );
+      await recordPush("created");
+      } catch(error) { await recordPush("failed", String(error.name)); throw error; }
     })(),
   ),
 );
