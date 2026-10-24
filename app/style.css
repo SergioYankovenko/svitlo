@@ -116,10 +116,10 @@ small {
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "brand status" "queue time";
   align-items: baseline;
-  gap: 4px 12px;
+  gap: 2px 12px;
   margin: 0 0 28px;
 }
-.brand { grid-area: brand; color: var(--accent); }
+.brand { grid-area: brand; color: var(--accent); line-height: 1.15; }
 .header-queue { grid-area: queue; color: var(--muted); font-size: 0.85rem; }
 .countdown-label { grid-area: status; }
 .countdown-value { grid-area: time; font-weight: 650; }
@@ -177,6 +177,7 @@ small {
   touch-action: pan-y;
 }
 .week {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   border-bottom: 1px solid var(--track);
@@ -195,15 +196,15 @@ small {
   color: var(--accent);
   font-weight: 650;
 }
-.day[aria-selected="true"]:after {
-  content: "";
+.day-indicator {
   height: 4px;
   border-radius: 6px;
   position: absolute;
   bottom: -1px;
-  left: 28%;
-  right: 28%;
+  left: calc((var(--day-index) + 0.28) * 100% / 7);
+  width: calc(44% / 7);
   background: var(--accent);
+  pointer-events: none;
 }
 .week-control {
   display: flex;
@@ -293,14 +294,17 @@ small {
 }
 .stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
   gap: 16px;
 }
 .stats .card {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 .stat-label {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   color: var(--muted);
@@ -314,12 +318,17 @@ small {
   color: var(--accent);
 }
 .stat-value {
-  font-size: clamp(1.4rem, 5vw, 2rem);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.2em;
+  font-size: 3rem;
   color: var(--accent);
   font-weight: 650;
-  line-height: 1.2;
-  margin: 20px 0 8px;
+  line-height: 1.1;
+  margin: 20px 0 4px;
 }
+.duration-part { display: inline-flex; align-items: baseline; gap: 0.12em; white-space: nowrap; }
+.duration-unit { font-size: 0.42em; }
 .weather-now {
   display: flex;
   justify-content: space-between;
@@ -338,7 +347,13 @@ small {
   gap: 8px;
   margin: 20px -4px;
   padding: 4px;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+.weather-hours::-webkit-scrollbar {
+  display: none;
+}
+.weather > .privacy {
+  margin-top: 6px;
 }
 .weather-hour {
   min-width: 65px;
@@ -644,6 +659,7 @@ dialog .row {
   overflow-wrap: anywhere;
   padding: 6px 2px;
 }
+.address-static { padding: 14px 2px; }
 .address-picker select {
   position: absolute;
   inset: 0;
@@ -939,8 +955,17 @@ select[hidden] {
   pointer-events: none;
 }
 
-.hour.clock-shift { min-height: 5.25rem; }
-.hour.clock-shift .tile-content { bottom: 1.1rem; height: auto; }
+.hour.clock-shift .tile-times { gap: 0; left: 0.85em; right: 0.1em; }
+.hour.clock-shift .clock-time-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.hour.clock-shift .tile-icon { left: 0.1em; }
+.hour.clock-shift .tile-icon .icon {
+  height: 0.7em;
+  width: 0.7em;
+}
 .hour.clock-shift .tile-time {
   flex: none;
   width: auto;
@@ -950,16 +975,12 @@ select[hidden] {
   background: var(--button);
   color: var(--ink) !important;
 }
-.hour.clock-shift > .clock-change {
-  position: absolute;
-  bottom: 0.25rem;
-  left: 50%;
-  transform: translateX(-50%);
+.hour.clock-shift .clock-change {
   padding: 0 0.2em;
   border-radius: 3px;
   background: var(--button);
   color: var(--ink);
-  font-size: 0.625rem;
+  font-size: min(0.5625rem, 12px);
   line-height: 1.2;
   white-space: nowrap;
 }

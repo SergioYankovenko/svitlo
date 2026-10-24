@@ -1,4 +1,4 @@
-const CACHE = "svitlo-pwa-fb029d7d95e0",
+const CACHE = "svitlo-pwa-1681bda41404",
   ROOT = new URL("./", self.location.href);
 // Build writes the complete hashed app-shell list here, including the bundled client library.
 const SHELL = [

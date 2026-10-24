@@ -59,7 +59,7 @@ export function hourTile(h, date, now, range = false, iconStyle = "bolt") {
           )
           .join("")
       : `<span class="tile-icon whole">${icon(parts[0].kind)}</span>`;
-    body = `${icons}<span class="tile-times"><span class="tile-time tile-start" style="color:${isOutage(parts[0].kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(start, date)}</span>${range ? `<span class="tile-time tile-end" style="color:${isOutage(parts.at(-1).kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(end, date)}</span>` : ""}</span>`;
+    body = `${icons}<span class="tile-times">${h.clockChange ? '<span class="clock-time-group">' : ""}<span class="tile-time tile-start" style="color:${isOutage(parts[0].kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(start, date)}</span>${h.clockChange ? '<span class="clock-change">зміна часу</span></span>' : ""}${range ? `<span class="tile-time tile-end" style="color:${isOutage(parts.at(-1).kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(end, date)}</span>` : ""}</span>`;
   } else {
     const content = `<span>${powerIcon(outages.length > 0, !outages.length && parts.some((p) => p.kind === "unknown"), iconStyle)}</span><span>${clock(h.start)}</span>`;
     body = `<span class="legacy-label">${content}</span>`;
@@ -69,7 +69,7 @@ export function hourTile(h, date, now, range = false, iconStyle = "bolt") {
           body += `<span class="legacy-label legacy-copy" style="clip-path:inset(0 ${i ? 0 : 50}% 0 ${i ? 50 : 0}%)">${content}</span>`;
       });
   }
-  return `<div role="img" class="hour ${iconStyle === "bulb" ? "icon-bulb" : ""} ${segmented ? "range-hour" : ""} ${h.clockChange ? "clock-shift" : ""} ${mixed ? "mixed" : ""} ${outages.length === count ? "outage" : ""} ${parts.some((p) => p.kind === "unknown") ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" style="background:${bg}" aria-label="${escapeHTML((h.clockChange ? tileClock(h.start, date) + ", зміна часу; " : "") + label + "; округлено до 30 хвилин")}"><span class="tile-content" aria-hidden="true">${body}</span>${h.clockChange ? `<span class="clock-change" aria-hidden="true">зміна часу</span>` : ""}</div>`;
+  return `<div role="img" class="hour ${iconStyle === "bulb" ? "icon-bulb" : ""} ${segmented ? "range-hour" : ""} ${h.clockChange ? "clock-shift" : ""} ${mixed ? "mixed" : ""} ${outages.length === count ? "outage" : ""} ${parts.some((p) => p.kind === "unknown") ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" style="background:${bg}" aria-label="${escapeHTML((h.clockChange ? tileClock(h.start, date) + ", зміна часу; " : "") + label + "; округлено до 30 хвилин")}"><span class="tile-content" aria-hidden="true">${body}</span></div>`;
 }
 // Measures actual text and font scaling instead of forcing four unreadable columns.
 export function fitHours(grid) {

@@ -4,6 +4,9 @@ export function slideDay(grid, direction, change) {
   const canAnimate = grid?.animate && !reduced;
   const oldHeight = grid?.parentElement.getBoundingClientRect().height;
   const previous = canAnimate ? grid.cloneNode(true) : null;
+  // Read the visible position before render() cancels an interrupted transition.
+  const indicator = grid?.closest?.(".schedule")?.querySelector(".day-indicator");
+  const oldIndicator = canAnimate ? indicator?.getBoundingClientRect() : null;
   const next = change();
   if (!previous || !next?.animate || !next.isConnected) return () => {};
 
@@ -29,6 +32,14 @@ export function slideDay(grid, direction, change) {
       { height: newHeight + "px" },
     ], options),
   ];
+  const nextIndicator = next.closest?.(".schedule")?.querySelector(".day-indicator");
+  if (oldIndicator && nextIndicator?.animate) {
+    const target = nextIndicator.getBoundingClientRect();
+    animations.push(nextIndicator.animate([
+      { transform: `translateX(${oldIndicator.left - target.left}px)` },
+      { transform: "translateX(0)" },
+    ], options));
+  }
   let cleaned = false;
   const cleanup = () => {
     if (cleaned) return;
