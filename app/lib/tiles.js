@@ -60,6 +60,8 @@ export function hourTile(h, date, now, range = false, iconStyle = "bolt") {
           .join("")
       : `<span class="tile-icon whole">${icon(parts[0].kind)}</span>`;
     body = `${icons}<span class="tile-times">${h.clockChange ? '<span class="clock-time-group">' : ""}<span class="tile-time tile-start" style="color:${isOutage(parts[0].kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(start, date)}</span>${h.clockChange ? '<span class="clock-change">зміна часу</span></span>' : ""}${range ? `<span class="tile-time tile-end" style="color:${isOutage(parts.at(-1).kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(end, date)}</span>` : ""}</span>`;
+    if (h.clockChange && !mixed)
+      body = `<span class="tile-times"><span class="clock-time-group"><span class="clock-main">${icon(parts[0].kind)}<span class="tile-time tile-start">${tileClock(start, date)}</span></span><span class="clock-change">зміна часу</span></span>${range ? `<span class="tile-time tile-end">${tileClock(end, date)}</span>` : ""}</span>`;
   } else {
     const content = `<span>${powerIcon(outages.length > 0, !outages.length && parts.some((p) => p.kind === "unknown"), iconStyle)}</span><span>${clock(h.start)}</span>`;
     body = `<span class="legacy-label">${content}</span>`;

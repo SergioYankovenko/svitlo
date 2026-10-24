@@ -961,6 +961,8 @@ select[hidden] {
   flex-direction: column;
   align-items: center;
 }
+.hour.clock-shift:not(.mixed) .tile-times { left: 0; right: 0; }
+.clock-main { display: flex; align-items: center; gap: 0.25em; }
 .hour.clock-shift .tile-icon { left: 0.1em; }
 .hour.clock-shift .tile-icon .icon {
   height: 0.7em;

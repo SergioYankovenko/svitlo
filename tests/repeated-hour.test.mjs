@@ -54,3 +54,20 @@ test("ordinary and spring days keep 24/23 tiles without a false clock-change bad
     assert.ok(tiles.every(h => !h.clockChange));
   }
 });
+
+test("uniform repeated hour keeps one regular icon beside the time in both display modes", () => {
+  const now = start + 75 * 60000;
+  const repeated = groupRepeatedHours(dayState(data(now), date, now).displayHours).find(h => h.clockChange);
+  for (const kind of ["clear", "hourly", "unknown"]) {
+    const tile = { ...repeated, segments: repeated.segments.map(p => ({ ...p, kind })) };
+    for (const range of [false, true]) for (const icons of ["bolt", "bulb"]) {
+      const html = hourTile(tile, date, now, range, icons);
+      assert.equal((html.match(/<svg /g) || []).length, 1);
+      assert.match(html, /class="clock-main"/);
+      assert.doesNotMatch(html, /class="tile-icon/);
+      assert.match(html, /зміна часу/);
+      assert.equal((html.match(/class="tile-time /g) || []).length, range ? 2 : 1);
+      assert.equal(tile.segments.length, 4);
+    }
+  }
+});
