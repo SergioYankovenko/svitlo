@@ -1,6 +1,7 @@
+import { slideDay } from "./lib/day-transition.js";
 import { fitHeader } from "./lib/layout.js";
 import { adjacentDay, bindHorizontalSwipe } from "./lib/navigation.js";
-import { hourTile, fitHours } from "./lib/tiles.js";
+import { hourTile, fitHours, groupRepeatedHours } from "./lib/tiles.js";
 import { refreshFailure } from "./lib/schedule.js";
 import { enhancePickers } from "./lib/pickers.js";
 import {
@@ -122,6 +123,8 @@ function installNotice() {
   return `<aside class="install-banner" aria-label="Встановлення Світло"><strong>Встановіть «Світло» на телефон</strong><div class="actions">${action("install", "Встановити", 'class="primary"')}${action("dismiss-install", "Пізніше")}</div>${installHelp ? `<p class="install-note" role="status">${help}</p>` : ""}</aside>`;
 }
 function render() {
+  stopDayAnimation?.();
+  stopDayAnimation = null;
   theme();
   const p = profile(),
     now = Date.now(),
@@ -149,10 +152,10 @@ function home(p, now) {
   const s = dayState(p.snapshot, state.date, now),
     days = week(state.week),
     w = state.weather[p.id];
-  const hours = s.displayHours
+  const hours = groupRepeatedHours(s.displayHours)
     .map((h) => hourTile(h, state.date, now, state.rangeTiles, state.iconStyle))
     .join("");
-  return `<section class="card address"><label for="active-address" class="sr-only">Ваша адреса</label><div class="address-picker"><select class="address-select" id="active-address">${state.profiles.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name ? x.name + ": " + x.address.label : x.address.label)}</option>`).join("")}</select></div><div class="row">${action("add", "Додати адресу")}${action("manage", "Керувати адресами")}</div></section><section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня">${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${dataReason(s) && s.reason !== "stale" ? `<p class="notice" role="status">${esc(dataReason(s))}</p>` : ""}${maintenanceNotice(p.snapshot, now)}${s.available || s.reason === "queue_unknown" ? `<div class="hours">${hours}</div>` : '<p class="empty">Графік на цю дату ще не опубліковано</p>'}<div class="legend"><span><i style="background:var(--hourly)"></i>ГПВ</span><span><i style="background:var(--planned)"></i>Планові роботи</span><span><i style="background:var(--emergency)"></i>Аварійні</span></div><div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
+  return `<section class="card address"><label for="active-address" class="sr-only">Ваша адреса</label><div class="address-picker"><select class="address-select" id="active-address">${state.profiles.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name ? x.name + ": " + x.address.label : x.address.label)}</option>`).join("")}</select></div><div class="row">${action("add", "Додати адресу")}${action("manage", "Керувати адресами")}</div></section><section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня">${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${dataReason(s) && s.reason !== "stale" ? `<p class="notice" role="status">${esc(dataReason(s))}</p>` : ""}${maintenanceNotice(p.snapshot, now)}${s.available || s.reason === "queue_unknown" ? `<div class="hours-viewport"><div class="hours">${hours}</div></div>` : '<p class="empty">Графік на цю дату ще не опубліковано</p>'}<div class="legend"><span><i style="background:var(--hourly)"></i>ГПВ</span><span><i style="background:var(--planned)"></i>Планові роботи</span><span><i style="background:var(--emergency)"></i>Аварійні</span></div><div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
     s.totals
       ? `<section class="stats" aria-label="Підсумок дня">${[
           ["☀", "Зі світлом", s.totals.on],
@@ -194,7 +197,7 @@ function options(p) {
     )}<label class="reminder-setting"><span class="reminder-label">Нагадувати за</span><select id="lead" ${p ? "" : "disabled"}>${[5, 15, 30, 60].map((n) => `<option value="${n}" ${+(prefs.lead || 30) === n ? "selected" : ""}>${n} хв</option>`).join("")}</select></label><div class="stack">${action("push", state.push ? "Вимкнути push-сповіщення" : "Увімкнути push-сповіщення", !p ? "disabled" : "")}</div><p class="install-note">На iPhone сповіщення доступні з iOS 16.4 після додавання на Початковий екран. Дозвіл запитується лише після натискання кнопки. Час доставки залежить від системи.</p></section><section class="card"><h2>Оновлення</h2><p class="notice">Сервер перевіряє графіки щогодини. При відкритті завантажується останній результат.</p>${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити зараз", state.busy || !p ? "disabled" : "")}</section><section class="card"><h2>Ваші дані</h2><p class="privacy">Адреса та підписка зберігаються на сервері «Світло» для оновлень і сповіщень. Погода визначається для населеного пункту. На пристрої зберігається офлайн-копія. Очищення даних браузера може втратити доступ до збережених адрес.</p><div class="stack">${action("erase", "Видалити мої дані", 'class="danger"')}</div></section><div class="stack">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div></div>`;
 }
 
-let stopHours, stopHeader, stopDaySwipe, stopWeekSwipe, navObserver;
+let stopHours, stopHeader, stopDaySwipe, stopWeekSwipe, stopDayAnimation, navObserver;
 function maintenanceNotice(snapshot, now) {
   const m = snapshot.maintenance;
   if (
@@ -297,9 +300,9 @@ function bind() {
     );
   if ($("#lead"))
     $("#lead").onchange = (e) => updatePrefs({ lead: +e.target.value });
-  stopDaySwipe = bindHorizontalSwipe($(".hours"), navigateDay);
+  stopDaySwipe = bindHorizontalSwipe($(".hours-viewport"), navigateDay);
   stopWeekSwipe = bindHorizontalSwipe($("#schedule"), navigateWeek,
-    (target) => !!target.closest(".hours, button, a"));
+    (target) => !!target.closest(".hours-viewport, button, a"));
 }
 async function updatePrefs(change) {
   const p = profile();
@@ -318,10 +321,14 @@ async function updatePrefs(change) {
 function navigateDay(direction) {
   const target = adjacentDay(profile()?.snapshot, state.date, direction);
   if (!target) return;
-  state.date = target;
-  state.week = monday(target);
-  state.explicit = false;
-  render();
+  stopDayAnimation?.();
+  stopDayAnimation = slideDay($(".hours"), direction, () => {
+    state.date = target;
+    state.week = monday(target);
+    state.explicit = false;
+    render();
+    return $(".hours");
+  });
 }
 function navigateWeek(direction) {
   const p = profile(),

@@ -17,34 +17,49 @@ export const kindLabel = {
   emergency: "аварійне відключення",
 };
 export const tileClock = (t, date) => (dayKey(t) > date ? "24:00" : clock(t));
+// Repeated civil hours share one visual tile; their real half-hour segments stay intact.
+export function groupRepeatedHours(hours) {
+  const tiles = [];
+  for (const hour of hours) {
+    const previous = tiles.at(-1);
+    if (previous && dayKey(previous.start) === dayKey(hour.start) &&
+        clock(previous.start) === clock(hour.start)) {
+      tiles[tiles.length - 1] = { ...previous, end: hour.end,
+        segments: [...previous.segments, ...hour.segments], clockChange: true };
+    } else tiles.push(hour);
+  }
+  return tiles;
+}
 export function hourTile(h, date, now, range = false, iconStyle = "bolt") {
   const parts = h.segments,
-    mixed = parts[0].kind !== parts[1].kind;
+    mixed = parts.some((p) => p.kind !== parts[0].kind),
+    segmented = range || h.clockChange, count = parts.length;
   const outages = parts.filter((p) => isOutage(p.kind));
   const color = (k) => `var(--${k === "clear" ? "button" : k})`;
-  const bg = `linear-gradient(to ${range ? "bottom" : "right"},${parts.map((p, i) => `${color(p.kind)} ${i * 50}% ${(i + 1) * 50}%`).join(",")})`;
+  const bg = `linear-gradient(to ${segmented ? "bottom" : "right"},${parts.map((p, i) => `${color(p.kind)} ${i * 100 / count}% ${(i + 1) * 100 / count}%`).join(",")})`;
   const label = parts
     .map(
-      (p) =>
-        `${tileClock(p.start, date)}–${tileClock(p.end, date)}: ${kindLabel[p.kind]}`,
+      (p, i) => h.clockChange
+        ? `${i + 1}-й сегмент, 30 хвилин: ${kindLabel[p.kind]}`
+        : `${tileClock(p.start, date)}–${tileClock(p.end, date)}: ${kindLabel[p.kind]}`,
     )
     .join("; ");
   const only = outages.length === 1 ? outages[0] : null;
-  const start = range && only ? only.start : h.start,
-    end = range && only ? only.end : h.end;
+  const start = range && !h.clockChange && only ? only.start : h.start,
+    end = range && !h.clockChange && only ? only.end : h.end;
   const icon = (k) => powerIcon(isOutage(k), k === "unknown", iconStyle);
   let body;
-  if (range) {
+  if (segmented) {
     const icons = mixed
       ? parts
           .map((p, i) =>
-            isOutage(p.kind) || !outages.length
-              ? `<span class="tile-icon half-${i}" style="color:${isOutage(p.kind) ? "var(--outage-ink)" : "var(--ink)"}">${icon(p.kind)}</span>`
+            h.clockChange || isOutage(p.kind) || !outages.length
+              ? `<span class="tile-icon half-${i}" style="top:${(i + 0.5) * 100 / count}%;color:${isOutage(p.kind) ? "var(--outage-ink)" : "var(--ink)"}">${icon(p.kind)}</span>`
               : "",
           )
           .join("")
       : `<span class="tile-icon whole">${icon(parts[0].kind)}</span>`;
-    body = `${icons}<span class="tile-times"><span class="tile-time tile-start" style="color:${isOutage(parts[0].kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(start, date)}</span><span class="tile-time tile-end" style="color:${isOutage(parts[1].kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(end, date)}</span></span>`;
+    body = `${icons}<span class="tile-times"><span class="tile-time tile-start" style="color:${isOutage(parts[0].kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(start, date)}</span>${range ? `<span class="tile-time tile-end" style="color:${isOutage(parts.at(-1).kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(end, date)}</span>` : ""}</span>`;
   } else {
     const content = `<span>${powerIcon(outages.length > 0, !outages.length && parts.some((p) => p.kind === "unknown"), iconStyle)}</span><span>${clock(h.start)}</span>`;
     body = `<span class="legacy-label">${content}</span>`;
@@ -54,7 +69,7 @@ export function hourTile(h, date, now, range = false, iconStyle = "bolt") {
           body += `<span class="legacy-label legacy-copy" style="clip-path:inset(0 ${i ? 0 : 50}% 0 ${i ? 50 : 0}%)">${content}</span>`;
       });
   }
-  return `<div role="img" class="hour ${iconStyle === "bulb" ? "icon-bulb" : ""} ${range ? "range-hour" : ""} ${mixed ? "mixed" : ""} ${outages.length === 2 ? "outage" : ""} ${parts.some((p) => p.kind === "unknown") ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" style="background:${bg}" aria-label="${escapeHTML(label + "; округлено до 30 хвилин")}"><span class="tile-content" aria-hidden="true">${body}</span></div>`;
+  return `<div role="img" class="hour ${iconStyle === "bulb" ? "icon-bulb" : ""} ${segmented ? "range-hour" : ""} ${h.clockChange ? "clock-shift" : ""} ${mixed ? "mixed" : ""} ${outages.length === count ? "outage" : ""} ${parts.some((p) => p.kind === "unknown") ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" style="background:${bg}" aria-label="${escapeHTML((h.clockChange ? tileClock(h.start, date) + ", зміна часу; " : "") + label + "; округлено до 30 хвилин")}"><span class="tile-content" aria-hidden="true">${body}</span>${h.clockChange ? `<span class="clock-change" aria-hidden="true">зміна часу</span>` : ""}</div>`;
 }
 // Measures actual text and font scaling instead of forcing four unreadable columns.
 export function fitHours(grid) {

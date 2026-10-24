@@ -53,7 +53,7 @@ test("service worker precaches app shell inside GitHub Pages subpath", async () 
   const w = worker();
   await dispatch(w.handlers.install);
   assert(w.calls[0].urls.some((r) => r.url === w.root + "vendor/supabase.js"));
-  for (const module of ["lib/navigation.js", "lib/layout.js"])
+  for (const module of ["lib/navigation.js", "lib/layout.js", "lib/day-transition.js"])
     assert(w.calls[0].urls.some((r) => r.url === w.root + module));
   assert(w.calls[0].urls.every((u) => u.url.startsWith(w.root)));
 });
