@@ -19,7 +19,7 @@ export function enhancePickers(root = document) {
     button.setAttribute("aria-expanded", "false");
     select.hidden = true;
     select.after(button);
-    if (label && label !== select.parentElement) label.htmlFor = button.id;
+    if (label) label.htmlFor = button.id;
     const sync = () => {
       const text = select.selectedOptions[0]?.textContent || "Оберіть…";
       button.textContent = text + " ▾";

@@ -6,10 +6,16 @@ const moon = '<path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"/>';
 const cloud =
   '<path d="M6 17a4 4 0 1 1 .5-8A5.5 5.5 0 0 1 17 8a4.5 4.5 0 1 1 1 9Z"/>';
 const rain = '<path d="m8 20-1 2m6-2-1 2m6-2-1 2"/>';
-export function powerIcon(off = false, unknown = false) {
+export function powerIcon(off = false, unknown = false, style = "bolt") {
   if (unknown)
     return svg(
       '<path d="M9 8a3 3 0 1 1 5 2.3C12 11.5 12 12 12 14"/><circle cx="12" cy="18" r=".9" fill="currentColor" stroke="none"/>',
+    );
+  if (style === "bulb")
+    return svg(
+      '<path d="M9 16c0-2-3-3-3-7a6 6 0 1 1 12 0c0 4-3 5-3 7Z"' +
+      (off ? '' : ' fill="currentColor"') + '/><path d="M9 19h6m-5 3h4"/>' +
+      (off ? '' : '<path d="M12 1v1M3.5 3.5l1 1M1 9h2m18 0h2m-3.5-4.5 1-1"/>'),
     );
   return svg(
     '<path d="m14 5-6 8h4l-2 6 6-8h-4Z"' + (off ? '' : ' fill="currentColor"') + '/>' +

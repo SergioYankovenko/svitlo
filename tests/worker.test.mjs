@@ -53,6 +53,8 @@ test("service worker precaches app shell inside GitHub Pages subpath", async () 
   const w = worker();
   await dispatch(w.handlers.install);
   assert(w.calls[0].urls.some((r) => r.url === w.root + "vendor/supabase.js"));
+  for (const module of ["lib/navigation.js", "lib/layout.js"])
+    assert(w.calls[0].urls.some((r) => r.url === w.root + module));
   assert(w.calls[0].urls.every((u) => u.url.startsWith(w.root)));
 });
 test("offline navigation returns cached application shell", async () => {

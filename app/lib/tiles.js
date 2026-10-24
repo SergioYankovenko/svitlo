@@ -17,7 +17,7 @@ export const kindLabel = {
   emergency: "аварійне відключення",
 };
 export const tileClock = (t, date) => (dayKey(t) > date ? "24:00" : clock(t));
-export function hourTile(h, date, now, range = false) {
+export function hourTile(h, date, now, range = false, iconStyle = "bolt") {
   const parts = h.segments,
     mixed = parts[0].kind !== parts[1].kind;
   const outages = parts.filter((p) => isOutage(p.kind));
@@ -32,7 +32,7 @@ export function hourTile(h, date, now, range = false) {
   const only = outages.length === 1 ? outages[0] : null;
   const start = range && only ? only.start : h.start,
     end = range && only ? only.end : h.end;
-  const icon = (k) => powerIcon(isOutage(k), k === "unknown");
+  const icon = (k) => powerIcon(isOutage(k), k === "unknown", iconStyle);
   let body;
   if (range) {
     const icons = mixed
@@ -46,7 +46,7 @@ export function hourTile(h, date, now, range = false) {
       : `<span class="tile-icon whole">${icon(parts[0].kind)}</span>`;
     body = `${icons}<span class="tile-times"><span class="tile-time tile-start" style="color:${isOutage(parts[0].kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(start, date)}</span><span class="tile-time tile-end" style="color:${isOutage(parts[1].kind) ? "var(--outage-ink)" : "var(--ink)"}">${tileClock(end, date)}</span></span>`;
   } else {
-    const content = `<span>${powerIcon(outages.length > 0, !outages.length && parts.some((p) => p.kind === "unknown"))}</span><span>${clock(h.start)}</span>`;
+    const content = `<span>${powerIcon(outages.length > 0, !outages.length && parts.some((p) => p.kind === "unknown"), iconStyle)}</span><span>${clock(h.start)}</span>`;
     body = `<span class="legacy-label">${content}</span>`;
     if (mixed)
       parts.forEach((p, i) => {
@@ -54,7 +54,7 @@ export function hourTile(h, date, now, range = false) {
           body += `<span class="legacy-label legacy-copy" style="clip-path:inset(0 ${i ? 0 : 50}% 0 ${i ? 50 : 0}%)">${content}</span>`;
       });
   }
-  return `<button type="button" class="hour ${range ? "range-hour" : ""} ${mixed ? "mixed" : ""} ${outages.length === 2 ? "outage" : ""} ${parts.some((p) => p.kind === "unknown") ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" data-hour="${h.start}" style="background:${bg}" aria-label="${escapeHTML(label + "; округлено до 30 хвилин. Відкрити точні інтервали")}"><span class="tile-content" aria-hidden="true">${body}</span></button>`;
+  return `<div role="img" class="hour ${iconStyle === "bulb" ? "icon-bulb" : ""} ${range ? "range-hour" : ""} ${mixed ? "mixed" : ""} ${outages.length === 2 ? "outage" : ""} ${parts.some((p) => p.kind === "unknown") ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" style="background:${bg}" aria-label="${escapeHTML(label + "; округлено до 30 хвилин")}"><span class="tile-content" aria-hidden="true">${body}</span></div>`;
 }
 // Measures actual text and font scaling instead of forcing four unreadable columns.
 export function fitHours(grid) {
@@ -62,14 +62,13 @@ export function fitHours(grid) {
   const update = () => {
     const cell = grid.querySelector(".hour");
     if (!cell) return;
-    const style = getComputedStyle(cell),
-      root = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const root = parseFloat(getComputedStyle(document.documentElement).fontSize);
     const time = cell.querySelector(".tile-time") || cell;
     const ctx = document.createElement("canvas").getContext("2d");
     const textStyle = getComputedStyle(time);
     ctx.font = `${textStyle.fontWeight} ${textStyle.fontSize} ${textStyle.fontFamily}`;
     const minimum =
-      ctx.measureText("24:00").width + parseFloat(style.fontSize) * 0.8 + 22;
+      ctx.measureText("24:00").width + cell.querySelector(".icon").getBoundingClientRect().width + 14;
     const width = grid.clientWidth,
       max = width > 650 ? 6 : root >= 23 ? 3 : 4;
     let count = max;
