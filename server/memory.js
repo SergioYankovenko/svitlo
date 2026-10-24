@@ -7,6 +7,18 @@ export class MemoryDatabase {
     this.events = [];
     this.limits = new Map();
   }
+  async registry() {
+    return structuredClone(this.registryVersion || null);
+  }
+  async registryState() {
+    return structuredClone(this.registryStatus || {});
+  }
+  async saveRegistryState(value) {
+    this.registryStatus = structuredClone(value);
+  }
+  async activateRegistry(value) {
+    this.registryVersion = structuredClone(value);
+  }
   async profiles(owner) {
     return [...this.p.values()]
       .filter((p) => p.owner === owner)
@@ -64,7 +76,9 @@ export class MemoryDatabase {
   }
   async due(now, n) {
     return [...this.p.values()]
-      .filter((p) => p.last_checked < now - 3600000)
+      .filter((p) =>
+        p.next_check ? p.next_check <= now : p.last_checked < now - 3600000,
+      )
       .slice(0, n);
   }
   async reminderProfiles(now, n, offset = 0) {

@@ -5,3 +5,5 @@ enable_anonymous_sign_ins = true
 verify_jwt = false # Explicit auth.getUser validation in handler supports current signing keys.
 [functions.svitlo-jobs]
 verify_jwt = false
+[functions.svitlo-registry]
+verify_jwt = false # Explicit server-only x-cron-secret validation.

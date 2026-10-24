@@ -19,7 +19,7 @@ export function emergencyPolicy(data, now) {
     now <
       (command.until ??
         Math.max(command.effectiveAt, command.publishedAt) + 7200000);
-  let validity = command.validity;
+  let validity = active || command.ended ? command.validity : "active";
   if (command.ended && validity === "unknown") {
     const prior = commands.find((x) => !x.ended);
     validity = prior?.validity === "suspended" ? "suspended" : "active";
@@ -29,7 +29,9 @@ export function emergencyPolicy(data, now) {
 export function dayState(data, date, now = Date.now()) {
   const from = civil(date),
     until = civil(addDays(date, 1)),
-    plan = data?.plans?.find((x) => x.date === date && x.queue === data.queue),
+    plan = /^[1-6]\.[12]$/.test(data?.queue)
+      ? data?.plans?.find((x) => x.date === date && x.queue === data.queue)
+      : null,
     policy = emergencyPolicy(data, now);
   let validity = policy.validity;
   if (
@@ -43,7 +45,7 @@ export function dayState(data, date, now = Date.now()) {
     ["hourly", "planned", "emergency"].every(
       (k) =>
         fresh(categories[k]?.checkedAt, now) &&
-        categories[k]?.sourceAt &&
+        fresh(categories[k]?.sourceAt, now) &&
         !data?.failures?.includes(k),
     ) &&
     fresh(data?.feedCheckedAt, now) &&
@@ -55,7 +57,8 @@ export function dayState(data, date, now = Date.now()) {
     events = [...events.filter((x) => x.category !== "hourly"), ...plan.events];
   const known = plan
     ? !plan.uncertain
-    : complete &&
+    : /^[1-6]\.[12]$/.test(data?.queue) &&
+      complete &&
       (date === dayKey(now) ||
         events.some((x) => x.category === "hourly" && x.end));
   if (validity !== "active")
@@ -115,6 +118,18 @@ export function dayState(data, date, now = Date.now()) {
     plan,
     policy: { ...policy, validity },
     hours,
+    displayHours: displayHours(events, from, until, uncertain, now),
+    reason: !data?.queue
+      ? "queue_unknown"
+      : stale
+        ? "stale"
+        : plan?.uncertain
+          ? "plan_incomplete"
+          : !known
+            ? "not_published"
+            : uncertain
+              ? "uncertain"
+              : "ready",
     events,
     known,
     uncertain,
@@ -134,6 +149,7 @@ export function countdown(data, now) {
   const state = dayState(data, dayKey(now), now);
   if (state.events.some((x) => x.start <= now && x.end === null))
     return { label: "Час відновлення уточнюється" };
+  if (!data?.queue) return { label: "Чергу не визначено" };
   if (state.uncertain || state.stale)
     return { label: "Час відключень уточнюється" };
   const tomorrow = dayState(data, addDays(dayKey(now), 1), now),
@@ -161,4 +177,64 @@ export function countdown(data, now) {
         minutes: Math.ceil((next.start - now) / 60000),
       }
     : { label: "Не заплановано" };
+}
+
+// Display-only rounding in real time preserves both occurrences of the Kyiv autumn hour.
+// Kyiv's offsets are whole hours; epoch half-hours coincide with local :00/:30.
+export const roundHalfHour = (t) =>
+  Math.floor((t + 900000) / 1800000) * 1800000;
+export const isOutage = (kind) =>
+  ["hourly", "planned", "emergency"].includes(kind);
+export function displayHours(events, from, until, uncertain, now) {
+  const rounded = events
+    .map((e) => ({
+      ...e,
+      start: roundHalfHour(e.start),
+      end:
+        e.end === null
+          ? Math.floor(now / 1800000) * 1800000
+          : roundHalfHour(e.end),
+    }))
+    .filter((e) => e.end > e.start);
+  const priority = { emergency: 3, planned: 2, hourly: 1 };
+  const result = [];
+  for (let start = from; start < until; start += 3600000) {
+    const end = Math.min(start + 3600000, until),
+      segments = [];
+    for (let t = start; t < end; t += 1800000) {
+      const stop = Math.min(t + 1800000, end);
+      const matches = rounded
+        .filter((e) => e.start < stop && e.end > t)
+        .sort((a, b) => priority[b.category] - priority[a.category]);
+      segments.push({
+        start: t,
+        end: stop,
+        kind: matches[0]?.category || (uncertain ? "unknown" : "clear"),
+      });
+    }
+    result.push({ start, end, segments });
+  }
+  return result;
+}
+export const dataReason = (state) =>
+  ({
+    queue_unknown: "Чергу не визначено",
+    stale: "Дані застаріли або оновлення недоступне",
+    plan_incomplete: "Графік містить неповні дані",
+    not_published: "Графік на цю дату ще не опубліковано",
+    uncertain: "Немає точних даних",
+  })[state.reason] || "";
+
+export function refreshFailure(snapshot) {
+  if (!snapshot?.failures?.length && !snapshot?.feedFailed) return "";
+  const causes = [...Object.values(snapshot.errors || {}), snapshot.feedError];
+  if (causes.includes("rate_limited"))
+    return "Сервіс Черкасиобленерго тимчасово обмежив запити. Спробуємо пізніше.";
+  if (causes.includes("timeout"))
+    return "Сервіс Черкасиобленерго не відповів вчасно. Спробуємо пізніше.";
+  if (causes.includes("forbidden"))
+    return "Сервіс Черкасиобленерго відхилив запит. Спробуємо пізніше.";
+  if (causes.includes("invalid_response"))
+    return "Сервіс Черкасиобленерго повернув некоректні дані. Спробуємо пізніше.";
+  return "Не вдалося оновити частину даних Черкасиобленерго. Спробуємо пізніше.";
 }

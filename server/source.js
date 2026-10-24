@@ -1,3 +1,4 @@
+import { SourceError, failureCode } from "./source-errors.js";
 import {
   article,
   parsePlan,
@@ -7,7 +8,7 @@ import {
   plain,
   ORIGIN,
 } from "../app/lib/parsers.js";
-import { dayKey, addDays } from "../app/lib/time.js";
+import { dayKey, addDays, civil } from "../app/lib/time.js";
 const CABINET = "https://cabinet.cherkasyoblenergo.com/api_new/disconn.php";
 export async function jsonFetch(url, fetcher = fetch, limit = 8_000_000) {
   const r = await fetcher(url, {
@@ -15,7 +16,17 @@ export async function jsonFetch(url, fetcher = fetch, limit = 8_000_000) {
     signal: AbortSignal.timeout(20000),
     redirect: "error",
   });
-  if (!r.ok) throw Error("Джерело HTTP " + r.status);
+  if (!r.ok)
+    throw new SourceError(
+      r.status === 403
+        ? "forbidden"
+        : r.status === 429
+          ? "rate_limited"
+          : r.status >= 500
+            ? "server_error"
+            : "http_error",
+      r.status,
+    );
   const reader = r.body.getReader();
   let size = 0,
     chunks = [];
@@ -186,7 +197,9 @@ export class Source {
     }
     const candidates = items
         .filter((x) =>
-          /гпв|погодинн.*відключ|аварійн.*відключ/i.test(x.title || ""),
+          /гпв|погодинн.*відключ|аварійн.*відключ|технічн.*робот/i.test(
+            x.title || "",
+          ),
         )
         .slice(0, 24),
       plans = new Map(
@@ -195,7 +208,8 @@ export class Source {
           .map((p) => [p.date + "/" + p.queue, p]),
       ),
       emergencies = new Map((previous.emergencies || []).map((x) => [x.id, x])),
-      messages = [];
+      messages = [],
+      maintenance = [];
     for (let offset = 0; offset < candidates.length; offset += 4) {
       const batch = await Promise.all(
         candidates.slice(offset, offset + 4).map(async (item) => {
@@ -231,6 +245,8 @@ export class Source {
             });
           }
         }
+        const notice = parseMaintenance(a, now);
+        if (notice) maintenance.push(notice);
         const e = parseEmergency(a);
         if (e) emergencies.set(e.id, e);
       }
@@ -242,6 +258,7 @@ export class Source {
       ),
       checkedAt: now,
       messages,
+      maintenance,
     };
   }
   async address(a, now = Date.now(), previous = {}) {
@@ -251,7 +268,8 @@ export class Source {
         k_date: format(addDays(dayKey(now), 1)),
       };
     const categories = { ...previous.categories },
-      failures = [];
+      failures = [],
+      errors = {};
     await Promise.all(
       ["planned", "emergency", "hourly"].map(async (category, selector) => {
         try {
@@ -286,7 +304,14 @@ export class Source {
             ).values(),
           ];
           categories[category] = next;
-        } catch {
+        } catch (error) {
+          errors[category] =
+            error instanceof TypeError ||
+            error?.name === "TimeoutError" ||
+            error?.name === "AbortError" ||
+            error instanceof SourceError
+              ? failureCode(error)
+              : "invalid_response";
           failures.push(category);
         }
       }),
@@ -294,6 +319,7 @@ export class Source {
     return {
       categories,
       failures,
+      errors,
       queue: categories.hourly?.queue || null,
       checkedAt: now,
     };
@@ -417,4 +443,43 @@ export function latin(text) {
         (c === "г" && n[i - 1] === "з" ? "gh" : (letters[c] ?? c)),
     )
     .join("");
+}
+
+// Only a dated announcement explicitly covering the household API/cabinet may explain its failure.
+export function parseMaintenance(a, now) {
+  const text = a.title + " " + a.body;
+  if (
+    !/технічн.*робот/i.test(a.title) ||
+    /непобутов|юридичн/i.test(text) ||
+    !/(?:кабінет[а-яіїєґ]* побутов|api_new|api побутов)/i.test(text) ||
+    /завершено|відновлено|скасовано/i.test(a.title) ||
+    now < a.publishedAt ||
+    now - a.publishedAt > 86400000
+  )
+    return null;
+  const date = dayKey(a.publishedAt),
+    untilText = a.body.match(/до\s+(\d{1,2}):(\d{2})/i);
+  if (!untilText) return null;
+  // An announcement published today can still describe work on another date.
+  const mentioned = [...text.matchAll(/\b(\d{2})\.(\d{2})\.(20\d{2})\b/g)].map(
+    (m) => `${m[3]}-${m[2]}-${m[1]}`,
+  );
+  mentioned.push(
+    ...[...text.matchAll(/\b20\d{2}-\d{2}-\d{2}\b/g)].map((m) => m[0]),
+  );
+  if (mentioned.some((d) => d !== date)) return null;
+  try {
+    // Use the project's strict Kyiv conversion, including the actual seasonal offset.
+    const end = civil(date, +untilText[1] * 60 + +untilText[2]);
+    if (end <= now || end <= a.publishedAt) return null;
+    return {
+      url: a.url,
+      publishedAt: a.publishedAt,
+      from: a.publishedAt,
+      until: end,
+      service: "household",
+    };
+  } catch {
+    return null;
+  }
 }

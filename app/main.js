@@ -1,3 +1,5 @@
+import { hourTile, fitHours, tileClock, kindLabel } from "./lib/tiles.js";
+import { refreshFailure } from "./lib/schedule.js";
 import { enhancePickers } from "./lib/pickers.js";
 import {
   powerIcon,
@@ -15,7 +17,12 @@ import {
   stamp,
   duration,
 } from "./lib/time.js";
-import { dayState, countdown, canNextWeek } from "./lib/schedule.js";
+import {
+  dayState,
+  countdown,
+  canNextWeek,
+  dataReason,
+} from "./lib/schedule.js";
 import { mergeHistory } from "./lib/parsers.js";
 const $ = (s) => document.querySelector(s),
   esc = (s) =>
@@ -48,6 +55,7 @@ const state = {
   profiles: read("svitlo-profiles", []),
   active: read("svitlo-active", null),
   theme: read("svitlo-theme", "dark"),
+  rangeTiles: read("svitlo-range-tiles", false) === true,
   weather: read("svitlo-weather", {}),
   tab: "home",
   date: dayKey(),
@@ -120,7 +128,7 @@ function render() {
     (p) => (p.messages = mergeHistory(p.messages || [], [], now)),
   );
   $("#app").innerHTML =
-    `<div class="shell"><header class="top"><h1 class="brand">Світло<span>${p?.snapshot?.queue ? "Черга " + esc(p.snapshot.queue) : "Для Черкащини"}</span></h1>${timer ? `<p class="countdown">${esc(timer.label)}${timer.minutes !== undefined ? "<br><strong>" + duration(timer.minutes) + "</strong>" : ""}</p>` : ""}</header>${!navigator.onLine ? '<div class="offline">Ви офлайн · показуємо збережені дані</div>' : ""}${state.error ? `<p class="notice" role="status">${esc(state.error)}</p>` : ""}${installNotice()}<main id="content">${state.tab === "home" ? home(p, now) : state.tab === "messages" ? messages(p, now) : options(p)}</main></div><nav class="nav" aria-label="Основне меню">${[
+    `<div class="shell"><header class="top"><h1 class="brand">Світло<span>${p?.snapshot?.queue ? "Черга " + esc(p.snapshot.queue) : "Для Черкащини"}</span></h1>${timer ? `<p class="countdown">${esc(timer.label)}${timer.minutes !== undefined ? "<br><strong>" + duration(timer.minutes) + "</strong>" : ""}</p>` : ""}</header>${!navigator.onLine ? `<div class="offline" role="status">Немає підключення до інтернету.${p?.snapshot?.checkedAt ? " Показуємо збережені дані." : " Збереженого графіка немає."}</div>` : ""}${state.error ? `<p class="notice" role="status">${esc(state.error)}</p>` : ""}${installNotice()}<main id="content">${state.tab === "home" ? home(p, now) : state.tab === "messages" ? messages(p, now) : options(p)}</main></div><nav class="nav" aria-label="Основне меню">${[
       ["home", "Головна"],
       ["messages", "Повідомлення"],
       ["options", "Опції"],
@@ -138,36 +146,11 @@ function home(p, now) {
     return `<section class="card empty"><div class="sun" aria-hidden="true">☀</div><h2>Знайте, коли буде світло</h2><p>Додайте адресу, щоб бачити ваш графік, погоду та зміни відключень.</p>${action("add", "Додати адресу", 'class="primary"')}${!configured() ? '<p class="install-note">Вебзастосунок підготовлено. Підключення сервера триває.</p>' : ""}</section>`;
   const s = dayState(p.snapshot, state.date, now),
     days = week(state.week),
-    w = state.weather[p.id],
-    stale = s.stale;
-  const hours = s.hours
-    .map((h) => {
-      const kinds = h.segments.map((x) => x.kind),
-        out = kinds.some((k) => ["hourly", "planned", "emergency"].includes(k)),
-        unknown = kinds.includes("unknown"),
-        colors = {
-          clear: "var(--button)",
-          unknown: "var(--unknown)",
-          hourly: "var(--hourly)",
-          planned: "var(--planned)",
-          emergency: "var(--emergency)",
-        };
-      const grad = h.segments
-        .map(
-          (x) =>
-            `${colors[x.kind]} ${((x.start - h.start) / (h.end - h.start)) * 100}% ${((x.end - h.start) / (h.end - h.start)) * 100}%`,
-        )
-        .join(",");
-      const label = h.segments
-        .map(
-          (x) =>
-            `${clock(x.start)}–${clock(x.end)}: ${{ clear: "зі світлом", unknown: "немає точних даних", hourly: "погодинне відключення", planned: "планові роботи", emergency: "аварійне відключення" }[x.kind]}`,
-        )
-        .join("; ");
-      return `<div class="hour ${out ? "outage" : ""} ${unknown ? "unknown" : ""} ${now >= h.start && now < h.end ? "current" : ""}" style="background:linear-gradient(to right,${grad})" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">${powerIcon(out, unknown && !out)}</span><span aria-hidden="true">${clock(h.start)}</span></div>`;
-    })
+    w = state.weather[p.id];
+  const hours = s.displayHours
+    .map((h) => hourTile(h, state.date, now, state.rangeTiles))
     .join("");
-  return `<section class="card address"><label for="active-address" class="sr-only">Ваша адреса</label><div class="address-picker"><select class="address-select" id="active-address">${state.profiles.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name ? x.name + ": " + x.address.label : x.address.label)}</option>`).join("")}</select></div><div class="row">${action("add", "Додати адресу")}${action("manage", "Керувати адресами")}</div></section><section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня">${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${stale ? '<p class="notice">Оновлення недоступне або дані застаріли. Збережений графік може змінитися.</p>' : ""}${s.available ? `<div class="hours">${hours}</div>` : '<p class="empty">Графік не сформовано</p>'}<div class="legend"><span><i style="background:var(--hourly)"></i>ГПВ</span><span><i style="background:var(--planned)"></i>Планові роботи</span><span><i style="background:var(--emergency)"></i>Аварійні</span></div><div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
+  return `<section class="card address"><label for="active-address" class="sr-only">Ваша адреса</label><div class="address-picker"><select class="address-select" id="active-address">${state.profiles.map((x) => `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name ? x.name + ": " + x.address.label : x.address.label)}</option>`).join("")}</select></div><div class="row">${action("add", "Додати адресу")}${action("manage", "Керувати адресами")}</div></section><section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня">${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${dataReason(s) && s.reason !== "stale" ? `<p class="notice" role="status">${esc(dataReason(s))}</p>` : ""}${maintenanceNotice(p.snapshot, now)}${s.available || s.reason === "queue_unknown" ? `<div class="hours">${hours}</div>` : '<p class="empty">Графік на цю дату ще не опубліковано</p>'}<div class="legend"><span><i style="background:var(--hourly)"></i>ГПВ</span><span><i style="background:var(--planned)"></i>Планові роботи</span><span><i style="background:var(--emergency)"></i>Аварійні</span></div><div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
     s.totals
       ? `<section class="stats" aria-label="Підсумок дня">${[
           ["☀", "Зі світлом", s.totals.on],
@@ -187,14 +170,14 @@ function messages(p) {
     ? items
         .map(
           (m) =>
-            `<article class="card message"><small>Оновлено · ${stamp(m.updatedAt)}</small><h2>${esc(m.title)}</h2><small>${esc(m.queue ? "Підчерга " + m.queue : p.address.city)}</small><div class="row"><button data-message-date="${m.date}">Відкрити графік</button>${external(m.url, "Офіційне джерело")}</div></article>`,
+            `<article class="card message"><small>Оновлено · ${stamp(m.updatedAt)} · Подія ${esc(m.date.split("-").reverse().join("."))}${m.scope === "region" ? " · в області" : ""}</small><h2>${esc(m.title)}</h2><small>${esc(m.queue ? "Підчерга " + m.queue : p.address.city)}</small><div class="row"><button data-message-date="${m.date}">Графік на ${esc(m.date.slice(5).split("-").reverse().join("."))}</button>${external(m.url, "Офіційне джерело")}</div></article>`,
         )
         .join("")
     : '<section class="card empty"><h2>Поки немає повідомлень</h2><p>Тут зберігатимуться оновлення вашого графіка за останні сім днів.</p></section>';
 }
 function options(p) {
   const prefs = p?.preferences || {};
-  return `<div class="settings"><section class="card"><h2>Вигляд</h2><label>Світла тема<input type="checkbox" id="light-theme" ${state.theme === "light" ? "checked" : ""}></label></section><section class="card"><h2>Сповіщення</h2><p class="notice">Зміни графіка та нагадування для обраної адреси, навіть коли застосунок закрито.</p>${[
+  return `<div class="settings"><section class="card"><h2>Вигляд</h2><label>Світла тема<input type="checkbox" id="light-theme" ${state.theme === "light" ? "checked" : ""}></label><label>Початок і кінець у плитці<input type="checkbox" id="range-tiles" ${state.rangeTiles ? "checked" : ""}></label></section><section class="card"><h2>Сповіщення</h2><p class="notice">Зміни графіка та нагадування для обраної адреси, навіть коли застосунок закрито.</p>${[
     ["schedule", "Публікації та зміни графіка"],
     ["emergency", "Аварійні відключення"],
     ["reminder", "Перед відключенням"],
@@ -209,7 +192,57 @@ function options(p) {
     )}<label>Нагадувати за<select id="lead" ${p ? "" : "disabled"}>${[5, 15, 30, 60].map((n) => `<option value="${n}" ${+(prefs.lead || 30) === n ? "selected" : ""}>${n} хв</option>`).join("")}</select></label><div class="stack">${action("push", state.push ? "Вимкнути push-сповіщення" : "Увімкнути push-сповіщення", !p ? "disabled" : "")}</div><p class="install-note">На iPhone сповіщення доступні з iOS 16.4 після додавання на Початковий екран. Дозвіл запитується лише після натискання кнопки. Час доставки залежить від системи.</p></section><section class="card"><h2>Оновлення</h2><p class="notice">Сервер перевіряє графіки щогодини. При відкритті завантажується останній результат.</p>${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити зараз", state.busy || !p ? "disabled" : "")}</section><section class="card"><h2>Ваші дані</h2><p class="privacy">Адреса та підписка зберігаються на сервері «Світло» для оновлень і сповіщень. Погода визначається для населеного пункту. На пристрої зберігається офлайн-копія. Очищення даних браузера може втратити доступ до збережених адрес.</p><div class="stack">${action("erase", "Видалити мої дані", 'class="danger"')}</div></section><div class="stack">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div></div>`;
 }
 
+let stopHours, navObserver;
+function maintenanceNotice(snapshot, now) {
+  const m = snapshot.maintenance;
+  if (
+    !m ||
+    now < m.from ||
+    now >= m.until ||
+    !(snapshot.failures?.length || snapshot.feedFailed)
+  )
+    return "";
+  return `<aside class="notice" role="status">Черкасиобленерго повідомляє про технічні роботи · ${stamp(m.publishedAt)}${m.until ? " · заявлений строк до " + stamp(m.until) : ""}. ${external(m.url, "Офіційне повідомлення")}</aside>`;
+}
 function bind() {
+  stopHours?.();
+  stopHours = fitHours(document.querySelector(".hours"));
+  navObserver?.disconnect();
+  const nav = document.querySelector(".nav");
+  if (nav) {
+    navObserver = new ResizeObserver(() =>
+      document.documentElement.style.setProperty(
+        "--nav-height",
+        nav.getBoundingClientRect().height + "px",
+      ),
+    );
+    navObserver.observe(nav);
+  }
+  if ($("#range-tiles"))
+    $("#range-tiles").onchange = (e) => {
+      state.rangeTiles = e.target.checked;
+      save("svitlo-range-tiles", state.rangeTiles);
+      render();
+    };
+  document.querySelectorAll("[data-hour]").forEach(
+    (el) =>
+      (el.onclick = () => {
+        const p = profile(),
+          s = dayState(p.snapshot, state.date),
+          h = s.hours.find((x) => x.start === +el.dataset.hour);
+        if (!h) return;
+        const rows = h.segments
+          .map(
+            (x) =>
+              `<li>${tileClock(x.start, state.date)}–${tileClock(x.end, state.date)} — ${esc(kindLabel[x.kind])}</li>`,
+          )
+          .join("");
+        dialog(
+          "Точні інтервали",
+          `<p>За даними джерела. Плитки округлено до 30 хвилин.</p><ul>${rows}</ul>`,
+        );
+      }),
+  );
   document.querySelectorAll("[data-tab]").forEach(
     (el) =>
       (el.onclick = () => {
@@ -248,6 +281,7 @@ function bind() {
     $("#active-address").onchange = async (e) => {
       refreshToken++;
       state.busy = false;
+      state.error = "";
       state.active = e.target.value;
       state.date = dayKey();
       state.week = monday();
@@ -383,9 +417,7 @@ async function refresh() {
     const r = await request("refresh", { id });
     store(r.profile);
     if (token === refreshToken && profile()?.id === id)
-      state.error = r.profile.snapshot.failures.length
-        ? "Частину даних не вдалося оновити. Збережений графік доступний."
-        : "";
+      state.error = refreshFailure(r.profile.snapshot);
   } catch (e) {
     if (token === refreshToken) state.error = e.message;
   } finally {

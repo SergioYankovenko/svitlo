@@ -30,17 +30,21 @@ for (const f of list.filter((f) => !f.endsWith("/sw.js")))
   hash.update(await readFile(f));
 const version = hash.digest("hex").slice(0, 12);
 let sw = await readFile("app/sw.js", "utf8");
-sw = sw.replace(/(["'])svitlo-pwa-[^"']+\1/, JSON.stringify(`svitlo-pwa-${version}`));
+sw = sw.replace(
+  /(["'])svitlo-pwa-[^"']+\1/,
+  JSON.stringify(`svitlo-pwa-${version}`),
+);
 await writeFile("dist/app/sw.js", sw);
 await writeFile("app/sw.js", sw);
 await mkdir(".local/bundles", { recursive: true });
-for (const name of ["svitlo-api", "svitlo-jobs"])
+for (const name of ["svitlo-api", "svitlo-jobs", "svitlo-registry"])
   await build({
     entryPoints: [`supabase/functions/${name}/index.ts`],
     bundle: true,
     format: "esm",
     platform: "neutral",
     external: ["npm:*", "node:*"],
+    alias: { unpdf: "npm:unpdf@1.9.1" },
     outfile: `.local/bundles/${name}.ts`,
   });
 console.log(`Built PWA ${version}: dist/app; Edge bundles: .local/bundles`);

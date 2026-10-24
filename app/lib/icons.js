@@ -12,7 +12,7 @@ export function powerIcon(off = false, unknown = false) {
       '<path d="M9 8a3 3 0 1 1 5 2.3C12 11.5 12 12 12 14"/><circle cx="12" cy="18" r=".9" fill="currentColor" stroke="none"/>',
     );
   return svg(
-    '<path d="m14 5-6 8h4l-2 6 6-8h-4Z"/>' +
+    '<path d="m14 5-6 8h4l-2 6 6-8h-4Z"' + (off ? '' : ' fill="currentColor"') + '/>' +
       (off ? '<path d="m6.5 6 11 12"/>' : ""),
     "5 3 14 18",
   );

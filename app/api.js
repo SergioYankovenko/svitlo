@@ -46,7 +46,7 @@ export async function post(url, options, fetcher = fetch) {
     r = await fetcher(url, options);
     payload = await r.json();
   } catch {
-    throw Error("Оновлення тимчасово недоступне. Показуємо збережені дані.");
+    throw Error("Оновлення тимчасово недоступне. Спробуйте пізніше.");
   }
   if (!r.ok) throw Error(payload.error || "Перевірка тимчасово недоступна");
   return payload;

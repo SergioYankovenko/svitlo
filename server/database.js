@@ -7,6 +7,42 @@ export class Database {
     if (error) throw Error("Помилка сховища");
     return data;
   }
+  async registry() {
+    return (
+      (
+        await this.result(
+          this.c
+            .from("svitlo_queue_versions")
+            .select("payload")
+            .eq("active", true)
+            .maybeSingle(),
+        )
+      )?.payload || null
+    );
+  }
+  async registryState() {
+    return (
+      (
+        await this.result(
+          this.c
+            .from("svitlo_cache")
+            .select("value")
+            .eq("key", "queue-registry-state")
+            .maybeSingle(),
+        )
+      )?.value || {}
+    );
+  }
+  async saveRegistryState(value) {
+    await this.result(
+      this.c
+        .from("svitlo_cache")
+        .upsert({ key: "queue-registry-state", value }),
+    );
+  }
+  async activateRegistry(candidate) {
+    await this.result(this.c.rpc("svitlo_activate_registry", { candidate }));
+  }
   async profiles(owner) {
     return this.result(
       this.c
@@ -69,15 +105,13 @@ export class Database {
     if (existing && existing.owner !== owner)
       throw Error("Підписка належить іншому пристрою");
     await this.result(
-      this.c
-        .from("svitlo_subscriptions")
-        .upsert({
-          id,
-          owner,
-          subscription,
-          profile_id: profile,
-          updated_at: new Date().toISOString(),
-        }),
+      this.c.from("svitlo_subscriptions").upsert({
+        id,
+        owner,
+        subscription,
+        profile_id: profile,
+        updated_at: new Date().toISOString(),
+      }),
     );
   }
   async unsubscribe(owner, endpoint) {

@@ -1,3 +1,5 @@
+import { registryMatch } from "./queue-registry.js";
+import { failureCode, failureMessage } from "./source-errors.js";
 import { mergeHistory } from "../app/lib/parsers.js";
 import { dayKey, addDays } from "../app/lib/time.js";
 import { countdown, emergencyPolicy } from "../app/lib/schedule.js";
@@ -52,14 +54,43 @@ export class Service {
     const now = this.now(),
       old = profile.snapshot || {},
       address = await this.source.address(profile.address, now, old);
+    let registry;
+    try {
+      registry = registryMatch(
+        await this.db.registry?.(),
+        profile.address,
+        now,
+      );
+    } catch {
+      registry = { queue: null, status: "unavailable" };
+    }
+    address.queueResolution = address.queue
+      ? {
+          queue: address.queue,
+          source: "address_api",
+          status: "matched",
+          checkedAt: address.categories.hourly?.checkedAt,
+          ...(registry?.queue && registry.queue !== address.queue
+            ? {
+                conflict: {
+                  registryQueue: registry.queue,
+                  version: registry.version,
+                },
+              }
+            : {}),
+        }
+      : registry;
+    if (!address.queue && registry?.queue) address.queue = registry.queue;
     let feed,
+      feedError,
       feedFailed = false;
     try {
       feed = await this.source.feed(now, await this.db.feed());
       await this.db.saveFeed(feed);
-    } catch {
+    } catch (error) {
       feed = await this.db.feed();
       feedFailed = true;
+      feedError = failureCode(error);
     }
     const snapshot = {
       ...address,
@@ -67,10 +98,36 @@ export class Service {
       emergencies: feed.emergencies || [],
       feedCheckedAt: feed.checkedAt || null,
       feedFailed,
+      feedError,
+      maintenance:
+        (feed.maintenance || []).find((m) => m.from <= now && m.until > now) ||
+        null,
+      lastSuccessAt:
+        !address.failures.length && !feedFailed
+          ? now
+          : old.lastSuccessAt || null,
     };
+    const currentPolicy = emergencyPolicy(snapshot, now);
+    const regional = currentPolicy.command;
+    const regionalMessages = regional
+      ? [
+          {
+            id: "regional:" + regional.id,
+            kind: "emergency",
+            scope: "region",
+            title: regional.ended
+              ? "Аварійні відключення в області скасовано"
+              : "Аварійні відключення в області",
+            date: dayKey(regional.effectiveAt),
+            updatedAt: regional.publishedAt,
+            url: regional.url,
+          },
+        ]
+      : [];
     const relevant = (feed.messages || []).filter(
       (m) => m.queue === snapshot.queue,
     );
+    relevant.push(...regionalMessages);
     const before = JSON.stringify(old.categories?.emergency?.events || []),
       after = JSON.stringify(snapshot.categories?.emergency?.events || []);
     if (
@@ -92,7 +149,17 @@ export class Service {
       snapshot,
       messages: mergeHistory(profile.messages || [], relevant, now),
       last_checked: now,
+      next_check:
+        now +
+        (!address.failures.length && !feedFailed
+          ? 3600000
+          : Math.min(
+              3600000,
+              300000 * 2 ** Math.min(old.failureCount || 0, 4),
+            )),
     };
+    snapshot.failureCount =
+      !address.failures.length && !feedFailed ? 0 : (old.failureCount || 0) + 1;
     await this.db.saveProfile(p);
     // Initial enrollment builds history without notifying about old publications.
     if (profile.last_checked) {
@@ -102,7 +169,8 @@ export class Service {
         (x) =>
           !known.has(x.id) &&
           x.updatedAt >= profile.last_checked &&
-          prefs[x.kind],
+          prefs[x.kind] &&
+          x.scope !== "region",
       ))
         await this.enqueue(p, message.id, message.title, message.date);
       const policy = emergencyPolicy(snapshot, now),
@@ -172,6 +240,13 @@ export class Service {
           vapid: this.vapid,
           pushReady: !!this.vapid,
         };
+      case "resolve_queue": {
+        const address = body.id
+          ? (await owned()).address
+          : await this.source.resolve(body.address);
+        const result = registryMatch(await this.db.registry?.(), address, now);
+        return { resolution: result };
+      }
       case "dictionary":
         return {
           items: await this.source.dictionary(body.kind, {
@@ -183,7 +258,9 @@ export class Service {
           p = await this.source.address(address, now);
         return {
           address: { ...address, account: undefined },
-          queue: p.queue,
+          queue:
+            p.queue ||
+            registryMatch(await this.db.registry?.(), address, now).queue,
           verified: p.failures.length === 0,
         };
       }
@@ -342,9 +419,8 @@ export async function httpHandler(request, service, authenticate, origins) {
     return new Response(
       JSON.stringify({
         error:
-          e instanceof ApiError
-            ? e.message
-            : "Не вдалося отримати дані. Збережений графік залишається доступним.",
+          e instanceof ApiError ? e.message : failureMessage(failureCode(e)),
+        code: e instanceof ApiError ? "request_error" : failureCode(e),
       }),
       { status: e.status || 502, headers },
     );
