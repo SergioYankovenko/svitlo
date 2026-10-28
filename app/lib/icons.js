@@ -26,6 +26,10 @@ export function powerIcon(off = false, unknown = false, style = "bolt") {
 export function checkIcon() {
   return svg('<path d="m5 12 4 4L19 6"/>');
 }
+export function shareIcon() {
+  // Same outline and stroke as Android's ic_share_outline.xml.
+  return svg('<path d="M3 21C3 12 7 7 14 7V3l8 8-8 8v-5c-6 0-9 3-11 7Z" stroke-width="1.4"/>');
+}
 export function summaryIcon(on) {
   return svg(
     on ? sun : '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',

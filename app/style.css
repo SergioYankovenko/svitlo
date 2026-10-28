@@ -1014,6 +1014,9 @@ select[hidden] {
 .fit-pair.vertical { flex-direction:column; }
 .fit-pair.vertical > * { flex:auto; width:100%; }
 .main-donation { margin-top:12px; }
+.main-share .share-label { display:inline-flex; align-items:center; justify-content:center; gap:.35em; max-width:100%; vertical-align:middle; }
+.main-share .share-label .icon { width:1.2em; height:1.2em; flex:none; }
+.main-share .share-label > span { min-width:0; }
 .weather-credit { margin:6px 0 0; color:var(--muted); font-size:.6875rem; line-height:1.5; }
 .weather-credit a { color:inherit; text-underline-offset:2px; }
 .message { padding:18px 16px; }

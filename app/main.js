@@ -14,6 +14,7 @@ import { refreshFailure } from "./lib/schedule.js";
 import { enhancePickers } from "./lib/pickers.js";
 import {
   summaryIcon,
+  shareIcon,
   weatherIcon,
   weatherDescription,
 } from "./lib/icons.js";
@@ -185,7 +186,7 @@ function home(p, now, currentLabel) {
           )
           .join("")}</section>`
       : '<section class="card"><h2>Немає точних даних</h2></section>'
-  }<section class="card weather"><small>СЬОГОДНІ</small><div class="weather-now"><span class="weather-current-icon">${weatherIcon(w?.code, w?.isDay !== false)}</span><strong class="temperature">${w ? Math.round(w.temperature) + "°" : "—°"}</strong><div><h2>${esc(p.address.city)}</h2><p class="muted">${w ? weatherDescription(w.code) : "Погода поки недоступна"}</p></div></div>${w ? `<div class="weather-hours" role="region" tabindex="0" aria-label="Погода на 24 години">${w.hours.map((h) => `<div class="weather-hour"><small>${clock(h.time)}</small>${weatherIcon(h.code, h.isDay !== false)}<b>${Math.round(h.temp)}°</b></div>`).join("")}</div>` : ""}<p class="weather-credit"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a></p></section>${canShareDay(s) ? `<div class="row main-share">${action("share", "Поділитись графіком")}</div>` : ""}<div class="stack main-donation">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div>`;
+  }<section class="card weather"><small>СЬОГОДНІ</small><div class="weather-now"><span class="weather-current-icon">${weatherIcon(w?.code, w?.isDay !== false)}</span><strong class="temperature">${w ? Math.round(w.temperature) + "°" : "—°"}</strong><div><h2>${esc(p.address.city)}</h2><p class="muted">${w ? weatherDescription(w.code) : "Погода поки недоступна"}</p></div></div>${w ? `<div class="weather-hours" role="region" tabindex="0" aria-label="Погода на 24 години">${w.hours.map((h) => `<div class="weather-hour"><small>${clock(h.time)}</small>${weatherIcon(h.code, h.isDay !== false)}<b>${Math.round(h.temp)}°</b></div>`).join("")}</div>` : ""}<p class="weather-credit"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a></p></section>${canShareDay(s) ? `<div class="row main-share">${action("share", `<span class="share-label">${shareIcon()}<span>Поділитись графіком</span></span>`)}</div>` : ""}<div class="stack main-donation">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div>`;
 }
 function messages(p) {
   const items=p?.messages||[];
