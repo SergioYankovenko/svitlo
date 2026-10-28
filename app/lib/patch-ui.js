@@ -54,7 +54,7 @@ export function notificationSettings(p,permission,push,{checking=false,busy=fals
 }
 
 export function fitPairs(root=document) {
-  const rows=[...root.querySelectorAll('.fit-pair')], canvas=document.createElement('canvas').getContext('2d');
+  const rows=[...root.querySelectorAll('.fit-pair')], legends=[...root.querySelectorAll('.short-legend')], canvas=document.createElement('canvas').getContext('2d');
   const update=()=>{
     const scale=parseFloat(getComputedStyle(document.documentElement).fontSize)/16;
     rows.forEach(row=>{
@@ -65,8 +65,26 @@ export function fitPairs(root=document) {
       let size=desired;while(size>min&&!fits(size))size-=.25;
       nodes.forEach(n=>n.style.fontSize=size+'px');
     });
-    root.querySelectorAll('.short-legend').forEach(el=>{
+    legends.forEach(el=>{
       el.style.setProperty('--legend-icon',(scale>1.5?18:16)+'px');
+      el.style.setProperty('--legend-gap','16px');el.style.setProperty('--legend-label-gap','6px');
+      el.classList.remove('legend-wrap');
+      const items=[...el.children],style=getComputedStyle(el);
+      const available=el.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
+      // Measure rendered items, including actual font metrics, icons and gaps.
+      // Canvas text widths alone miss mobile text enlargement and font fallback.
+      const fits=()=>items.reduce((width,item)=>width+item.getBoundingClientRect().width,0)+(parseFloat(getComputedStyle(el).columnGap)||0)*(items.length-1)<=available-.5;
+      const min=11*scale;
+      let size=14*scale;
+      el.style.fontSize=size+'px';
+      while(size>min&&!fits()) {size=Math.max(min,size-.25);el.style.fontSize=size+'px';}
+      if(!fits()) {
+        el.style.setProperty('--legend-gap','6px');el.style.setProperty('--legend-label-gap','3px');
+        size=14*scale;el.style.fontSize=size+'px';
+        while(size>min&&!fits()) {size=Math.max(min,size-.25);el.style.fontSize=size+'px';}
+      }
+      // Preserve readable enlarged text when a single row cannot fit at its minimum.
+      el.classList.toggle('legend-wrap',!fits());
     });
     root.querySelectorAll('.appearance').forEach(el=>el.classList.toggle('large-text',scale>=1.4));
     root.querySelectorAll('.message').forEach(el=>el.classList.toggle('large-text',scale>=1.4));
@@ -79,8 +97,8 @@ export function fitPairs(root=document) {
       heading.style.fontSize=size+'px';
     });
   };
-  let raf;const schedule=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(update);};
-  const observer=new ResizeObserver(schedule);rows.forEach(r=>observer.observe(r));observer.observe(document.documentElement);
-  document.fonts?.ready.then(schedule);update();
-  return ()=>{observer.disconnect();cancelAnimationFrame(raf);};
+  let raf,disposed=false;const schedule=()=>{if(disposed)return;cancelAnimationFrame(raf);raf=requestAnimationFrame(update);};
+  const observer=new ResizeObserver(schedule);[...rows,...legends,...legends.flatMap(el=>[...el.children])].forEach(r=>observer.observe(r));observer.observe(document.documentElement);
+  document.fonts?.ready.then(schedule);document.fonts?.addEventListener('loadingdone',schedule);update();
+  return ()=>{disposed=true;observer.disconnect();document.fonts?.removeEventListener('loadingdone',schedule);cancelAnimationFrame(raf);};
 }

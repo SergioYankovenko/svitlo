@@ -1063,8 +1063,9 @@ select[hidden] {
 .notifications .reminder-setting { font-size:.875rem; min-height:48px; padding:6px 0; }
 .reminder-setting .picker-trigger { min-height:48px; font-size:inherit; }
 .notifications #lead-help { display:block; font-size:.75rem; margin:0; }
-.short-legend { border-top:1px solid var(--track); margin-top:18px; padding-top:16px; display:flex; flex-wrap:wrap; gap:10px 16px; color:var(--muted); font-size:.875rem; }
-.short-legend > span { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.short-legend { border-top:1px solid var(--track); margin-top:18px; padding-top:16px; display:flex; flex-wrap:nowrap; gap:10px var(--legend-gap,16px); color:var(--muted); font-size:.875rem; }
+.short-legend.legend-wrap { flex-wrap:wrap; }
+.short-legend > span { display:inline-flex; flex:none; align-items:center; gap:var(--legend-label-gap,6px); white-space:nowrap; }
 .short-legend .icon { width:20px; height:20px; color:var(--accent); }
 .legend-off { display:grid; place-items:center; width:24px; height:28px; background:var(--sample-color); color:var(--outage-ink); border-radius:5px; font-style:normal; flex:none; }
 .legend-off .icon { color:inherit; }

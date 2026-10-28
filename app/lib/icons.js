@@ -72,7 +72,8 @@ export function weatherIcon(code, isDay = true) {
   if (kind === "sun") return coloredWeather(weatherSun);
   if (kind === "moon") return coloredWeather(weatherMoon);
   if (kind === "partly" || kind === "partly-night")
-    return coloredWeather(`<g transform="translate(-2 -3) scale(.72)">${kind === 'partly' ? weatherSun : weatherMoon}</g>${weatherCloud}`);
+    // Android uses the same sun-behind-cloud symbol for WMO 1/2 day and night.
+    return coloredWeather(`<g transform="translate(-2 -3) scale(.72)">${weatherSun}</g>${weatherCloud}`);
   if (kind === "cloud") return coloredWeather(weatherCloud);
   if (kind === "fog") return coloredWeather(`<g transform="translate(0 -3)">${weatherCloud}</g><path d="M4 24h24M2 28h17m4 0h7" stroke="#A6BEC8" stroke-width="2" stroke-linecap="round"/>`);
   if (kind === "drizzle" || kind === "rain")
