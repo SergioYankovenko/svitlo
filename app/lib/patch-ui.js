@@ -1,8 +1,12 @@
 import {powerIcon, weatherIcon, checkIcon} from './icons.js';
-import {dayState} from './schedule.js';
+import {dayState,dataReason} from './schedule.js';
 import {dayKey,fresh} from './time.js';
 import {preferences} from './notifications.js';
 export const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export function scheduleNotice(day,currentLabel) {
+  const text=dataReason(day);
+  return day.reason==='stale' || day.reason==='no_queue' && text===currentLabel ? '' : text;
+}
 export function addressLines(p,list=false) {
   const title=p.name||p.address.city, detail=p.name?p.address.label:(p.address.street ? p.address.street+', '+p.address.house : p.address.label.replace(p.address.city+', ',''));
   return `<span class="address-copy"><span class="address-name">${esc(title)}</span><span class="address-detail">${esc(detail)}</span></span>`;
@@ -58,13 +62,7 @@ export function fitPairs(root=document) {
       nodes.forEach(n=>n.style.fontSize=size+'px');
     });
     root.querySelectorAll('.short-legend').forEach(el=>{
-      const items=[...el.children],gap=4,icon=scale>1.5?18:16;
-      el.style.gap=gap+'px';el.style.setProperty('--legend-icon',icon+'px');
-      const widths=size=>items.map(n=>{canvas.font=`400 ${size}px ${getComputedStyle(n).fontFamily}`;return canvas.measureText(n.textContent).width+icon+6;});
-      let size=14*scale;
-      const fits=size=>{const w=widths(size);return scale>=1.9?Math.max(w[0]+w[1]+gap,w[2])<=el.clientWidth-4:w.reduce((a,b)=>a+b,0)+2*gap<=el.clientWidth-4;};
-      while(size>11&&!fits(size))size-=.25;
-      el.style.fontSize=size+'px';
+      el.style.setProperty('--legend-icon',(scale>1.5?18:16)+'px');
     });
     root.querySelectorAll('.appearance').forEach(el=>el.classList.toggle('large-text',scale>=1.4));
     root.querySelectorAll('.message').forEach(el=>el.classList.toggle('large-text',scale>=1.4));

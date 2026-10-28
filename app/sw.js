@@ -1,4 +1,4 @@
-const CACHE = "svitlo-pwa-0b94c0696292",
+const CACHE = "svitlo-pwa-85f7952ea6f0",
   ROOT = new URL("./", self.location.href);
 // Build writes the complete hashed app-shell list here, including the bundled client library.
 const SHELL = ["./","./api.js","./config.js","./icons/apple-touch-icon.png","./icons/icon-192.png","./icons/icon-512.png","./icons/icon.svg","./icons/maskable-512.png","./index.html","./lib/day-transition.js","./lib/dictionary-cache.js","./lib/icons.js","./lib/layout.js","./lib/navigation.js","./lib/notifications.js","./lib/parsers.js","./lib/patch-ui.js","./lib/pickers.js","./lib/schedule.js","./lib/sync-client.js","./lib/tiles.js","./lib/time.js","./main.js","./manifest.webmanifest","./push-check.html","./push-check.js","./style.css","./vendor/supabase.js"];

@@ -1,7 +1,7 @@
 import {DictionaryCache} from "./lib/dictionary-cache.js";
 import {SyncClient, SYNC_KEY, cityKey, legacyEnvelope} from "./lib/sync-client.js";
-import {messageTitle, shareText} from "./lib/notifications.js";
-import {addressCard, appearance, notificationSettings, legend, outageCategory, categoryText, fitPairs} from "./lib/patch-ui.js";
+import {messageTitle, shareText, canShareDay} from "./lib/notifications.js";
+import {addressCard, appearance, notificationSettings, legend, outageCategory, categoryText, fitPairs, scheduleNotice} from "./lib/patch-ui.js";
 import { slideDay } from "./lib/day-transition.js";
 import { fitHeader } from "./lib/layout.js";
 import { adjacentDay, bindHorizontalSwipe } from "./lib/navigation.js";
@@ -27,7 +27,6 @@ import {
   dayState,
   countdown,
   canNextWeek,
-  dataReason,
 } from "./lib/schedule.js";
 import { mergeHistory } from "./lib/parsers.js";
 const $ = (s) => document.querySelector(s),
@@ -141,7 +140,7 @@ function render() {
     (p) => (p.messages = mergeHistory(p.messages || [], [], now)),
   );
   $("#app").innerHTML =
-    `<div class="shell"><header class="top"><h1 class="brand">Світло</h1><p class="header-queue">${p?.snapshot?.queue ? "Черга " + esc(p.snapshot.queue) : ""}${p ? `<span class="header-category" title="${esc(categoryText(outageCategory(p.snapshot,state.date,now,true)))}">${outageCategory(p.snapshot,state.date,now,true)? (p.snapshot.queue?" | ":"")+esc(outageCategory(p.snapshot,state.date,now,true)==="hourly"?"За графіком":categoryText(outageCategory(p.snapshot,state.date,now,true))):""}</span>` : ""}</p>${timer ? `<p class="countdown-label">${esc(timer.label)}</p>${timer.minutes !== undefined ? `<p class="countdown-value">${duration(timer.minutes)}</p>` : ""}` : ""}</header>${!navigator.onLine ? `<div class="offline" role="status">Немає підключення до інтернету.${p?.snapshot?.checkedAt ? " Показуємо збережені дані." : " Збереженого графіка немає."}</div>` : ""}${state.error ? `<p class="notice" role="status">${esc(state.error)}</p>` : ""}${installNotice()}<main id="content">${state.tab === "home" ? home(p, now) : state.tab === "messages" ? messages(p, now) : options(p)}</main></div><nav class="nav" aria-label="Основне меню">${[
+    `<div class="shell"><header class="top"><h1 class="brand">Світло</h1><p class="header-queue">${p?.snapshot?.queue ? "Черга " + esc(p.snapshot.queue) : ""}${p ? `<span class="header-category" title="${esc(categoryText(outageCategory(p.snapshot,state.date,now,true)))}">${outageCategory(p.snapshot,state.date,now,true)? (p.snapshot.queue?" | ":"")+esc(outageCategory(p.snapshot,state.date,now,true)==="hourly"?"За графіком":categoryText(outageCategory(p.snapshot,state.date,now,true))):""}</span>` : ""}</p>${timer ? `<p class="countdown-label">${esc(timer.label)}</p>${timer.minutes !== undefined ? `<p class="countdown-value">${duration(timer.minutes)}</p>` : ""}` : ""}</header>${!navigator.onLine ? `<div class="offline" role="status">Немає підключення до інтернету.${p?.snapshot?.checkedAt ? " Показуємо збережені дані." : " Збереженого графіка немає."}</div>` : ""}${state.error ? `<p class="notice" role="status">${esc(state.error)}</p>` : ""}${installNotice()}<main id="content">${state.tab === "home" ? home(p, now, timer?.label) : state.tab === "messages" ? messages(p, now) : options(p)}</main></div><nav class="nav" aria-label="Основне меню">${[
       ["home", "Головна"],
       ["messages", "Повідомлення"],
       ["options", "Опції"],
@@ -154,16 +153,17 @@ function render() {
   bind();
   enhancePickers();
 }
-function home(p, now) {
+function home(p, now, currentLabel) {
   if (!p)
     return `<section class="card empty"><div class="sun" aria-hidden="true">☀</div><h2>Знайте, коли буде світло</h2><p>Додайте адресу, щоб бачити ваш графік, погоду та зміни відключень.</p>${action("add", "Додати адресу", 'class="primary"')}${!configured() ? '<p class="install-note">Вебзастосунок підготовлено. Підключення сервера триває.</p>' : ""}</section>`;
   const s = dayState(p.snapshot, state.date, now),
+    notice = scheduleNotice(s,currentLabel),
     days = week(state.week),
     w = state.weather[cityKey(p.address)];
   const hours = groupRepeatedHours(s.displayHours)
     .map((h) => hourTile(h, state.date, now, state.rangeTiles, state.iconStyle))
     .join("");
-  return `${addressCard(p,state.profiles,state.addressOpen)}<section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня" style="--day-index:${days.indexOf(state.date)}"><span class="day-indicator" aria-hidden="true"></span>${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${dataReason(s) && s.reason !== "stale" ? `<p class="notice" role="status">${esc(dataReason(s))}</p>` : ""}${maintenanceNotice(p.snapshot, now)}${s.available || s.reason === "queue_unknown" ? `<div class="hours-viewport"><div class="hours">${hours}</div></div>` : '<p class="empty">Графік на цю дату ще не опубліковано</p>'}${legend(state.iconStyle,outageCategory(p.snapshot,state.date,now))}<div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
+  return `${addressCard(p,state.profiles,state.addressOpen)}<section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня" style="--day-index:${days.indexOf(state.date)}"><span class="day-indicator" aria-hidden="true"></span>${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ""}${maintenanceNotice(p.snapshot, now)}${s.available || s.reason === "queue_unknown" ? `<div class="hours-viewport"><div class="hours">${hours}</div></div>` : '<p class="empty">Графік на цю дату ще не опубліковано</p>'}${legend(state.iconStyle,outageCategory(p.snapshot,state.date,now))}<div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
     s.totals
       ? `<section class="stats" aria-label="Підсумок дня">${[
           ["☀", "Зі світлом", s.totals.on],
@@ -175,7 +175,7 @@ function home(p, now) {
           )
           .join("")}</section>`
       : '<section class="card"><h2>Немає точних даних</h2></section>'
-  }<section class="card weather"><small>СЬОГОДНІ</small><div class="weather-now"><span class="weather-current-icon">${weatherIcon(w?.code, w?.isDay !== false)}</span><strong class="temperature">${w ? Math.round(w.temperature) + "°" : "—°"}</strong><div><h2>${esc(p.address.city)}</h2><p class="muted">${w ? weatherDescription(w.code) : "Погода поки недоступна"}</p></div></div>${w ? `<div class="weather-hours" role="region" tabindex="0" aria-label="Погода на 24 години">${w.hours.map((h) => `<div class="weather-hour"><small>${clock(h.time)}</small>${weatherIcon(h.code, h.isDay !== false)}<b>${Math.round(h.temp)}°</b></div>`).join("")}</div>` : ""}<p class="weather-credit"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a></p></section><div class="row main-share">${action("share", "Поділитись графіком")}</div><div class="stack main-donation">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div>`;
+  }<section class="card weather"><small>СЬОГОДНІ</small><div class="weather-now"><span class="weather-current-icon">${weatherIcon(w?.code, w?.isDay !== false)}</span><strong class="temperature">${w ? Math.round(w.temperature) + "°" : "—°"}</strong><div><h2>${esc(p.address.city)}</h2><p class="muted">${w ? weatherDescription(w.code) : "Погода поки недоступна"}</p></div></div>${w ? `<div class="weather-hours" role="region" tabindex="0" aria-label="Погода на 24 години">${w.hours.map((h) => `<div class="weather-hour"><small>${clock(h.time)}</small>${weatherIcon(h.code, h.isDay !== false)}<b>${Math.round(h.temp)}°</b></div>`).join("")}</div>` : ""}<p class="weather-credit"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a></p></section>${canShareDay(s) ? `<div class="row main-share">${action("share", "Поділитись графіком")}</div>` : ""}<div class="stack main-donation">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div>`;
 }
 function messages(p) {
   const items=p?.messages||[];
@@ -363,7 +363,11 @@ async function runAction(action) {
       return;
     }
     if (action === "share") {
-      const p=profile(), text=shareText(p.snapshot,state.date,dayState(p.snapshot,state.date));
+      const p=profile();
+      if(!p)return;
+      const selectedDay=dayState(p.snapshot,state.date);
+      if(!canShareDay(selectedDay))return;
+      const text=shareText(p.snapshot,state.date,selectedDay);
       if(navigator.share)await navigator.share({title:'Графік «Світло»',text});
       else {await navigator.clipboard.writeText(text);toast('Графік скопійовано');}
       return;

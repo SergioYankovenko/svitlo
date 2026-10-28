@@ -1,4 +1,11 @@
 import { clock, duration } from './time.js';
+import { isOutage } from './schedule.js';
+
+// Use exact, day-clipped segments; display rounding may hide a short outage.
+export function canShareDay(state) {
+  return !!state?.hours?.some(hour => hour.segments.some(segment =>
+    isOutage(segment.kind) && segment.end > segment.start));
+}
 
 export function preferences(value = {}) {
   return { schedule: value.schedule !== false,
