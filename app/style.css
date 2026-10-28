@@ -932,7 +932,9 @@ select[hidden] {
 .schedule, .hours { touch-action: pan-y pinch-zoom; }
 .hour.icon-bulb .icon { width: 1em; height: 1.15em; }
 .range-hour.icon-bulb .tile-times { left: 1.5em; }
-.settings .reminder-setting { flex-wrap: wrap; }
+.settings .reminder-setting { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.reminder-copy { display:flex; flex-direction:column; gap:4px; flex:1 1 8rem; min-width:0; }
+.settings .reminder-copy .reminder-label { display:block; min-height:0; padding:0; }
 .reminder-label { white-space: nowrap; }
 .reminder-setting .picker-trigger {
   width: auto;
@@ -1054,7 +1056,7 @@ select[hidden] {
 .notifications hr { border:0; border-top:1px solid var(--track); margin:16px 0; }
 .notifications .reminder-setting { font-size:.875rem; min-height:48px; padding:6px 0; }
 .reminder-setting .picker-trigger { min-height:48px; font-size:inherit; }
-.notifications #lead-help { display:block; font-size:.75rem; }
+.notifications #lead-help { display:block; font-size:.75rem; margin:0; }
 .short-legend { border-top:1px solid var(--track); margin-top:18px; padding-top:16px; display:flex; flex-wrap:wrap; gap:10px 16px; color:var(--muted); font-size:.875rem; }
 .short-legend > span { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
 .short-legend .icon { width:20px; height:20px; color:var(--accent); }
