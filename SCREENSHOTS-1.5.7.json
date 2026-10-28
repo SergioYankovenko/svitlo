@@ -1,0 +1,123 @@
+{
+  "version": "1.5.7",
+  "package": "ua.svitlo.widget",
+  "source": "Actual signed releases, captured with adb exec-out screencap -p; build recorded per image",
+  "release_url": "https://github.com/SergioYankovenko/svitlo/releases/tag/v1.5.7",
+  "sdk": 35,
+  "width": 1080,
+  "height": 2400,
+  "density_dpi": 420,
+  "font_scale": 1,
+  "demo_data": true,
+  "demo_date": "2026-10-28",
+  "timezone": "Europe/Kyiv",
+  "demo_clock": "10:10",
+  "demo_profiles": 3,
+  "queues": [
+    "3.2",
+    "1.1",
+    "2.2"
+  ],
+  "network": "offline; cached demo fixtures; no provider requests",
+  "emulator_session": "read-only, no snapshot save",
+  "image_edits": false,
+  "files": {
+    "android-dark-1.5.7.png": {
+      "bytes": 146006,
+      "sha256": "19115485300c4609c0f23070fe3bb8326b3751c724ae96625cb714e6f21a2f0e",
+      "versionCode": 20,
+      "apk_sha256": "112783abedbcc5c2bf68162104785e25145839675108cfb0821a1078dbdcf72d"
+    },
+    "android-light-1.5.7.png": {
+      "bytes": 145824,
+      "sha256": "f3745fb801ec361c94c090fd2d90af3030e6814bc99ae3bd4abde0be11d134fa",
+      "versionCode": 20,
+      "apk_sha256": "112783abedbcc5c2bf68162104785e25145839675108cfb0821a1078dbdcf72d"
+    },
+    "android-messages-1.5.7.png": {
+      "bytes": 140008,
+      "sha256": "aea5e354710f3f83885dd38c7568e6b3b62269aa8ec259a6661a3116364851d7",
+      "versionCode": 20,
+      "apk_sha256": "112783abedbcc5c2bf68162104785e25145839675108cfb0821a1078dbdcf72d"
+    },
+    "android-options-1.5.7.png": {
+      "bytes": 136883,
+      "sha256": "5b940076c7cc7bc79ee82f22079cb4ed3d7a7188ac0e6cc95f21470659f55417",
+      "versionCode": 20,
+      "apk_sha256": "112783abedbcc5c2bf68162104785e25145839675108cfb0821a1078dbdcf72d"
+    },
+    "android-weather-dark-1.5.7.png": {
+      "bytes": 169377,
+      "sha256": "06c22b0a431a6d56381cc4ce27920298c5321dc7a34662ab3133995c69050965",
+      "versionCode": 20,
+      "apk_sha256": "112783abedbcc5c2bf68162104785e25145839675108cfb0821a1078dbdcf72d"
+    },
+    "android-weather-light-1.5.7.png": {
+      "bytes": 171941,
+      "sha256": "9852be51cd37859f9ef37dac2fe625c9838eeb8d564b0d60ef1ce71148217823",
+      "versionCode": 20,
+      "apk_sha256": "112783abedbcc5c2bf68162104785e25145839675108cfb0821a1078dbdcf72d"
+    },
+    "widgets-1.5.7.png": {
+      "bytes": 778701,
+      "sha256": "0748c4364f690870a4c94b722a959d448c0bf6bf20a53dbbcb560c12257c1dac",
+      "versionCode": 21,
+      "apk_sha256": "68ef3350e940f4a56bd5fd31a171f73d002057ea0ca6ba6d22f3549e6fed2290"
+    }
+  },
+  "presentation_assets": {
+    "widget-compact-1.5.7.png": {
+      "name": "widget-compact-1.5.7",
+      "width": 946,
+      "height": 588,
+      "native_bounds": [
+        67,
+        223,
+        1013,
+        811
+      ],
+      "radius": 68.25,
+      "sha256": "af156c35231cba3eb3346f115f9919fd4d761237eae54106619e62aa39762854",
+      "method": "SVG viewport over the unchanged original native screenshot, rendered by Chromium with transparent native corners; no UI recreation or AI generation",
+      "source_png": "widgets-1.5.7.png",
+      "versionCode": 21,
+      "apk_sha256": "68ef3350e940f4a56bd5fd31a171f73d002057ea0ca6ba6d22f3549e6fed2290"
+    },
+    "widget-addresses-1.5.7.png": {
+      "name": "widget-addresses-1.5.7",
+      "width": 946,
+      "height": 903,
+      "native_bounds": [
+        67,
+        853,
+        1013,
+        1756
+      ],
+      "radius": 68.25,
+      "sha256": "46c5f2c3c8333da30171dd442ff8cee809ce58eaa1f9b8863982c5e8bfb0575a",
+      "method": "SVG viewport over the unchanged original native screenshot, rendered by Chromium with transparent native corners; no UI recreation or AI generation",
+      "source_png": "widgets-1.5.7.png",
+      "versionCode": 21,
+      "apk_sha256": "68ef3350e940f4a56bd5fd31a171f73d002057ea0ca6ba6d22f3549e6fed2290"
+    }
+  },
+  "source_builds": {
+    "20": {
+      "apk_sha256": "112783abedbcc5c2bf68162104785e25145839675108cfb0821a1078dbdcf72d",
+      "screens": "Six application screens"
+    },
+    "21": {
+      "apk_sha256": "68ef3350e940f4a56bd5fd31a171f73d002057ea0ca6ba6d22f3549e6fed2290",
+      "screens": "Widget home screen and its two standalone viewports"
+    }
+  },
+  "widget_demo": {
+    "outage_kinds": [
+      "HOURLY"
+    ],
+    "outage_legend_swatches": 1,
+    "demo_data_only": true,
+    "application_code_modified": false,
+    "note": "Only website demo fixtures were simplified to hourly outages. This is a static example, not verification or a change of dynamic widget color logic."
+  }
+}
