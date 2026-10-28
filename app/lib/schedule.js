@@ -1,4 +1,5 @@
 import { civil, dayKey, addDays, fresh, monday } from "./time.js";
+import { categoryPriority, eventKind } from "./outage-types.js";
 export function emergencyPolicy(data, now) {
   const commands = (data?.emergencies || [])
     .filter(
@@ -100,20 +101,19 @@ export function dayState(data, date, now = Date.now()) {
           .filter((x) => x.start < e && (x.end ?? now) > s)
           .sort(
             (a, b) =>
-              ({ emergency: 3, planned: 2, hourly: 1 })[b.category] -
-              { emergency: 3, planned: 2, hourly: 1 }[a.category],
+              categoryPriority[b.category] - categoryPriority[a.category],
           );
       segments.push({
         start: s,
         end: e,
-        kind: matches[0]?.category || (uncertain ? "unknown" : "clear"),
+        kind: eventKind(matches[0]) || (uncertain ? "unknown" : "clear"),
       });
     }
     hours.push({ start: t, end, segments });
   }
   const lost = hours
     .flatMap((x) => x.segments)
-    .filter((x) => ["hourly", "planned", "emergency"].includes(x.kind))
+    .filter((x) => isOutage(x.kind))
     .reduce((n, x) => n + (x.end - x.start) / 60000, 0);
   return {
     date,
@@ -187,7 +187,7 @@ export function countdown(data, now) {
 export const roundHalfHour = (t) =>
   Math.floor((t + 900000) / 1800000) * 1800000;
 export const isOutage = (kind) =>
-  ["hourly", "planned", "emergency"].includes(kind);
+  ["hourly", "planned", "unplanned", "emergency"].includes(kind);
 export function displayHours(events, from, until, uncertain, now) {
   const rounded = events
     .map((e) => ({
@@ -199,7 +199,7 @@ export function displayHours(events, from, until, uncertain, now) {
           : roundHalfHour(e.end),
     }))
     .filter((e) => e.end > e.start);
-  const priority = { emergency: 3, planned: 2, hourly: 1 };
+  const priority = categoryPriority;
   const result = [];
   for (let start = from; start < until; start += 3600000) {
     const end = Math.min(start + 3600000, until),
@@ -212,7 +212,7 @@ export function displayHours(events, from, until, uncertain, now) {
       segments.push({
         start: t,
         end: stop,
-        kind: matches[0]?.category || (uncertain ? "unknown" : "clear"),
+        kind: eventKind(matches[0]) || (uncertain ? "unknown" : "clear"),
       });
     }
     result.push({ start, end, segments });

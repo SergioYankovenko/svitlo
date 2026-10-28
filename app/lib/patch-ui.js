@@ -2,6 +2,7 @@ import {powerIcon, weatherIcon, checkIcon} from './icons.js';
 import {dayState,dataReason} from './schedule.js';
 import {dayKey,fresh} from './time.js';
 import {preferences} from './notifications.js';
+import {categoryPriority,eventKind} from './outage-types.js';
 export const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function scheduleNotice(day,currentLabel) {
   const text=dataReason(day);
@@ -22,20 +23,21 @@ export function outageCategory(snapshot,date,now,header=false) {
       if(e.category==='hourly'&&s.plan&&!s.plan.uncertain)return !snapshot.feedFailed&&fresh(s.plan.checkedAt||snapshot.feedCheckedAt,now);
       const c=snapshot?.categories?.[e.category];return !snapshot?.failures?.includes(e.category)&&fresh(c?.checkedAt,now)&&fresh(c?.sourceAt,now);
     };
-    const priority={emergency:3,planned:2,hourly:1};
+    const priority=categoryPriority;
     const events=s.events.filter(e=>confirmed(e)&&(e.end===null||e.end>now)).sort((a,b)=>(a.start<=now?0:1)-(b.start<=now?0:1)|| (a.start<=now&&b.start<=now ? priority[b.category]-priority[a.category] : a.start-b.start));
-    if(events[0])return events[0].category;
+    if(events[0])return eventKind(events[0]);
     const all=(snapshot?.plans||[]).flatMap(p=>p.uncertain||p.queue!==snapshot.queue||snapshot.feedFailed||!fresh(p.checkedAt||snapshot.feedCheckedAt,now)?[]:p.events||[]).filter(e=>e.start>now).sort((a,b)=>a.start-b.start);
     return all[0]?.category;
   }
-  const kinds=new Set(dayState(snapshot,date,now).events.map(e=>e.category));
-  return ['emergency','planned','hourly'].find(k=>kinds.has(k));
+  const events=dayState(snapshot,date,now).events;
+  const category=['emergency','planned','hourly'].find(k=>events.some(e=>e.category===k));
+  return eventKind(events.find(e=>e.category===category));
 }
-export const categoryText=k=>({hourly:'Погодинне відключення',planned:'Планові роботи',emergency:'Аварійне відключення'})[k]||'';
+export const categoryText=k=>({hourly:'Погодинне відключення',planned:'Планові роботи',unplanned:'Позапланове відключення',emergency:'Аварійне відключення'})[k]||'';
 export function legend(style,category,full=false) {
   const color=`var(--${category||'hourly'})`,on=powerIcon(false,false,style),off=powerIcon(true,false,style);
   if(!full)return `<div class="short-legend" aria-label="Умовні позначення"><span><i class="legend-on">${on}</i>Світло є</span><span style="--sample-color:${color}"><i class="legend-off">${off}</i>Світла немає</span><span><i class="current-sample" aria-hidden="true"></i>Поточна година</span></div>`;
-  return `<section class="full-legend" aria-label="Умовні позначення"><h2>Умовні позначення</h2>${['hourly','planned','emergency'].map(k=>`<p><i class="legend-off" style="--sample-color:var(--${k})">${off}</i><span>— ${categoryText(k)}</span></p>`).join('')}<p><i class="half-sample" style="--sample-color:${color}" aria-hidden="true">${off}</i><span>— 30 хв без світла</span></p></section>`;
+  return `<section class="full-legend" aria-label="Умовні позначення"><h2>Умовні позначення</h2>${['hourly','planned','unplanned','emergency'].map(k=>`<p><i class="legend-off" style="--sample-color:var(--${k})">${off}</i><span>— ${categoryText(k)}</span></p>`).join('')}<p><i class="half-sample" style="--sample-color:${color}" aria-hidden="true">${off}</i><span>— 30 хв без світла</span></p></section>`;
 }
 export function appearance(state) {
   const choice=(key,value,label,body,selected)=>`<button class="appearance-choice" data-look="${key}" data-value="${value}" aria-label="${label}" aria-pressed="${selected}">${body}</button>`;

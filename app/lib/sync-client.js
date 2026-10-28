@@ -1,6 +1,7 @@
 import {dayKey} from './time.js';
 import {appStorage,safeStorage} from './storage.js';
 import {envelopeData,validProfile,normalizeProfile,validWeather} from './cache-data.js';
+import {needsOutageTypes} from './outage-types.js';
 export const SYNC_KEY='svitlo-sync-v1',HOUR=3600000;
 export const cityKey=a=>JSON.stringify([a.department,a.cityId,a.city]);
 const token=()=>globalThis.crypto.randomUUID();
@@ -41,6 +42,7 @@ export class SyncClient {
     if(subscription&&(value.subscription!==JSON.stringify([id||p?.id,subscription,value.vapid])||this.now()-(value.subscriptionAt||0)>86400000))return true;
     if(p){
       const marker=await this.invalidation(p.id);if(marker&&marker!==value.invalidations?.[p.id])return true;
+      if(needsOutageTypes(p.snapshot) && this.now()-(value.outageTypeAttempts?.[p.id]||0)>=300000)return true;
       const weather=value.weather?.[cityKey(p.address)],due=dataUntil(p,this.now());
       if(!due||due<=this.now()||!weather||weather.checkedAt>this.now()+300000||this.now()-weather.checkedAt>=HOUR)return age>=300000;
     }
@@ -70,7 +72,7 @@ export class SyncClient {
         const weather={...(cached?.weather||{})};if(r.weather&&r.weatherKey&&validWeather(r.weather,this.now()))weather[r.weatherKey]=r.weather;
         const value=envelopeData({version:1,owner,at:this.now(),day:dayKey(this.now()),profiles:r.profiles,
           active:r.active||args.id||r.profiles?.[0]?.id,weather,vapid:r.vapid,pushReady:r.pushReady,errors:r.errors||{},
-          invalidations:markers,subscription:cached?.subscription,subscriptionAt:cached?.subscriptionAt,revision:token()},owner,this.now());
+          invalidations:markers,outageTypeAttempts:{...cached?.outageTypeAttempts,[r.active||args.id||r.profiles?.[0]?.id]:this.now()},subscription:cached?.subscription,subscriptionAt:cached?.subscriptionAt,revision:token()},owner,this.now());
         if(!value)throw Error('Не вдалося прочитати отримані дані. Спробуйте ще раз.');
         if(r.subscription){value.subscription=JSON.stringify([r.active||args.id,args.subscription,r.vapid]);value.subscriptionAt=this.now();}
         // No await between this fence, persistence and return.

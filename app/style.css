@@ -16,6 +16,8 @@
   --button: #172b21;
   --hourly: #d9a746;
   --planned: #ad9cd1;
+  --unplanned: #78579f;
+  --unplanned-time: #f0f3e8;
   --emergency: #df8272;
   --unknown: #304a3a;
   background: var(--bg);
@@ -24,6 +26,7 @@
   line-height: 1.45;
 }
 :root[data-theme="light"] {
+  --unplanned: #7d5da6;
   color-scheme: light;
   --bg: #eff5ec;
   --surface: #fff;
@@ -979,8 +982,8 @@ select[hidden] {
   align-self: center;
   padding: 0 0.15em;
   border-radius: 3px;
-  background: var(--button);
-  color: var(--ink) !important;
+  background: var(--clock-time-bg,var(--button));
+  color: var(--clock-time-ink,var(--ink)) !important;
 }
 .hour.clock-shift .clock-change {
   padding: 0 0.2em;

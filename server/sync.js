@@ -1,4 +1,5 @@
 import { SharedCategories } from './shared-categories.js';
+import { needsOutageTypes } from '../app/lib/outage-types.js';
 // Exact provider city IDs and type-bearing name prevent city/village collisions.
 export const cityKey = a => JSON.stringify([a.department,a.cityId,a.city]);
 export class SyncService {
@@ -26,7 +27,7 @@ export class SyncService {
     const errors={};
     if(active) {
       const interval=body.reason==='manual'||body.reason==='push'||body.reason==='rollover' ? 60000 : 3600000;
-      if(!active.last_checked || now-active.last_checked>=interval || (body.reason!=='manual' && now>=active.next_check && now-active.last_checked>=60000)) {
+      if(!active.last_checked || now-active.last_checked>=interval || (needsOutageTypes(active.snapshot) && now-active.last_checked>=60000 && (!active.snapshot?.failures?.length || now>=active.next_check)) || (body.reason!=='manual' && now>=active.next_check && now-active.last_checked>=60000)) {
         try { active=await s.refresh(active); }
         catch(e) { if(e.status===404)throw e; errors.profile='Оновлення тимчасово недоступне'; }
       }

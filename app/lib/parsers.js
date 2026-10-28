@@ -1,4 +1,5 @@
 import { civil, sourceTime, dayKey, addDays } from "./time.js";
+import { OUTAGE_TYPES_VERSION } from "./outage-types.js";
 export const ORIGIN = "https://www.cherkasyoblenergo.com";
 export const QUEUES = Array.from({ length: 6 }, (_, i) => [
   `${i + 1}.1`,
@@ -164,7 +165,11 @@ export function parseOutages(root, category, checkedAt) {
         match = raw.match(/\d{2}:\d{2}\s+\d{2}\.\d{2}\.\d{4}/),
         end = match ? sourceTime(match[0]) : null;
       if (end !== null && end <= start) throw Error("Некоректний інтервал");
-      return { start, end, category, plannedEnd: /план/i.test(raw) };
+      return { start, end, category, plannedEnd: /план/i.test(raw),
+        ...(category === "planned" ? {
+          unplanned: typeof x.DISCONN_TYPE === "string" && /позаплан/i.test(x.DISCONN_TYPE),
+        } : {}),
+      };
     });
   const info = root.DISCONN_QUEUQ
     ? rows(root.DISCONN_QUEUQ)
@@ -182,6 +187,7 @@ export function parseOutages(root, category, checkedAt) {
   ];
   return {
     events,
+    ...(category === "planned" ? { outageTypesVersion: OUTAGE_TYPES_VERSION } : {}),
     queue: queues.length === 1 ? queues[0] : null,
     checkedAt,
     sourceAt: root.DATETIME ? sourceTime(root.DATETIME) : null,

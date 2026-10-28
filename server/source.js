@@ -342,7 +342,7 @@ export class Source {
           if (category === "hourly") Object.assign(next, providerQueue(root));
           return next;
           };
-          const scope=['address-v1',a.account ? ['account',a.account] : ['address',a.department,a.cityId,a.streetId,a.house,a.city,a.street],category,base.n_date,base.k_date];
+          const scope=[category === 'planned' ? 'address-types-v2' : 'address-v1',a.account ? ['account',a.account] : ['address',a.department,a.cityId,a.streetId,a.house,a.city,a.street],category,base.n_date,base.k_date];
           const next=this.sharedCategories ? await this.sharedCategories.load(scope,load,signal) : await load();
           // Retain already elapsed intervals if upstream omits them on a later request.
           const historical = (
