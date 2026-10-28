@@ -786,6 +786,9 @@ select[hidden] {
 .picker-option[aria-pressed="true"]::after {
   content: " ✓";
 }
+.reminder-picker .picker-option[aria-pressed="true"]::after {
+  content: none;
+}
 :root {
   font-size: 100%;
   --outage-ink: #14251e;
@@ -1033,7 +1036,14 @@ select[hidden] {
 .time-example { font-size:.9375rem; line-height:1.15; font-variant-numeric:tabular-nums; }
 .appearance.large-text .appearance-row { grid-template-columns:minmax(0,1fr); gap:7px; }
 .appearance.large-text .appearance-choice { font-size:1.125rem; }
-.permission-status { color:var(--muted); font-size:.75rem; margin:4px 0 10px; }
+.notification-heading { display:flex; align-items:center; gap:4px; }
+.notification-heading > span { min-width:0; overflow-wrap:anywhere; }
+.notification-status { position:relative; display:inline-flex; align-items:center; justify-content:flex-start; flex:0 0 44px; width:44px; min-height:44px; padding:0; margin:0; background:transparent; border:0; border-radius:6px; color:var(--accent); }
+.notification-status.bell-off { color:var(--muted); }
+.notification-bell { width:28px; height:28px; flex:0 0 28px; }
+.notification-status:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.boot-state { min-height:8rem; }
+.storage-notice { font-size:.875rem; color:var(--muted); }
 .settings .notification-toggle { min-height:48px; font-size:.875rem; padding:6px 0; align-items:center; }
 .notification-toggle span { min-width:0; overflow-wrap:anywhere; }
 .notification-toggle input[role=switch] { appearance:none; width:38px; height:24px; border:1px solid var(--track); border-radius:20px; background:var(--bg); position:relative; cursor:pointer; margin:0; }

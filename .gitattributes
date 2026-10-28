@@ -1,3 +1,6 @@
 app/vendor/** -diff -whitespace
 server/operator-chain.js -diff
 server/operator-certificates.js -diff
+
+# App-shell integrity hashes require identical checkout and deployed bytes.
+app/** text=auto eol=lf

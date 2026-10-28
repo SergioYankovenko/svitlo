@@ -42,11 +42,13 @@ export function appearance(state) {
   const row=(label,body)=>`<div class="appearance-row"><span class="appearance-label">${label}</span><div class="appearance-pair" role="group" aria-label="${label}">${body}</div></div>`;
   return `<section class="card appearance"><h2>Вигляд</h2>${row('Тема',choice('theme','dark','Темна тема',weatherIcon(0,false)+'<span>Темна</span>',state.theme==='dark')+choice('theme','light','Світла тема',weatherIcon(0,true)+'<span>Світла</span>',state.theme==='light'))}${row('Час',choice('range','false','Лише початок','<span class="time-example">13:00</span>',!state.rangeTiles)+choice('range','true','Початок і кінець','<span class="time-example">13:00<br>14:00</span>',state.rangeTiles))}${row('Значки',choice('icons','bolt','Блискавки',powerIcon(false,false,'bolt'),state.iconStyle==='bolt')+choice('icons','bulb','Лампочки',powerIcon(false,false,'bulb'),state.iconStyle==='bulb'))}</section>`;
 }
-export function notificationSettings(p,permission,push) {
+export function notificationSettings(p,permission,push,{checking=false,busy=false,error=""}={}) {
   const prefs=preferences(p?.preferences),disabled=!p,leadDisabled=disabled||!prefs.reminder&&!prefs.restoration;
   const toggle=(key,label)=>`<label class="notification-toggle"><span>${label}</span><input role="switch" type="checkbox" data-pref="${key}" ${prefs[key]?'checked':''} ${disabled?'disabled':''}></label>`;
-  const status=permission==='granted'?'Дозвіл системи надано':permission==='denied'?'Сповіщення заблоковано в браузері':permission==='unsupported'?'Push у цьому браузері недоступний':'Дозвіл на сповіщення ще не надано';
-  return `<section class="card notifications"><h2>Сповіщення</h2><p class="permission-status" role="status"><svg class="bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg> ${status}${permission==='granted'&&!push?' · підписку не увімкнено':''}</p>${toggle('reminder','Перед відключенням')}${toggle('restoration','Перед очікуваним відновленням')}<label class="reminder-setting"><span class="reminder-label">Нагадувати за</span><select id="lead" ${leadDisabled?'disabled aria-describedby="lead-help"':''}>${[5,15,30,60].map(n=>`<option value="${n}" ${prefs.lead===n?'selected':''}>${n} хв</option>`).join('')}</select></label>${leadDisabled?'<small id="lead-help">Увімкніть нагадування, щоб вибрати час</small>':''}<hr>${toggle('publication','Графік на завтра')}${toggle('change','Зміни графіка')}${toggle('emergency','Аварії за адресою')}<div class="stack"><button data-action="push" ${disabled?'disabled':''}>${push?'Вимкнути':'Увімкнути'} push-сповіщення</button></div><p class="install-note">На iPhone сповіщення доступні з iOS 16.4 після додавання на Початковий екран. Дозвіл запитується лише після натискання кнопки. Час доставки залежить від системи.</p></section>`;
+  const active=permission==='granted'&&push&&!checking;
+  const status=checking?'Перевіряємо стан сповіщень':(error?(active?'Сповіщення увімкнено':'Сповіщення вимкнено')+' · '+error:null)|| (active?'Сповіщення увімкнено':permission==='denied'?'Сповіщення заблоковано в браузері':permission==='unsupported'?'Push у цьому браузері недоступний':'Сповіщення вимкнено');
+  const bell=`<button class="notification-status ${active?'':'bell-off'}" data-notification-status data-full="${esc(status)}" aria-label="${esc(status)}" type="button"><svg class="notification-bell" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>${active?'':'<path d="m3 3 18 18"/>'}</svg></button>`;
+  return `<section class="card notifications"><h2 class="notification-heading"><span>Сповіщення</span>${bell}</h2>${toggle('reminder','Перед відключенням')}${toggle('restoration','Перед очікуваним відновленням')}<label class="reminder-setting"><span class="reminder-label">Нагадувати за</span><select id="lead" ${leadDisabled?'disabled aria-describedby="lead-help"':''}>${[5,15,30,60].map(n=>`<option value="${n}" ${prefs.lead===n?'selected':''}>${n} хв</option>`).join('')}</select></label>${leadDisabled?'<small id="lead-help">Увімкніть нагадування, щоб вибрати час</small>':''}<hr>${toggle('publication','Графік на завтра')}${toggle('change','Зміни графіка')}${toggle('emergency','Аварії за адресою')}<div class="stack"><button data-action="push" ${disabled||busy?'disabled':''}>${busy?'Зачекайте…':(push?'Вимкнути':'Увімкнути')+' push-сповіщення'}</button></div><p class="install-note">На iPhone сповіщення доступні з iOS 16.4 після додавання на Початковий екран. Дозвіл запитується лише після натискання кнопки. Час доставки залежить від системи.</p></section>`;
 }
 
 export function fitPairs(root=document) {
@@ -66,6 +68,14 @@ export function fitPairs(root=document) {
     });
     root.querySelectorAll('.appearance').forEach(el=>el.classList.toggle('large-text',scale>=1.4));
     root.querySelectorAll('.message').forEach(el=>el.classList.toggle('large-text',scale>=1.4));
+    root.querySelectorAll('.notification-heading').forEach(heading=>{
+      const text=heading.querySelector('span'),style=getComputedStyle(heading),available=heading.clientWidth-48;
+      let size=20*scale;
+      const width=()=>{canvas.font=`${style.fontWeight} ${size}px ${style.fontFamily}`;return canvas.measureText(text.textContent).width;};
+      // Retain a whole heading at large text sizes, with a 1rem scaled minimum.
+      while(size>16*scale&&width()>available)size-=.25;
+      heading.style.fontSize=size+'px';
+    });
   };
   let raf;const schedule=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(update);};
   const observer=new ResizeObserver(schedule);rows.forEach(r=>observer.observe(r));observer.observe(document.documentElement);

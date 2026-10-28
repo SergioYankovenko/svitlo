@@ -17,7 +17,7 @@ function profile(id='one',owner='alice',t=now) {return {id,owner,address:{depart
 const storage=()=>{const m=new Map();return {getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};};
 const locks={async request(k,fn){const before=this.pending||Promise.resolve();let release;this.pending=new Promise(r=>release=r);await before;try{return await fn();}finally{release();}}};
 test('upgrade preserves only owner-bound legacy profiles/history and weather, without extending source age',()=>{
-  const a=profile(),b=profile('other','bob'),w={city:a.address.city,checkedAt:now};
+  const a=profile(),b=profile('other','bob'),w={city:a.address.city,checkedAt:now,temperature:13,code:3,hours:[]};
   const value=legacyEnvelope('alice',[a,b],{one:w},now);
   assert.equal(value.profiles.length,1);assert.equal(value.at,0);assert.equal(value.profiles[0].snapshot.checkedAt,now);
   assert.equal(value.weather[cityKey(a.address)],w);assert.equal(legacyEnvelope('charlie',[a,b],{},now),null);
@@ -63,7 +63,7 @@ test('startup/visibility/online and multiple tabs coalesce; manual/push/owner/mu
 test('push arriving during sync remains unacknowledged; partial data retries without freshening source',async()=>{
   let marker='a',t=now,calls=0;const local=storage();
   const c=new SyncClient({storage:local,owner:async()=>'a',now:()=>t,locks,invalidation:async()=>marker,request:async()=>{
-    calls++;const p=profile();if(calls>1){p.snapshot.failures=['hourly'];marker='b';}return {profiles:[p],weatherKey:cityKey(p.address),weather:{checkedAt:now},errors:{}};
+    calls++;const p=profile('one','a');if(calls>1){p.snapshot.failures=['hourly'];marker='b';}return {profiles:[p],weatherKey:cityKey(p.address),weather:{city:'м. Христинівка',checkedAt:now,temperature:13,code:3,hours:[]},errors:{}};
   }});
   await c.sync({id:'one'});marker='x';await c.sync({id:'one'});assert.equal(c.read('a').invalidations.one,'x');
   assert.equal(c.read('a').profiles[0].snapshot.checkedAt,now);
@@ -85,7 +85,7 @@ test('unchanged subscription costs zero sync, changed binding/keys and daily rep
   const c=new SyncClient({storage:local,owner:async()=>'alice',locks,now:()=>t,request:async(action,body)=>{
     calls++;if(body.subscription)registered++;
     const p=profile(body.id||'one','alice',t);
-    return {profiles:[p,profile('two','alice',t)],active:p.id,vapid:'key',subscription:!!body.subscription,weatherKey:cityKey(p.address),weather:{checkedAt:t},errors:{}};
+    return {profiles:[p,profile(p.id==='two'?'one':'two','alice',t)],active:p.id,vapid:'key',subscription:!!body.subscription,weatherKey:cityKey(p.address),weather:{city:'м. Христинівка',checkedAt:t,temperature:13,code:3,hours:[]},errors:{}};
   }});
   await c.sync({subscription:sub});await c.sync({id:'one',subscription:sub});assert.equal(calls,1);assert.equal(registered,1);
   await c.sync({id:'two',subscription:sub});assert.equal(calls,2);assert.equal(registered,2);
@@ -95,7 +95,7 @@ test('unchanged subscription costs zero sync, changed binding/keys and daily rep
 test('offline retains the owned cache; subsequent online refresh recovers without extending old timestamps',async()=>{
   let t=now,offline=false,calls=0;const local=storage();
   const c=new SyncClient({storage:local,owner:async()=>'alice',locks,now:()=>t,request:async()=>{
-    calls++;if(offline)throw Error('offline');const p=profile('one','alice',t);return {profiles:[p],weatherKey:cityKey(p.address),weather:{checkedAt:t},errors:{}};
+    calls++;if(offline)throw Error('offline');const p=profile('one','alice',t);return {profiles:[p],weatherKey:cityKey(p.address),weather:{city:'м. Христинівка',checkedAt:t,temperature:13,code:3,hours:[]},errors:{}};
   }});
   await c.sync({id:'one'});t+=3600001;offline=true;
   await assert.rejects(()=>c.sync({id:'one'}),/offline/);assert.equal(c.read('alice').profiles[0].snapshot.checkedAt,now);

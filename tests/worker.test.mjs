@@ -22,11 +22,13 @@ function worker() {
   };
   const context = {
     URL,
+    AbortController,setTimeout,clearTimeout,crypto:globalThis.crypto,
     Response,
     Request,
     self,
     caches: {
       open: async () => ({
+        match: async key=>({ok:true,offline:key}),
         addAll: async (urls) => calls.push({ urls }),
         put: async (url, response) => receipts.push(await response.json()),
       }),
@@ -37,7 +39,7 @@ function worker() {
       throw Error("offline");
     },
   };
-  vm.runInNewContext(fs.readFileSync("app/sw.js", "utf8"), context);
+  vm.runInNewContext(fs.readFileSync("app/sw.js", "utf8").replace(/const HASHES = \{[^;]*\};/,"const HASHES = {};"), context);
   return { handlers, calls, context, root, receipts };
 }
 async function dispatch(fn, event = {}) {

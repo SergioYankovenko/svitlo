@@ -43,6 +43,7 @@ export function enhancePickers(root = document) {
 function choose(select, trigger, title) {
   const dialog = document.createElement("dialog");
   dialog.className = "picker-dialog";
+  if (select.id === "lead") dialog.classList.add("reminder-picker");
   dialog.setAttribute("aria-label", title);
   const close = document.createElement("button");
   close.type = "button";

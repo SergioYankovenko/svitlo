@@ -15,7 +15,6 @@ await build({
   minify: true,
 });
 await mkdir("dist/app", { recursive: true });
-await cp("app", "dist/app", { recursive: true });
 const files = async (dir) =>
   (
     await Promise.all(
@@ -24,17 +23,31 @@ const files = async (dir) =>
       ),
     )
   ).flat();
-const list = await files("app"),
-  hash = createHash("sha256");
-for (const f of list.filter((f) => !f.endsWith("/sw.js")))
-  hash.update(await readFile(f));
+const list = await files("app");
+// GitHub Pages serves repository bytes. Canonical LF must be hashed and copied,
+// even when the Windows checkout uses automatic CRLF conversion.
+for (const file of list.filter(f=>/\.(?:js|html|css|json|webmanifest|svg)$/.test(f))) {
+  const source=await readFile(file,'utf8'),canonical=source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
+  if(source!==canonical)await writeFile(file,canonical);
+}
+await cp("app", "dist/app", { recursive: true });
+const hash = createHash("sha256");
+for (const f of list.filter((f) => !f.endsWith("/sw.js"))) {
+  const body=await readFile(f);
+  hash.update(f.endsWith('/index.html')?body.toString().replace(/data-shell="[^"]*"/,'data-shell="development"'):body);
+}
 const version = hash.digest("hex").slice(0, 12);
+const html=(await readFile('app/index.html','utf8')).replace(/data-shell="[^"]*"/,`data-shell="svitlo-pwa-${version}"`);
+await writeFile('app/index.html',html);await writeFile('dist/app/index.html',html);
 let sw = await readFile("app/sw.js", "utf8");
 sw = sw.replace(
   /(["'])svitlo-pwa-[^"']+\1/,
   JSON.stringify(`svitlo-pwa-${version}`),
 );
 sw = sw.replace(/const SHELL = \[[\s\S]*?\];/, "const SHELL = "+JSON.stringify(["./",...list.filter(f=>!f.endsWith("/sw.js")).map(f=>"./"+f.slice(4))])+";");
+const integrity={};
+for(const f of list.filter(f=>!f.endsWith('/sw.js')))integrity['./'+f.slice(4)]=createHash('sha256').update(await readFile(f)).digest('hex');
+sw=sw.replace(/const HASHES = \{[^;]*\};/, 'const HASHES = '+JSON.stringify(integrity)+';');
 await writeFile("dist/app/sw.js", sw);
 await writeFile("app/sw.js", sw);
 await mkdir(".local/bundles", { recursive: true });
