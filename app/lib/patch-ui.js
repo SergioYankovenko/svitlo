@@ -1,4 +1,4 @@
-import {powerIcon, weatherIcon, checkIcon} from './icons.js';
+import {powerIcon, themeIcon, checkIcon} from './icons.js';
 import {dayState,dataReason} from './schedule.js';
 import {dayKey,fresh} from './time.js';
 import {preferences} from './notifications.js';
@@ -42,7 +42,7 @@ export function legend(style,category,full=false) {
 export function appearance(state) {
   const choice=(key,value,label,body,selected)=>`<button class="appearance-choice" data-look="${key}" data-value="${value}" aria-label="${label}" aria-pressed="${selected}">${body}</button>`;
   const row=(label,body)=>`<div class="appearance-row"><span class="appearance-label">${label}</span><div class="appearance-pair" role="group" aria-label="${label}">${body}</div></div>`;
-  return `<section class="card appearance"><h2>Вигляд</h2>${row('Тема',choice('theme','dark','Темна тема',weatherIcon(0,false)+'<span>Темна</span>',state.theme==='dark')+choice('theme','light','Світла тема',weatherIcon(0,true)+'<span>Світла</span>',state.theme==='light'))}${row('Час',choice('range','false','Лише початок','<span class="time-example">13:00</span>',!state.rangeTiles)+choice('range','true','Початок і кінець','<span class="time-example">13:00<br>14:00</span>',state.rangeTiles))}${row('Значки',choice('icons','bolt','Блискавки',powerIcon(false,false,'bolt'),state.iconStyle==='bolt')+choice('icons','bulb','Лампочки',powerIcon(false,false,'bulb'),state.iconStyle==='bulb'))}</section>`;
+  return `<section class="card appearance"><h2>Вигляд</h2>${row('Тема',choice('theme','dark','Темна тема',themeIcon(false)+'<span>Темна</span>',state.theme==='dark')+choice('theme','light','Світла тема',themeIcon(true)+'<span>Світла</span>',state.theme==='light'))}${row('Час',choice('range','false','Лише початок','<span class="time-example">13:00</span>',!state.rangeTiles)+choice('range','true','Початок і кінець','<span class="time-example">13:00<br>14:00</span>',state.rangeTiles))}${row('Значки',choice('icons','bolt','Блискавки',powerIcon(false,false,'bolt'),state.iconStyle==='bolt')+choice('icons','bulb','Лампочки',powerIcon(false,false,'bulb'),state.iconStyle==='bulb'))}</section>`;
 }
 export function notificationSettings(p,permission,push,{checking=false,busy=false,error=""}={}) {
   const prefs=preferences(p?.preferences),disabled=!p,leadDisabled=disabled||!prefs.reminder&&!prefs.restoration;

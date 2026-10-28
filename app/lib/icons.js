@@ -3,9 +3,6 @@ const svg = (body, box = "0 0 24 24") =>
 const sun =
   '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>';
 const moon = '<path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"/>';
-const cloud =
-  '<path d="M6 17a4 4 0 1 1 .5-8A5.5 5.5 0 0 1 17 8a4.5 4.5 0 1 1 1 9Z"/>';
-const rain = '<path d="m8 20-1 2m6-2-1 2m6-2-1 2"/>';
 export function powerIcon(off = false, unknown = false, style = "bolt") {
   if (unknown)
     return svg(
@@ -35,6 +32,8 @@ export function summaryIcon(on) {
     on ? sun : '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
   );
 }
+// Appearance choices keep their existing monochrome theme symbols.
+export const themeIcon = light => svg(light ? sun : moon);
 export function weatherKind(code, isDay = true) {
   if (code === 0) return isDay ? "sun" : "moon";
   if (code === 1 || code === 2) return isDay ? "partly" : "partly-night";
@@ -61,25 +60,24 @@ export function weatherDescription(code) {
     unknown: "Погода недоступна",
   }[weatherKind(code)];
 }
+// Filled, emoji-like weather artwork. Inline paths stay identical across mobile
+// fonts and work offline; no external assets, masks, filters or duplicate IDs.
+const weatherSun = `<g fill="#F6B62D">${Array.from({length:8},(_,i)=>`<path d="M16 1 13.8 6.6h4.4Z" transform="rotate(${i*45} 16 16)"/>`).join('')}<circle cx="16" cy="16" r="7" fill="#FFD65A"/></g>`;
+const weatherMoon = '<path d="M23.8 24.9A12 12 0 0 1 12 4.1a12 12 0 1 0 11.8 20.8Z" fill="#FFD65A"/>';
+const weatherCloud = '<path d="M8 25.5a5.8 5.8 0 1 1 .4-11.6 8.4 8.4 0 0 1 16.2 1.9 4.9 4.9 0 0 1 .5 9.7Z" fill="#E5EEF1"/><path d="M2.5 21.9c1.1 1.1 2.8 1.5 4.5 1.1 1.6 1.8 4.6 2 6.5.4 2.1 1.4 5 1.4 7-.1 3.1 1.4 6.6.5 8.8-1.2a4.9 4.9 0 0 1-4.2 3.4H8a5.8 5.8 0 0 1-5.5-3.6Z" fill="#B7CDD5"/>';
+const weatherDrops = heavy => `<g fill="#68BCE8">${[8,16,24].map(x=>`<path d="M${x} ${heavy?24:25}${heavy?'c-1 1.4-2 2.5-2 3.6a2 2 0 0 0 4 0c0-1.1-1-2.2-2-3.6':'c-.75 1.1-1.5 1.9-1.5 2.7a1.5 1.5 0 0 0 3 0c0-.8-.75-1.6-1.5-2.7'}Z"/>`).join('')}</g>`;
+const coloredWeather = body => `<svg class="icon weather-art" viewBox="0 0 32 32" fill="none" stroke="none" aria-hidden="true" focusable="false">${body}</svg>`;
 export function weatherIcon(code, isDay = true) {
   const kind = weatherKind(code, isDay);
-  if (kind === "sun" || kind === "moon")
-    return svg(kind === "sun" ? sun : moon);
+  if (kind === "sun") return coloredWeather(weatherSun);
+  if (kind === "moon") return coloredWeather(weatherMoon);
   if (kind === "partly" || kind === "partly-night")
-    return svg(
-      '<g transform="translate(-2 -3) scale(.8)">' +
-        (kind === "partly" ? sun : moon) +
-        '</g><path d="M8 20a4 4 0 0 1-1-7 5 5 0 0 1 9.5-1A4 4 0 1 1 18 20Z" fill="var(--surface)"/>',
-    );
-  if (kind === "fog") return svg('<path d="M5 8h14M3 12h18M5 16h14M8 20h8"/>');
-  if (kind === "snow")
-    return svg(
-      '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9 5l3 3 3-3M9 19l3-3 3 3M5 10l4-1-1-4M19 14l-4 1 1 4M5 14l4 1-1 4M19 10l-4-1 1-4"/>',
-    );
-  if (kind === "storm") return svg(cloud + '<path d="m12 14-3 5h4l-2 4"/>');
-  if (kind === "unknown")
-    return svg(
-      '<path d="M9 8a3 3 0 1 1 5 2.3C12 11.5 12 12 12 14"/><circle cx="12" cy="18" r=".8" fill="currentColor"/>',
-    );
-  return svg(cloud + (kind === "rain" || kind === "drizzle" ? rain : ""));
+    return coloredWeather(`<g transform="translate(-2 -3) scale(.72)">${kind === 'partly' ? weatherSun : weatherMoon}</g>${weatherCloud}`);
+  if (kind === "cloud") return coloredWeather(weatherCloud);
+  if (kind === "fog") return coloredWeather(`<g transform="translate(0 -3)">${weatherCloud}</g><path d="M4 24h24M2 28h17m4 0h7" stroke="#A6BEC8" stroke-width="2" stroke-linecap="round"/>`);
+  if (kind === "drizzle" || kind === "rain")
+    return coloredWeather(`<g transform="translate(0 -4)">${weatherCloud}</g>${weatherDrops(kind === 'rain')}`);
+  if (kind === "snow") return coloredWeather(`<g transform="translate(0 -4)">${weatherCloud}</g><g stroke="#81C9EB" stroke-width="1.3" stroke-linecap="round">${[8,16,24].map(x=>`<path d="M${x} 25v5m-2.2-3.8 4.4 2.6m-4.4 0 4.4-2.6"/>`).join('')}</g>`);
+  if (kind === "storm") return coloredWeather(`<g transform="translate(0 -4)">${weatherCloud}</g><path d="m16 21-5 6h4l-1 5 8-8h-5l3-3Z" fill="#FFD65A"/>`);
+  return svg('<path d="M9 8a3 3 0 1 1 5 2.3C12 11.5 12 12 12 14"/><circle cx="12" cy="18" r=".8" fill="currentColor"/>');
 }
