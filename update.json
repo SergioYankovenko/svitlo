@@ -1,10 +1,10 @@
 {
   "schema": 1,
   "packageId": "ua.svitlo.widget",
-  "versionCode": 13,
-  "versionName": "1.5.0",
-  "publishedAt": "2026-10-24T23:05:58Z",
+  "versionCode": 20,
+  "versionName": "1.5.7",
+  "publishedAt": "2026-10-28T20:17:37Z",
   "minSdk": 26,
-  "apkUrl": "https://sergioyankovenko.github.io/svitlo/downloads/Svitlo-1.5.0.apk",
-  "sha256": "44d970fdf5fd8d802ffa756ed38b806edfcb41093b01bd1d0d3ee047790a9830"
+  "apkUrl": "https://sergioyankovenko.github.io/svitlo/downloads/Svitlo-1.5.7.apk",
+  "sha256": "112783abedbcc5c2bf68162104785e25145839675108cfb0821a1078dbdcf72d"
 }
