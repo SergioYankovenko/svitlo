@@ -1,3 +1,7 @@
+import {DictionaryCache} from "./lib/dictionary-cache.js";
+import {SyncClient, SYNC_KEY, cityKey, legacyEnvelope} from "./lib/sync-client.js";
+import {messageTitle, shareText} from "./lib/notifications.js";
+import {addressCard, appearance, notificationSettings, legend, outageCategory, categoryText, fitPairs} from "./lib/patch-ui.js";
 import { slideDay } from "./lib/day-transition.js";
 import { fitHeader } from "./lib/layout.js";
 import { adjacentDay, bindHorizontalSwipe } from "./lib/navigation.js";
@@ -9,7 +13,7 @@ import {
   weatherIcon,
   weatherDescription,
 } from "./lib/icons.js";
-import { request, configured, forgetSession } from "./api.js";
+import { request, configured, forgetSession, identity, ensureIdentity } from "./api.js";
 import {
   dayKey,
   week,
@@ -54,7 +58,8 @@ const read = (k, f) => {
     }
   };
 const state = {
-  profiles: read("svitlo-profiles", []),
+  profiles: [],
+  owner: null,
   active: read("svitlo-active", null),
   theme: read("svitlo-theme", "dark"),
   iconStyle: read("svitlo-icon-style", "bolt") === "bulb" ? "bulb" : "bolt",
@@ -69,6 +74,7 @@ const state = {
   pushReady: false,
   push: false,
   explicit: false,
+  addressOpen: false,
 };
 let installPrompt,
   installDismissed = false,
@@ -85,6 +91,7 @@ function persist() {
   save("svitlo-active", state.active);
 }
 function store(p) {
+  if(p.owner && p.owner!==state.owner)return false;
   const index = state.profiles.findIndex((x) => x.id === p.id);
   if (index < 0) state.profiles.push(p);
   else state.profiles[index] = p;
@@ -123,6 +130,7 @@ function installNotice() {
   return `<aside class="install-banner" aria-label="Встановлення Світло"><strong>Встановіть «Світло» на телефон</strong><div class="actions">${action("install", "Встановити", 'class="primary"')}${action("dismiss-install", "Пізніше")}</div>${installHelp ? `<p class="install-note" role="status">${help}</p>` : ""}</aside>`;
 }
 function render() {
+  hideTooltip();
   stopDayAnimation?.();
   stopDayAnimation = null;
   theme();
@@ -133,7 +141,7 @@ function render() {
     (p) => (p.messages = mergeHistory(p.messages || [], [], now)),
   );
   $("#app").innerHTML =
-    `<div class="shell"><header class="top"><h1 class="brand">Світло</h1><p class="header-queue">${p?.snapshot?.queue ? "Черга " + esc(p.snapshot.queue) : "Для Черкащини"}</p>${timer ? `<p class="countdown-label">${esc(timer.label)}</p>${timer.minutes !== undefined ? `<p class="countdown-value">${duration(timer.minutes)}</p>` : ""}` : ""}</header>${!navigator.onLine ? `<div class="offline" role="status">Немає підключення до інтернету.${p?.snapshot?.checkedAt ? " Показуємо збережені дані." : " Збереженого графіка немає."}</div>` : ""}${state.error ? `<p class="notice" role="status">${esc(state.error)}</p>` : ""}${installNotice()}<main id="content">${state.tab === "home" ? home(p, now) : state.tab === "messages" ? messages(p, now) : options(p)}</main></div><nav class="nav" aria-label="Основне меню">${[
+    `<div class="shell"><header class="top"><h1 class="brand">Світло</h1><p class="header-queue">${p?.snapshot?.queue ? "Черга " + esc(p.snapshot.queue) : ""}${p ? `<span class="header-category" title="${esc(categoryText(outageCategory(p.snapshot,state.date,now,true)))}">${outageCategory(p.snapshot,state.date,now,true)? (p.snapshot.queue?" | ":"")+esc(outageCategory(p.snapshot,state.date,now,true)==="hourly"?"За графіком":categoryText(outageCategory(p.snapshot,state.date,now,true))):""}</span>` : ""}</p>${timer ? `<p class="countdown-label">${esc(timer.label)}</p>${timer.minutes !== undefined ? `<p class="countdown-value">${duration(timer.minutes)}</p>` : ""}` : ""}</header>${!navigator.onLine ? `<div class="offline" role="status">Немає підключення до інтернету.${p?.snapshot?.checkedAt ? " Показуємо збережені дані." : " Збереженого графіка немає."}</div>` : ""}${state.error ? `<p class="notice" role="status">${esc(state.error)}</p>` : ""}${installNotice()}<main id="content">${state.tab === "home" ? home(p, now) : state.tab === "messages" ? messages(p, now) : options(p)}</main></div><nav class="nav" aria-label="Основне меню">${[
       ["home", "Головна"],
       ["messages", "Повідомлення"],
       ["options", "Опції"],
@@ -151,15 +159,11 @@ function home(p, now) {
     return `<section class="card empty"><div class="sun" aria-hidden="true">☀</div><h2>Знайте, коли буде світло</h2><p>Додайте адресу, щоб бачити ваш графік, погоду та зміни відключень.</p>${action("add", "Додати адресу", 'class="primary"')}${!configured() ? '<p class="install-note">Вебзастосунок підготовлено. Підключення сервера триває.</p>' : ""}</section>`;
   const s = dayState(p.snapshot, state.date, now),
     days = week(state.week),
-    w = state.weather[p.id];
+    w = state.weather[cityKey(p.address)];
   const hours = groupRepeatedHours(s.displayHours)
     .map((h) => hourTile(h, state.date, now, state.rangeTiles, state.iconStyle))
     .join("");
-  const addressLabel = (x) => esc(x.name ? x.name + ": " + x.address.label : x.address.label);
-  const addressControl = state.profiles.length === 1
-    ? `<p class="address-picker address-static">${addressLabel(p)}</p>`
-    : `<label for="active-address" class="sr-only">Ваша адреса</label><div class="address-picker"><select class="address-select" id="active-address">${state.profiles.map((x) => `<option value="${esc(x.id)}" ${x.id === p.id ? "selected" : ""}>${addressLabel(x)}</option>`).join("")}</select></div>`;
-  return `<section class="card address">${addressControl}<div class="row">${action("add", "Додати адресу")}${action("manage", "Керувати адресами")}</div></section><section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня" style="--day-index:${days.indexOf(state.date)}"><span class="day-indicator" aria-hidden="true"></span>${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${dataReason(s) && s.reason !== "stale" ? `<p class="notice" role="status">${esc(dataReason(s))}</p>` : ""}${maintenanceNotice(p.snapshot, now)}${s.available || s.reason === "queue_unknown" ? `<div class="hours-viewport"><div class="hours">${hours}</div></div>` : '<p class="empty">Графік на цю дату ще не опубліковано</p>'}<div class="legend"><span><i style="background:var(--hourly)"></i>ГПВ</span><span><i style="background:var(--planned)"></i>Планові роботи</span><span><i style="background:var(--emergency)"></i>Аварійні</span></div><div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
+  return `${addressCard(p,state.profiles,state.addressOpen)}<section class="card schedule" id="schedule" aria-label="Погодинний графік">${s.policy.active ? `<aside class="emergency"><h2>⚠ Аварійні відключення в області</h2><p>Погодинний графік: ${{ active: "діє", suspended: "не діє", unknown: "не підтверджено" }[s.policy.validity]}</p></aside>` : ""}<div class="week" role="tablist" aria-label="Дні тижня" style="--day-index:${days.indexOf(state.date)}"><span class="day-indicator" aria-hidden="true"></span>${days.map((d, i) => `<button role="tab" class="day" data-day="${d}" aria-label="${["Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота", "Неділя"][i]}, ${d}" aria-selected="${d === state.date}" ${!dayState(p.snapshot, d, now).available ? "disabled" : ""}>${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"][i]}</button>`).join("")}</div>${dataReason(s) && s.reason !== "stale" ? `<p class="notice" role="status">${esc(dataReason(s))}</p>` : ""}${maintenanceNotice(p.snapshot, now)}${s.available || s.reason === "queue_unknown" ? `<div class="hours-viewport"><div class="hours">${hours}</div></div>` : '<p class="empty">Графік на цю дату ще не опубліковано</p>'}${legend(state.iconStyle,outageCategory(p.snapshot,state.date,now))}<div class="row">${external(s.plan?.url || "https://www.cherkasyoblenergo.com/off", "Джерело")}${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити", state.busy ? "disabled" : "")}</div>${state.week !== monday(dayKey(now)) || canNextWeek(p.snapshot, now) ? `<div class="week-control">${action("previous", "← Поточний тиждень", state.week === monday(dayKey(now)) ? "disabled" : "")}${action("next", "Наступний тиждень →", state.week !== monday(dayKey(now)) || !canNextWeek(p.snapshot, now) ? "disabled" : "")}</div>` : ""}</section>${
     s.totals
       ? `<section class="stats" aria-label="Підсумок дня">${[
           ["☀", "Зі світлом", s.totals.on],
@@ -171,37 +175,22 @@ function home(p, now) {
           )
           .join("")}</section>`
       : '<section class="card"><h2>Немає точних даних</h2></section>'
-  }<section class="card weather"><small>СЬОГОДНІ</small><div class="weather-now"><span class="weather-current-icon">${weatherIcon(w?.code, w?.isDay !== false)}</span><strong class="temperature">${w ? Math.round(w.temperature) + "°" : "—°"}</strong><div><h2>${esc(p.address.city)}</h2><p class="muted">${w ? weatherDescription(w.code) : "Погода поки недоступна"}</p></div></div>${w ? `<div class="weather-hours" role="region" tabindex="0" aria-label="Погода на 24 години">${w.hours.map((h) => `<div class="weather-hour"><small>${clock(h.time)}</small>${weatherIcon(h.code, h.isDay !== false)}<b>${Math.round(h.temp)}°</b></div>`).join("")}</div><small>Оновлено ${stamp(w.checkedAt)}${Date.now() - w.checkedAt > 7200000 ? " · збережені дані" : ""}</small>` : ""}<p class="privacy"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · CC BY 4.0 · GeoNames</p></section><div class="row">${action("share", "Поширити графік")}</div>`;
+  }<section class="card weather"><small>СЬОГОДНІ</small><div class="weather-now"><span class="weather-current-icon">${weatherIcon(w?.code, w?.isDay !== false)}</span><strong class="temperature">${w ? Math.round(w.temperature) + "°" : "—°"}</strong><div><h2>${esc(p.address.city)}</h2><p class="muted">${w ? weatherDescription(w.code) : "Погода поки недоступна"}</p></div></div>${w ? `<div class="weather-hours" role="region" tabindex="0" aria-label="Погода на 24 години">${w.hours.map((h) => `<div class="weather-hour"><small>${clock(h.time)}</small>${weatherIcon(h.code, h.isDay !== false)}<b>${Math.round(h.temp)}°</b></div>`).join("")}</div>` : ""}<p class="weather-credit"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a></p></section><div class="row main-share">${action("share", "Поділитись графіком")}</div><div class="stack main-donation">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div>`;
 }
 function messages(p) {
-  const items = p?.messages || [];
-  return items.length
-    ? items
-        .map(
-          (m) =>
-            `<article class="card message"><small>Оновлено · ${stamp(m.updatedAt)} · Подія ${esc(m.date.split("-").reverse().join("."))}${m.scope === "region" ? " · в області" : ""}</small><h2>${esc(m.title)}</h2><small>${esc(m.queue ? "Підчерга " + m.queue : p.address.city)}</small><div class="row"><button data-message-date="${m.date}">Графік на ${esc(m.date.slice(5).split("-").reverse().join("."))}</button>${external(m.url, "Офіційне джерело")}</div></article>`,
-        )
-        .join("")
-    : '<section class="card empty"><h2>Поки немає повідомлень</h2><p>Тут зберігатимуться оновлення вашого графіка за останні сім днів.</p></section>';
+  const items=p?.messages||[];
+  return items.length ? items.map(m=>{
+    const title=messageTitle(m), meta=`Оновлено · ${stamp(m.updatedAt)}${m.scope==='region'?' · в області':''}`;
+    const context=m.queue?'Підчерга '+m.queue:m.scope==='region'?'В області':p.address.city;
+    return `<article class="card message"><small class="message-meta full-copy" tabindex="0" data-full="${esc(meta)}" aria-label="${esc(meta)}">${esc(meta)}</small><h2 class="full-copy" tabindex="0" data-full="${esc(title)}" aria-label="${esc(title)}">${esc(title)}</h2><p class="message-context full-copy" tabindex="0" data-full="${esc(context)}" aria-label="${esc(context)}">${esc(context)}</p><div class="row fit-pair"><button data-message-date="${esc(m.date)}">Переглянути графік</button>${external(m.url,'Джерело')}</div></article>`;
+  }).join('') : '<section class="card empty"><h2>Поки немає повідомлень</h2><p>Тут зберігатимуться оновлення вашого графіка за останні сім днів.</p></section>';
 }
 function options(p) {
-  const prefs = p?.preferences || {};
-  return `<div class="settings"><section class="card"><h2>Вигляд</h2><label>Світла тема<input type="checkbox" id="light-theme" ${state.theme === "light" ? "checked" : ""}></label><label>Лампочки замість блискавок<input type="checkbox" id="bulb-icons" ${state.iconStyle === "bulb" ? "checked" : ""}></label><label>Початок і кінець у плитці<input type="checkbox" id="range-tiles" ${state.rangeTiles ? "checked" : ""}></label></section><section class="card"><h2>Сповіщення</h2><p class="notice">Зміни графіка та нагадування для обраної адреси, навіть коли застосунок закрито.</p>${[
-    ["schedule", "Публікації та зміни графіка"],
-    ["emergency", "Аварійні відключення"],
-    ["reminder", "Перед відключенням"],
-    ["restoration", "Перед відновленням"],
-  ]
-    .map(
-      ([key, label]) =>
-        `<label>${label}<input type="checkbox" data-pref="${key}" ${prefs[key] !== false ? "checked" : ""} ${p ? "" : "disabled"}></label>`,
-    )
-    .join(
-      "",
-    )}<label class="reminder-setting"><span class="reminder-label">Нагадувати за</span><select id="lead" ${p ? "" : "disabled"}>${[5, 15, 30, 60].map((n) => `<option value="${n}" ${+(prefs.lead || 30) === n ? "selected" : ""}>${n} хв</option>`).join("")}</select></label><div class="stack">${action("push", state.push ? "Вимкнути push-сповіщення" : "Увімкнути push-сповіщення", !p ? "disabled" : "")}</div><p class="install-note">На iPhone сповіщення доступні з iOS 16.4 після додавання на Початковий екран. Дозвіл запитується лише після натискання кнопки. Час доставки залежить від системи.</p></section><section class="card"><h2>Оновлення</h2><p class="notice">Сервер перевіряє графіки щогодини. При відкритті завантажується останній результат.</p>${action("refresh", state.busy ? "Оновлюємо…" : "↻ Оновити зараз", state.busy || !p ? "disabled" : "")}</section><section class="card"><h2>Ваші дані</h2><p class="privacy">Адреса та підписка зберігаються на сервері «Світло» для оновлень і сповіщень. Погода визначається для населеного пункту. На пристрої зберігається офлайн-копія. Очищення даних браузера може втратити доступ до збережених адрес.</p><div class="stack">${action("erase", "Видалити мої дані", 'class="danger"')}</div></section><div class="stack">${external("https://send.monobank.ua/jar/5cWs9Zt1qa", "♡ Подякувати за додаток")}</div></div>`;
+  const permission='Notification' in window?Notification.permission:'unsupported';
+  return `<div class="settings">${appearance(state)}${notificationSettings(p,permission,state.push)}<section class="card"><h2>Ваші дані</h2><p class="privacy">Адреса та підписка зберігаються на сервері «Світло» для оновлень і сповіщень. Погода визначається для населеного пункту. На пристрої зберігається офлайн-копія. Очищення даних браузера може втратити доступ до збережених адрес.</p><div class="stack">${action('erase','Видалити мої дані','class="danger"')}</div></section>${legend(state.iconStyle,p&&outageCategory(p.snapshot,state.date,Date.now()),true)}</div>`;
 }
 
-let stopHours, stopHeader, stopDaySwipe, stopWeekSwipe, stopDayAnimation, navObserver;
+let stopPairs, stopHours, stopHeader, stopDaySwipe, stopWeekSwipe, stopDayAnimation, navObserver;
 function maintenanceNotice(snapshot, now) {
   const m = snapshot.maintenance;
   if (
@@ -214,6 +203,29 @@ function maintenanceNotice(snapshot, now) {
   return `<aside class="notice" role="status">Черкасиобленерго повідомляє про технічні роботи · ${stamp(m.publishedAt)}${m.until ? " · заявлений строк до " + stamp(m.until) : ""}. ${external(m.url, "Офіційне повідомлення")}</aside>`;
 }
 function bind() {
+  stopPairs?.();stopPairs=fitPairs();
+  document.querySelectorAll('[data-look]').forEach(el=>el.onclick=()=>{
+    const key=el.dataset.look,value=el.dataset.value;
+    if(key==='theme'){state.theme=value;save('svitlo-theme',value);}
+    if(key==='range'){state.rangeTiles=value==='true';save('svitlo-range-tiles',state.rangeTiles);}
+    if(key==='icons'){state.iconStyle=value;save('svitlo-icon-style',value);}
+    render();document.querySelector(`[data-look="${key}"][data-value="${value}"]`)?.focus();
+  });
+  const addressTrigger=document.querySelector('.address-trigger');
+  if(addressTrigger) {
+    addressTrigger.onclick=()=>{state.addressOpen=!state.addressOpen;render();document.querySelector('.address-trigger')?.focus();};
+    document.querySelector('.address').onkeydown=e=>{if(e.key==='Escape'&&state.addressOpen){state.addressOpen=false;render();document.querySelector('.address-trigger')?.focus();}};
+    document.querySelectorAll('[data-profile]').forEach(el=>el.onclick=async()=>{
+      const id=el.dataset.profile;state.addressOpen=false;
+      if(id===profile()?.id){render();document.querySelector('.address-trigger')?.focus();return;}
+      refreshToken++;state.busy=false;state.error='';state.active=id;state.date=dayKey();state.week=monday();state.explicit=false;persist();
+      render();document.querySelector('.address-trigger')?.focus();await refresh('auto');
+    });
+  }
+  document.querySelectorAll('.full-copy').forEach(el=>{
+    const show=()=>{hideTooltip();const t=document.createElement('div');t.id='full-text-tooltip';t.className='text-tooltip';t.setAttribute('role','tooltip');t.textContent=el.dataset.full;document.body.append(t);el.setAttribute('aria-describedby',t.id);};
+    el.onfocus=show;el.onclick=show;el.onblur=hideTooltip;el.onkeydown=e=>{if(e.key==='Escape')hideTooltip();};
+  });
   stopHeader?.();
   stopHeader = fitHeader($(".top"));
   stopDaySwipe?.();
@@ -231,18 +243,6 @@ function bind() {
     );
     navObserver.observe(nav);
   }
-  if ($("#range-tiles"))
-    $("#range-tiles").onchange = (e) => {
-      state.rangeTiles = e.target.checked;
-      save("svitlo-range-tiles", state.rangeTiles);
-      render();
-    };
-  if ($("#bulb-icons"))
-    $("#bulb-icons").onchange = (e) => {
-      state.iconStyle = e.target.checked ? "bulb" : "bolt";
-      save("svitlo-icon-style", state.iconStyle);
-      render();
-    };
   document.querySelectorAll("[data-tab]").forEach(
     (el) =>
       (el.onclick = () => {
@@ -277,25 +277,6 @@ function bind() {
         window.scrollTo(0, 0);
       }),
   );
-  if ($("#active-address"))
-    $("#active-address").onchange = async (e) => {
-      refreshToken++;
-      state.busy = false;
-      state.error = "";
-      state.active = e.target.value;
-      state.date = dayKey();
-      state.week = monday();
-      state.explicit = false;
-      persist();
-      render();
-      await syncPush();
-      refresh();
-    };
-  if ($("#light-theme"))
-    $("#light-theme").onchange = (e) => {
-      state.theme = e.target.checked ? "light" : "dark";
-      render();
-    };
   document
     .querySelectorAll("[data-pref]")
     .forEach(
@@ -308,15 +289,22 @@ function bind() {
   stopWeekSwipe = bindHorizontalSwipe($("#schedule"), navigateWeek,
     (target) => !!target.closest(".hours-viewport, button, a"));
 }
-async function updatePrefs(change) {
-  const p = profile();
+let prefsQueue=Promise.resolve();
+function updatePrefs(change) {
+  const id=profile()?.id;
+  prefsQueue=prefsQueue.catch(()=>{}).then(()=>savePrefs(id,change));return prefsQueue;
+}
+async function savePrefs(id,change) {
+  const focusKey=Object.keys(change)[0];
   try {
     const r = await request("preferences", {
-      id: p.id,
-      preferences: { ...p.preferences, ...change },
+      id,
+      preferences: change,
     });
+    cache.clear();
     store(r.profile);
     render();
+    document.querySelector(focusKey==='lead'?'#picker-lead':`[data-pref="${focusKey}"]`)?.focus();
   } catch (e) {
     toast(e.message);
     render();
@@ -375,19 +363,9 @@ async function runAction(action) {
       return;
     }
     if (action === "share") {
-      const p = profile(),
-        s = dayState(p.snapshot, state.date),
-        text = `Світло · ${state.date}\n${s.totals ? "Зі світлом: " + duration(s.totals.on) + "\nБез світла: " + duration(s.totals.off) : "Немає точних даних"}\n${s.events.map((e) => clock(e.start) + "–" + (e.end ? clock(e.end) : "?")).join(", ")}`;
-      if (navigator.share)
-        await navigator.share({
-          title: "Графік «Світло»",
-          text,
-          url: location.href.split("?")[0],
-        });
-      else {
-        await navigator.clipboard.writeText(text);
-        toast("Графік скопійовано");
-      }
+      const p=profile(), text=shareText(p.snapshot,state.date,dayState(p.snapshot,state.date));
+      if(navigator.share)await navigator.share({title:'Графік «Світло»',text});
+      else {await navigator.clipboard.writeText(text);toast('Графік скопійовано');}
       return;
     }
     if (action === "erase") return eraseDialog();
@@ -395,53 +373,56 @@ async function runAction(action) {
     toast(e.message);
   }
 }
-async function refresh() {
-  const p = profile();
-  if (!p || state.busy) return;
-  const id = p.id,
-    token = ++refreshToken;
-  state.busy = true;
-  state.error = "";
-  render();
-  weather(id);
-  try {
-    const r = await request("refresh", { id });
-    store(r.profile);
-    if (token === refreshToken && profile()?.id === id)
-      state.error = refreshFailure(r.profile.snapshot);
-  } catch (e) {
-    if (token === refreshToken) state.error = e.message;
-  } finally {
-    if (token === refreshToken) {
-      state.busy = false;
-      render();
-    }
-  }
+function hideTooltip(){document.querySelector('#full-text-tooltip')?.remove();}
+async function invalidation(id) {
+  try {const c=await caches.open('svitlo-events-v1'),r=await c.match(new URL(`push-invalid/${id}.json`,new URL('./',location.href)).href);return r?(await r.json()).token:null;}catch{return null;}
 }
-async function weather(id) {
-  const p = state.profiles.find((x) => x.id === id);
-  if (!p) return;
-  const cached = state.weather[id];
-  if (
-    cached &&
-    cached.city === p.address.city &&
-    typeof cached.isDay === "boolean" &&
-    Date.now() - cached.checkedAt < 3600000
-  )
-    return;
-  try {
-    const r = await request("weather", { id });
-    if (
-      state.profiles.some((x) => x.id === id) &&
-      r.weather.city === p.address.city
-    ) {
-      state.weather[id] = r.weather;
-      save("svitlo-weather", state.weather);
-      if (profile()?.id === id && state.tab === "home") render();
+let appliedAt=0;
+const cache=new SyncClient({request,owner:ensureIdentity,invalidation});
+async function subscriptionData() {
+  let sub=await registration?.pushManager?.getSubscription();
+  // A rotated server VAPID key requires a new browser subscription. Permission
+  // is never requested automatically; repair only an already granted device.
+  if(sub?.options?.applicationServerKey && state.vapid && Notification.permission==='granted') {
+    const expected=state.vapid.replace(/-/g,'+').replace(/_/g,'/');
+    const bytes=Uint8Array.from(atob(expected+'='.repeat((4-expected.length%4)%4)),c=>c.charCodeAt(0));
+    const current=new Uint8Array(sub.options.applicationServerKey);
+    if(current.length!==bytes.length || current.some((n,i)=>n!==bytes[i])) {
+      await sub.unsubscribe();
+      sub=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
     }
-  } catch {
-    /* no cross-address fallback */
   }
+  state.push=!!sub;return sub?.toJSON()||null;
+}
+function applySync(value) {
+  if(!value)return;
+  appliedAt=value.at;
+  state.owner=value.owner;
+  state.profiles=value.profiles;state.weather=value.weather||{};state.vapid=value.vapid;state.pushReady=value.pushReady;
+  if(!state.profiles.some(p=>p.id===state.active))state.active=state.profiles[0]?.id||null;
+  persist();
+}
+async function refresh(reason='manual') {
+  if(!configured())return;
+  let id=profile()?.id||state.active;
+  const token=++refreshToken;
+  try {
+    const before=state.push,subscription=await subscriptionData(),owner=await ensureIdentity();
+    if(state.owner&&state.owner!==owner){cache.clear();state.profiles=[];state.weather={};state.active=null;state.owner=owner;id=undefined;persist();render();}
+    const cached=cache.read(owner);
+    if(!await cache.needed(cached,id,reason,subscription)) {
+      if(cached.at!==appliedAt||before!==state.push){applySync(cached);render();}
+      return;
+    }
+    state.busy=true;state.error='';render();
+    const value=await cache.sync({id,reason,subscription});
+    applySync(value);
+    if(token===refreshToken)state.error=value?.errors?.profile||refreshFailure(profile()?.snapshot)||'';
+  }catch(e) {
+    if(e.status===404&&id&&token===refreshToken){cache.clear();state.profiles=state.profiles.filter(p=>p.id!==id);state.active=state.profiles[0]?.id||null;persist();state.busy=false;return refresh('auto');}
+    if(token===refreshToken){state.error=e.message;render();}
+  }
+  finally {if(token===refreshToken&&state.busy){state.busy=false;render();}}
 }
 function dialog(title, html) {
   const d = $("#address-dialog");
@@ -458,6 +439,7 @@ async function addressDialog() {
   );
   let generation = 0,
     address;
+  const repairedBranches=new Set();
   const select = (key, items) => {
     const el = d.querySelector("#" + key);
     el.innerHTML =
@@ -481,7 +463,7 @@ async function addressDialog() {
       if (!d.querySelector("#" + key).value) return;
       try {
         if (i < 3) {
-          const r = await request("dictionary", {
+          const r = await dictionary({
             kind: keys[i + 1],
             parent: d.querySelector("#" + key).value,
           });
@@ -503,6 +485,21 @@ async function addressDialog() {
         if (gen === generation) {
           d.querySelector("#preview").innerHTML = "";
           d.querySelector("#form-error").textContent = e.message;
+          if(i===3 && e.status===400) {
+            const index=/філія/i.test(e.message)?0:/населений/i.test(e.message)?1:/вулиця/i.test(e.message)?2:3;
+            const parent=index?d.querySelector('#'+keys[index-1]).value:'';
+            const repairKey=keys[index]+':'+parent;
+            if(!repairedBranches.has(repairKey)) {
+              repairedBranches.add(repairKey);
+              try {
+                const r=await dictionary({kind:keys[index],parent},true);
+                if(gen!==generation)return;
+                select(keys[index],r.items);
+                for(const later of keys.slice(index+1)){d.querySelector('#'+later).innerHTML='';d.querySelector('#'+later).disabled=true;}
+                d.querySelector('#form-error').textContent='Довідник оновлено. Оберіть адресу ще раз.';
+              }catch { /* Preserve the initial error, without recursive retries. */ }
+            }
+          }
         }
       }
     };
@@ -519,6 +516,7 @@ async function addressDialog() {
         name: d.querySelector("#address-name").value,
         confirmed: true,
       });
+      cache.clear();
       store(r.profile);
       state.active = r.profile.id;
       state.date = dayKey();
@@ -526,7 +524,6 @@ async function addressDialog() {
       persist();
       d.close();
       render();
-      weather(r.profile.id);
       await syncPush();
     } catch (e) {
       d.querySelector("#form-error").textContent = e.message;
@@ -537,7 +534,7 @@ async function addressDialog() {
   try {
     select(
       "department",
-      (await request("dictionary", { kind: "department" })).items,
+      (await dictionary({ kind: "department" })).items,
     );
   } catch (e) {
     d.querySelector("#form-error").textContent = e.message;
@@ -559,6 +556,7 @@ function manageDialog() {
         el.disabled = true;
         try {
           await request("delete", { id: el.dataset.delete });
+          cache.clear();
           state.profiles = state.profiles.filter(
             (p) => p.id !== el.dataset.delete,
           );
@@ -586,7 +584,9 @@ function eraseDialog() {
       await request("erase");
       const sub = await registration?.pushManager.getSubscription();
       await sub?.unsubscribe();
+      cache.clear();
       await forgetSession();
+      state.owner=null;
       state.profiles = [];
       state.weather = {};
       state.active = null;
@@ -600,16 +600,7 @@ function eraseDialog() {
     }
   };
 }
-async function syncPush() {
-  if (!registration) return;
-  const sub = await registration.pushManager?.getSubscription();
-  state.push = !!sub;
-  if (sub)
-    await request("subscribe", {
-      subscription: sub.toJSON(),
-      id: profile()?.id,
-    });
-}
+async function syncPush() {return refresh('auto');}
 async function togglePush() {
   try {
     if (
@@ -625,6 +616,7 @@ async function togglePush() {
     if (old) {
       await request("unsubscribe", { endpoint: old.endpoint });
       await old.unsubscribe();
+      cache.clear();
       state.push = false;
       render();
       return;
@@ -652,6 +644,7 @@ async function togglePush() {
       await sub.unsubscribe();
       throw e;
     }
+    cache.clear();
     state.push = true;
     render();
     toast("Сповіщення увімкнено для обраної адреси");
@@ -681,26 +674,24 @@ async function startup() {
       });
     }
     if (configured()) {
-      const r = await request("bootstrap");
-      state.profiles = r.profiles;
-      state.vapid = r.vapid;
-      state.pushReady = r.pushReady;
-      state.active = profile()?.id;
-      persist();
+      const owner=await identity();
+      if(owner) {
+        if(!cache.read(owner)) {
+          const legacy=legacyEnvelope(owner,read('svitlo-profiles',[]),read('svitlo-weather',{}));
+          if(legacy)cache.write(legacy);
+        }
+        applySync(cache.read(owner));
+      }
+      render();
       const q = new URLSearchParams(location.search);
-      if (
-        q.get("profile") &&
-        state.profiles.some((p) => p.id === q.get("profile"))
-      )
-        state.active = q.get("profile");
+      if(/^[0-9a-f-]{36}$/.test(q.get('profile')||''))state.active=q.get('profile');
       if (/^\d{4}-\d{2}-\d{2}$/.test(q.get("date") || "")) {
         state.date = q.get("date");
         state.week = monday(state.date);
         state.explicit = true;
       }
-      await syncPush();
       render();
-      refresh();
+      await refresh("auto");
     }
   } catch (e) {
     state.error = e.message;
@@ -722,13 +713,13 @@ window
   .addEventListener("change", render);
 window.addEventListener("online", () => {
   render();
-  refresh();
+  refresh("auto");
 });
 window.addEventListener("offline", render);
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     rollover();
-    refresh();
+    refresh("auto");
   }
 });
 function rollover() {
@@ -739,10 +730,20 @@ function rollover() {
     state.week = monday(today);
     state.explicit = false;
     render();
+    if(!document.hidden)refresh("rollover");
   }
 }
 setInterval(() => {
+  if(document.hidden)return;
   rollover();
+  refresh("auto");
   if (state.tab === "home" && !document.querySelector("dialog[open]")) render();
 }, 60000);
+window.addEventListener('storage',async e=>{
+  if(e.key===SYNC_KEY){const owner=await identity();applySync(owner?cache.read(owner):null);render();if(!e.newValue&&!document.hidden)refresh('auto');}
+  if(e.key==='svitlo-auth'){cache.clear();state.owner=null;state.profiles=[];state.weather={};state.active=null;persist();save('svitlo-weather',{});render();refresh('auto');}
+});
+navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='svitlo-invalidated'&&!document.hidden)refresh('push');});
+const dictionaryCache=new DictionaryCache(request);
+const dictionary=(body,force=false)=>dictionaryCache.load(body,force);
 startup();

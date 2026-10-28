@@ -1,7 +1,23 @@
 import { dayKey } from "../app/lib/time.js";
+import { catalogReconciliation } from "./catalog-reconciliation.js";
 export const REGISTRY_URL =
   "https://www.cherkasyoblenergo.com/perelik-gpv?lang=uk";
 export const REGISTRY_INTERVAL = 14 * 86400000;
+export function registryPeriod(text) {
+  const months = ["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"];
+  const month = "(" + months.join("|") + ")";
+  const match = String(text).match(new RegExp("з\\s*(\\d{1,2})\\s+" + month + "\\s+(20\\d{2})\\s*р?\\.?\\s*по\\s*(\\d{1,2})\\s+" + month + "\\s+(20\\d{2})", "i"));
+  if (!match) throw Error("registry_period");
+  const date = (day, name, year) => {
+    const value = `${year}-${String(months.indexOf(name.toLowerCase()) + 1).padStart(2,"0")}-${String(+day).padStart(2,"0")}`;
+    const parsed = new Date(value + "T00:00:00Z");
+    if (!Number.isFinite(+parsed) || parsed.toISOString().slice(0,10) !== value) throw Error("registry_period");
+    return value;
+  };
+  const from = date(match[1],match[2],match[3]), until = date(match[4],match[5],match[6]);
+  if (from >= until) throw Error("registry_period");
+  return { from, until };
+}
 export const normAddress = (s) =>
   String(s || "")
     .normalize("NFKC")
@@ -108,7 +124,7 @@ export function rulesFromPages(pages, queue, url) {
           const street = token.trim().replace(/[.;]+$/, "");
           if (
             !street ||
-            /[\d():]|част|від | до |район|ТП|ТОВ|філі/i.test(street) ||
+            /[\d():]|част|від | до |район|(?:^|\s)(?:ТП|ТОВ)(?=\s|$)|філі/i.test(street) ||
             !/^[\p{L}’ʼ'. -]+$/u.test(street)
           )
             continue;
@@ -160,6 +176,7 @@ export async function syncRegistry({
   const old = await db.registry(),
     state = await db.registryState();
   if (state.nextCheckAt > now) return { status: "not_due" };
+  let activatedVersion = null;
   try {
     const page = await fetcher(REGISTRY_URL, {
       signal: AbortSignal.timeout(20000),
@@ -223,12 +240,7 @@ export async function syncRegistry({
           .match(/([1-6])\s*черга[.,]?\s*(ІІ|II|І|I)\s*підчерга/);
       if (!header) throw Error("registry_header");
       const queue = header[1] + "." + (header[2].length === 2 ? "2" : "1");
-      const period = text.match(
-        /з\s*0?1\s*жовтня\s*(20\d{2})\s*р\.?\s*по\s*0?1\s*квітня\s*(20\d{2})/i,
-      );
-      if (!period) throw Error("registry_period");
-      const from = period[1] + "-10-01",
-        until = period[2] + "-04-01";
+      const { from, until } = registryPeriod(text);
       if (validFrom && (from !== validFrom || until !== validUntil))
         throw Error("registry_period_conflict");
       validFrom = from;
@@ -256,12 +268,27 @@ export async function syncRegistry({
       rules,
       mentions,
     };
-    await db.activateRegistry(version);
+    const reconciliation = await catalogReconciliation(db, old, version, now);
+    const review = await db.registrySafety?.(version, reconciliation);
+    if (review && !review.approved) {
+      await db.holdRegistry(version, reconciliation, review);
+      await db.saveRegistryState({...state,lastAttemptAt:now,nextCheckAt:now+REGISTRY_INTERVAL,
+        error:"registry_needs_review",pendingVersion:id,review});
+      return {status:"held_for_review",version:id,rules:rules.length,review};
+    }
+    await db.activateRegistry(version, reconciliation);
+    activatedVersion = id;
+    await db.registryAccepted?.(id);
     const nearExpiry = Date.parse(validUntil + "T00:00Z") - now < 21 * 86400000;
     await db.saveRegistryState({
       nextCheckAt: now + (nearExpiry ? 86400000 : REGISTRY_INTERVAL),
       lastSuccessAt: now,
       failures: 0,
+      ...(reconciliation ? { addressReconciliation: {
+        version: id,
+        checkedAt: now,
+        batches: reconciliation.batches.map(b => ({ batch_id: b.batch_id, total: b.total, ...b.counts })),
+      } } : (state.addressReconciliation ? { addressReconciliation: state.addressReconciliation } : {})),
     });
     return {
       status: old?.id === id ? "unchanged" : "updated",
@@ -278,6 +305,8 @@ export async function syncRegistry({
         now + Math.min(86400000, 3600000 * 2 ** Math.min(failures - 1, 5)),
       error: "registry_update_failed",
     });
-    return { status: "failed_retained" };
+    return activatedVersion
+      ? { status: "activated_state_retry", version: activatedVersion }
+      : { status: "failed_retained" };
   }
 }

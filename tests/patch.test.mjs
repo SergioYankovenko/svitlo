@@ -1,3 +1,4 @@
+import { refreshSeeded } from "./helpers/seed-profile.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -48,7 +49,7 @@ test("unknown queue plus empty success never yields confirmed clear day or remin
   assert.ok(
     s.displayHours.every((h) => h.segments.every((x) => x.kind === "unknown")),
   );
-  assert.equal(countdown(d, now).label, "Чергу не визначено");
+  assert.equal(countdown(d, now).label, "Немає точних даних");
   const db = new MemoryDatabase();
   await new Service({ db, now: () => now }).reminders({
     id: "x",
@@ -310,7 +311,7 @@ test("fallback registry integrates through service and guarded Android lookup", 
     }),
   };
   const svc = new Service({ db, source, now: () => now });
-  const p = await svc.refresh({
+  const p = await refreshSeeded(svc,{
     id: "p",
     owner: "u",
     address,
@@ -349,7 +350,7 @@ test("explicit address API queue wins over registry while retaining conflict evi
       messages: [],
     }),
   };
-  const p = await new Service({ db, source, now: () => now }).refresh({
+  const p = await refreshSeeded(new Service({ db, source, now: () => now }),{
     id: "p",
     owner: "u",
     address: {
@@ -445,6 +446,7 @@ test("repeated source failure backs off and recovery clears failure state", asyn
     snapshot: {},
     last_checked: 0,
   };
+  await db.saveProfile(p);
   p = await svc.refresh(p);
   const first = p.next_check;
   p = await svc.refresh(p);

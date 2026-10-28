@@ -23,6 +23,9 @@ export function powerIcon(off = false, unknown = false, style = "bolt") {
     "5 3 14 18",
   );
 }
+export function checkIcon() {
+  return svg('<path d="m5 12 4 4L19 6"/>');
+}
 export function summaryIcon(on) {
   return svg(
     on ? sun : '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',

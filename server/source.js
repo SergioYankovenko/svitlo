@@ -1,4 +1,6 @@
 import { SourceError, failureCode } from "./source-errors.js";
+import { providerQueue } from "./provider-queue.js";
+import { InflightDepartmentRequests } from "./inflight-department.js";
 import {
   article,
   parsePlan,
@@ -10,10 +12,10 @@ import {
 } from "../app/lib/parsers.js";
 import { dayKey, addDays, civil } from "../app/lib/time.js";
 const CABINET = "https://cabinet.cherkasyoblenergo.com/api_new/disconn.php";
-export async function jsonFetch(url, fetcher = fetch, limit = 8_000_000) {
+export async function jsonFetch(url, fetcher = fetch, limit = 8_000_000, signal) {
   const r = await fetcher(url, {
     headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(20000),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
     redirect: "error",
   });
   if (!r.ok)
@@ -95,14 +97,23 @@ export function matchesAddress(html, a) {
   return found;
 }
 export class Source {
-  constructor(fetcher = fetch) {
+  constructor(fetcher = fetch, { dictionaries = null, feed = null, categories = null } = {}) {
     this.fetcher = fetcher;
     this.publicCache = null;
     this.pending = null;
     this.dictionaries = new Map();
+    this.sharedDictionaries = dictionaries;
+    this.sharedFeed = feed;
+    this.sharedCategories = categories;
+    this.departmentRequests = new InflightDepartmentRequests();
   }
-  request(params) {
-    return jsonFetch(CABINET + "?" + new URLSearchParams(params), this.fetcher);
+  request(params, signal) {
+    const search = new URLSearchParams(params);
+    const load = requestSignal => jsonFetch(CABINET + "?" + search, this.fetcher, 8_000_000, requestSignal);
+    if (params.op !== 'disconn_by_dept') return load(signal);
+    const canonical = new URLSearchParams(search);
+    canonical.sort();
+    return this.departmentRequests.load(canonical.toString(), load, signal);
   }
   async dictionary(kind, args = {}) {
     const ops = {
@@ -119,16 +130,19 @@ export class Source {
     const key = JSON.stringify(ops[kind]),
       cached = this.dictionaries.get(key);
     if (cached && cached.at > Date.now() - 3600000) return cached.value;
-    const list = rows(await this.request(ops[kind])).map((x) => {
+    const load = async () => rows(await this.request(ops[kind])).map((x) => {
       const id = String(kind === "house" ? x.HOUSE : x.ID),
         name = String(kind === "house" ? x.HOUSE : x.NAME);
       if (id === "undefined" || name === "undefined")
         throw Error("Некоректний довідник");
       return { id, name };
     });
+    const result = this.sharedDictionaries
+      ? await this.sharedDictionaries.load(`dictionary:${kind}:${kind === "department" ? "" : args.parent || ""}`, load)
+      : { items: await load(), checkedAt: Date.now() };
     if (this.dictionaries.size > 300) this.dictionaries.clear();
-    this.dictionaries.set(key, { at: Date.now(), value: list });
-    return list;
+    this.dictionaries.set(key, { at: result.checkedAt, value: result.items });
+    return result.items;
   }
   async resolve(input) {
     const a = {};
@@ -171,25 +185,34 @@ export class Source {
     // Ambiguous/missing accounts use the exact dictionary address; personal names never leave the source adapter.
     return a;
   }
-  async feed(now = Date.now(), previous = {}) {
-    if (this.publicCache && this.publicCache.checkedAt > now - 3600000)
+  async feed(now = Date.now(), previous = {}, { signal, force = false } = {}) {
+    signal?.throwIfAborted();
+    if (!force && this.publicCache && !this.publicCache.partial && this.publicCache.checkedAt > now - 3600000)
       return this.publicCache;
-    if (previous.checkedAt > now - 3600000 && Array.isArray(previous.plans))
+    if (!force && !previous.partial && previous.checkedAt > now - 3600000 && Array.isArray(previous.plans))
       return (this.publicCache = previous);
+    if (this.sharedFeed) {
+      const value = await this.sharedFeed.load(previous, (old, ownedSignal) => this.loadFeed(now, old, ownedSignal), signal);
+      if (!this.publicCache || (value.attemptedAt || value.checkedAt || 0) >= (this.publicCache.attemptedAt || this.publicCache.checkedAt || 0)) this.publicCache = value;
+      return value;
+    }
     if (this.pending) return this.pending;
-    this.pending = this.loadFeed(now, previous)
+    this.pending = this.loadFeed(now, previous, signal)
       .then((v) => ((this.publicCache = v), v))
       .finally(() => {
         this.pending = null;
       });
     return this.pending;
   }
-  async loadFeed(now, previous) {
+  async loadFeed(now, previous = {}, callerSignal) {
+    const signal = callerSignal ? AbortSignal.any([callerSignal, AbortSignal.timeout(25000)]) : AbortSignal.timeout(25000);
     const items = [];
     for (let page = 0; page < 4; page++) {
       const r = await jsonFetch(
         `${ORIGIN}/api/v1/posts/category/news?lang=uk&page=${page}&size=10`,
         this.fetcher,
+        8_000_000,
+        signal,
       );
       if (!r.success || !Array.isArray(r.data?.content))
         throw Error("Невідомий формат новин");
@@ -209,9 +232,10 @@ export class Source {
       ),
       emergencies = new Map((previous.emergencies || []).map((x) => [x.id, x])),
       messages = [],
-      maintenance = [];
+      maintenance = (previous.maintenance || []).filter(m => m.until > now);
+    let failedArticles = 0, successfulArticles = 0, feedError;
     for (let offset = 0; offset < candidates.length; offset += 4) {
-      const batch = await Promise.all(
+      const batch = await Promise.allSettled(
         candidates.slice(offset, offset + 4).map(async (item) => {
           if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{0,199}$/.test(item.slug))
             throw Error("Некоректне джерело");
@@ -219,49 +243,71 @@ export class Source {
             await jsonFetch(
               `${ORIGIN}/api/v1/posts/${item.slug}?lang=uk`,
               this.fetcher,
+              8_000_000,
+              signal,
             ),
           );
         }),
       );
-      for (const a of batch) {
-        if (a.publishedAt > now + 300000) continue;
-        for (const p of parsePlan(a, now)) {
-          const key = p.date + "/" + p.queue,
-            old = plans.get(key);
-          if (!old || p.publishedAt >= old.publishedAt) {
-            plans.set(key, p);
-            const changed = old && old.revision !== p.revision;
-            messages.push({
-              id: `plan:${key}:${p.revision}`,
-              date: p.date,
-              queue: p.queue,
-              title: `${changed || /оновлен/i.test(a.title) ? "Оновлено" : "Опубліковано"} графік на ${p.date}`,
-              updatedAt:
-                changed && p.publishedAt <= old.publishedAt
-                  ? now
-                  : p.publishedAt,
-              url: p.url,
-              kind: "schedule",
-            });
-          }
+      for (const result of batch) {
+        if (result.status === "rejected") {
+          failedArticles++;
+          feedError ||= result.reason instanceof SourceError || ["TimeoutError","AbortError"].includes(result.reason?.name) ? failureCode(result.reason) : "invalid_response";
+          continue;
         }
-        const notice = parseMaintenance(a, now);
-        if (notice) maintenance.push(notice);
-        const e = parseEmergency(a);
-        if (e) emergencies.set(e.id, e);
+        const a = result.value;
+        if (a.publishedAt > now + 300000) continue;
+        try {
+          for (const p of parsePlan(a, now)) {
+            const key = p.date + "/" + p.queue,
+              old = plans.get(key);
+            if (!old || p.publishedAt >= old.publishedAt) {
+              plans.set(key, p);
+              const changed = old && old.revision !== p.revision;
+              messages.push({
+                id: `plan:${key}:${p.revision}`,
+                date: p.date,
+                queue: p.queue,
+                title: `${changed || /оновлен/i.test(a.title) ? "Оновлено" : "Опубліковано"} графік на ${p.date}`,
+                updatedAt:
+                  changed && p.publishedAt <= old.publishedAt
+                    ? now
+                    : p.publishedAt,
+                url: p.url,
+                kind: "schedule",
+                revisionType: changed ? "change" : (previous.messages || []).find(m=>m.id===`plan:${key}:${p.revision}`)?.revisionType || "publication",
+              });
+            }
+          }
+          const notice = parseMaintenance(a, now);
+          if (notice) maintenance.push(notice);
+          const e = parseEmergency(a);
+          if (e) emergencies.set(e.id, e);
+          successfulArticles++;
+        } catch {
+          failedArticles++;
+          feedError ||= "invalid_response";
+        }
       }
+      if (signal.aborted) break;
     }
+    if (candidates.length && !successfulArticles) throw new SourceError(feedError || "invalid_response");
+    const partial = failedArticles > 0 || signal.aborted;
     return {
       plans: [...plans.values()],
       emergencies: [...emergencies.values()].filter(
         (e) => e.publishedAt > now - 7 * 86400000,
       ),
-      checkedAt: now,
+      checkedAt: partial ? previous.checkedAt || null : now,
+      attemptedAt: now,
+      partial,
+      failedArticles,
+      ...(partial ? {feedError: feedError || "timeout"} : {}),
       messages,
-      maintenance,
+      maintenance: [...new Map(maintenance.map(m => [m.url,m])).values()],
     };
   }
-  async address(a, now = Date.now(), previous = {}) {
+  async address(a, now = Date.now(), previous = {}, { signal } = {}) {
     const format = (d) => d.split("-").reverse().join("."),
       base = {
         n_date: format(addDays(dayKey(now), -7)),
@@ -273,22 +319,31 @@ export class Source {
     await Promise.all(
       ["planned", "emergency", "hourly"].map(async (category, selector) => {
         try {
-          const root = await this.request({
+          const load = async () => {
+          const raw = await this.request({
             ...base,
             disconn_selector: String(selector),
             ...(a.account
               ? { op: "disconn_by_ls", abon_ls: a.account }
               : { op: "disconn_by_dept", dept_id: a.department }),
-          });
+          }, signal);
+          let root = raw;
           if (!a.account) {
-            parseOutages(root, category, now);
-            root.DISCONNECTIONS = rows(root.DISCONNECTIONS).filter((x) => {
+            parseOutages(raw, category, now);
+            const events = rows(raw.DISCONNECTIONS).filter((x) => {
               if (typeof x.ADDRESS !== "string") throw Error("Немає адреси");
               return matchesAddress(x.ADDRESS, a);
             });
-            root.DISCONN_QUEUQ = [];
+            // The department response may be shared by other exact addresses.
+            // Its rows are read-only; copy only the root and filtered array.
+            root = { ...raw, DISCONNECTIONS: events, DISCONN_QUEUQ: [] };
           }
           const next = parseOutages(root, category, now);
+          if (category === "hourly") Object.assign(next, providerQueue(root));
+          return next;
+          };
+          const scope=['address-v1',a.account ? ['account',a.account] : ['address',a.department,a.cityId,a.streetId,a.house,a.city,a.street],category,base.n_date,base.k_date];
+          const next=this.sharedCategories ? await this.sharedCategories.load(scope,load,signal) : await load();
           // Retain already elapsed intervals if upstream omits them on a later request.
           const historical = (
             previous.categories?.[category]?.events || []

@@ -1,3 +1,4 @@
+import { mergePreferences } from "./preferences.js";
 // Local preview and tests only. Never imported by the production Edge Functions.
 export class MemoryDatabase {
   constructor() {
@@ -25,7 +26,38 @@ export class MemoryDatabase {
       .map((p) => structuredClone(p));
   }
   async saveProfile(p) {
-    this.p.set(p.id, structuredClone(p));
+    this.p.set(p.id, structuredClone({snapshot_revision:0,...p}));
+  }
+  async createProfile(p) {
+    const key = a => JSON.stringify([a.department,a.cityId,a.streetId,a.house]);
+    const existing=[...this.p.values()].find(x=>x.owner===p.owner&&key(x.address)===key(p.address));
+    if (existing) return {created:false,profile:structuredClone(existing)};
+    if ([...this.p.values()].filter(x=>x.owner===p.owner).length>=10) return {status:"limit"};
+    // No await between quota/identity checks and insertion.
+    this.p.set(p.id,structuredClone({snapshot_revision:0,...p}));
+    return {created:true,profile:structuredClone(this.p.get(p.id))};
+  }
+  async commitProfile(p,revision) {
+    const current=this.p.get(p.id);
+    if (!current || current.owner!==p.owner) return {status:"missing",profile:null};
+    if ((current.snapshot_revision||0)!==revision || current.last_checked>p.last_checked) return {status:"conflict",profile:structuredClone(current)};
+    const updated={...current,snapshot:p.snapshot,messages:p.messages,last_checked:p.last_checked,next_check:p.next_check,
+      snapshot_revision:revision+1,lease_until:0};
+    this.p.set(p.id,structuredClone(updated));
+    return {status:"updated",profile:structuredClone(updated)};
+  }
+  async setPreferences(owner,id,preferences) {
+    const p=this.p.get(id);
+    if (!p || p.owner!==owner) return null;
+    p.preferences=mergePreferences(p.preferences,preferences);return structuredClone(p);
+  }
+  async releaseProfile() {}
+  async jobsClaim() {
+    if(this.jobClaimed)return {granted:false};
+    this.jobClaimed=true;return {granted:true,token:"memory-claim",cursor:this.reminderCursor||null};
+  }
+  async jobsFinish(token,cursor) {
+    this.jobClaimed=false;this.reminderCursor=cursor;
   }
   async deleteProfile(owner, id) {
     if (this.p.get(id)?.owner === owner) {
@@ -81,9 +113,11 @@ export class MemoryDatabase {
       )
       .slice(0, n);
   }
-  async reminderProfiles(now, n, offset = 0) {
+  async reminderProfiles(now, n, offset = 0, cursor = null) {
     return [...this.p.values()]
       .filter((p) => p.last_checked > now - 7200000)
+      .filter((p) => p.preferences?.reminder !== false || p.preferences?.restoration !== false)
+      .filter((p) => !cursor || p.id>cursor)
       .sort((a, b) => a.id.localeCompare(b.id))
       .slice(offset, offset + n);
   }

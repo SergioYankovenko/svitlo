@@ -34,6 +34,7 @@ sw = sw.replace(
   /(["'])svitlo-pwa-[^"']+\1/,
   JSON.stringify(`svitlo-pwa-${version}`),
 );
+sw = sw.replace(/const SHELL = \[[\s\S]*?\];/, "const SHELL = "+JSON.stringify(["./",...list.filter(f=>!f.endsWith("/sw.js")).map(f=>"./"+f.slice(4))])+";");
 await writeFile("dist/app/sw.js", sw);
 await writeFile("app/sw.js", sw);
 await mkdir(".local/bundles", { recursive: true });

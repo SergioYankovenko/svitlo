@@ -1,8 +1,15 @@
+import { SyncService } from "./sync.js";
+import { preferences, messageTitle, notificationBody, reminderTitle } from "../app/lib/notifications.js";
+export { preferences } from "../app/lib/notifications.js";
 import { registryMatch } from "./queue-registry.js";
+import { addressRecord, catalogAddress, addressResolution } from "./address-registry.js";
 import { failureCode, failureMessage } from "./source-errors.js";
 import { mergeHistory } from "../app/lib/parsers.js";
-import { dayKey, addDays } from "../app/lib/time.js";
+import { dayKey, addDays, fresh } from "../app/lib/time.js";
 import { countdown, emergencyPolicy } from "../app/lib/schedule.js";
+import { enrollmentKey, enrollmentProof, preparedSnapshot } from "./enrollment-preview.js";
+import { retryDelay } from "./provider-transport.js";
+import { runScaledJobs } from './scaled-jobs.js';
 export const DEFAULT_PREFS = {
   schedule: true,
   emergency: true,
@@ -12,7 +19,8 @@ export const DEFAULT_PREFS = {
 };
 export function publicProfile(p) {
   const { account, ...address } = p.address;
-  return { ...p, address };
+  const {push_enabled,...safe}=p;
+  return { ...safe, address };
 }
 export function validSubscription(s) {
   if (!s || typeof s.endpoint !== "string" || s.endpoint.length > 2048)
@@ -37,34 +45,53 @@ export function validSubscription(s) {
     /^[A-Za-z0-9_-]{22}=?=?$/.test(s.keys?.auth || "")
   );
 }
-export function preferences(p = {}) {
-  return {
-    schedule: p.schedule !== false,
-    emergency: p.emergency !== false,
-    reminder: p.reminder !== false,
-    restoration: p.restoration !== false,
-    lead: [5, 15, 30, 60].includes(+p.lead) ? +p.lead : 30,
-  };
-}
 export class Service {
-  constructor({ db, source, push, now = () => Date.now(), vapid = "" }) {
-    Object.assign(this, { db, source, push, now, vapid });
+  constructor({ db, source, push, now = () => Date.now(), vapid = "", jobBudgetMs = 45000 }) {
+    Object.assign(this, { db, source, push, now, vapid, jobBudgetMs });
+    this.validSubscription=validSubscription; this.publicProfile=publicProfile; this.sync=new SyncService(this);
   }
-  async refresh(profile) {
-    const now = this.now(),
-      old = profile.snapshot || {},
-      address = await this.source.address(profile.address, now, old);
-    let registry;
+  async resolveAddress(input) {
     try {
-      registry = registryMatch(
-        await this.db.registry?.(),
-        profile.address,
-        now,
-      );
-    } catch {
-      registry = { queue: null, status: "unavailable" };
+      return await this.source.resolve(input);
+    } catch (error) {
+      const stored = catalogAddress(await addressRecord(this.db, input));
+      if (stored) return stored;
+      if(/^Невідом|^Оберіть повну адресу/.test(error.message))throw new ApiError(400,error.message);
+      throw error;
     }
-    address.queueResolution = address.queue
+  }
+  async queueResolution(address, now, knownRecord) {
+    if(knownRecord===undefined&&this.db.addressResolutionData) {
+      const data=await this.db.addressResolutionData(address);
+      if(data.record)return addressResolution(data.record,data.registry,now);
+      return registryMatch(await this.db.registry?.(),address,now);
+    }
+    const stored = knownRecord === undefined
+      ? await addressRecord(this.db, address)
+      : knownRecord;
+    if (stored) {
+      // Exclusions do not need PDFs; exact numeric matches need only definitions,
+      // not the full 1.2 MB registry with extracted document contents and rules.
+      const registry = stored.status === "numeric"
+        ? await (this.db.registryMetadata ? this.db.registryMetadata() : this.db.registry?.())
+        : null;
+      return addressResolution(stored, registry, now);
+    }
+    return registryMatch(await this.db.registry?.(), address, now);
+  }
+  async refresh(profile, prepared = null, { signal, feedResult } = {}) {
+    const now = this.now(),
+      old = profile.snapshot || {};
+    const [address, registry] = await Promise.all([
+      prepared ? Promise.resolve(structuredClone(prepared)) : this.source.address(profile.address, now, old, { signal }),
+      this.queueResolution(profile.address, now).catch(() => ({ queue: null, status: "unavailable" })),
+    ]);
+    const cachedApiQueue = address.failures.includes("hourly") ? address.queue : null;
+    const apiExclusion = !address.failures.includes("hourly") && address.categories.hourly?.inclusion === "not_in_queue";
+    if (cachedApiQueue) address.queue = null;
+    address.queueResolution = apiExclusion
+      ? { queue: null, status: "not_found", inclusion: "not_in_queue", source: "address_api", checkedAt: address.categories.hourly?.checkedAt }
+      : address.queue
       ? {
           queue: address.queue,
           source: "address_api",
@@ -80,13 +107,21 @@ export class Service {
             : {}),
         }
       : registry;
-    if (!address.queue && registry?.queue) address.queue = registry.queue;
+    if (!apiExclusion && !address.queue && registry?.queue) address.queue = registry.queue;
+    if (!address.queue && cachedApiQueue && !registry?.inclusion) {
+      address.queue = cachedApiQueue;
+      address.queueResolution = { queue: cachedApiQueue, status: "matched", source: "cached_address_api", checkedAt: address.categories.hourly?.checkedAt };
+    }
     let feed,
       feedError,
       feedFailed = false;
     try {
-      feed = await this.source.feed(now, await this.db.feed());
-      await this.db.saveFeed(feed);
+      const shared=feedResult?await feedResult:null;
+      if(shared?.error)throw shared.error;
+      feed = shared ? shared.value : await this.source.feed(now, await this.db.feed(), { signal });
+      if (!shared && !this.source.sharedFeed) await this.db.saveFeed(feed);
+      feedFailed = !!feed.partial;
+      feedError = feed.feedError;
     } catch (error) {
       feed = await this.db.feed();
       feedFailed = true;
@@ -94,7 +129,7 @@ export class Service {
     }
     const snapshot = {
       ...address,
-      plans: feed.plans || [],
+        plans: (feed.plans || []).filter(plan=>plan.queue===address.queue),
       emergencies: feed.emergencies || [],
       feedCheckedAt: feed.checkedAt || null,
       feedFailed,
@@ -104,9 +139,12 @@ export class Service {
         null,
       lastSuccessAt:
         !address.failures.length && !feedFailed
-          ? now
+          ? (prepared ? Math.min(now, prepared.checkedAt) : now)
           : old.lastSuccessAt || null,
     };
+    if(snapshot.queueResolution?.inclusion === "not_in_queue" && !snapshot.failures.length && !snapshot.feedFailed) {
+      snapshot.verifiedNoQueueDays=[...new Set([...(old.verifiedNoQueueDays||[]),dayKey(now)])].filter(d=>d>=addDays(dayKey(now),-7));
+    }
     const currentPolicy = emergencyPolicy(snapshot, now);
     const regional = currentPolicy.command;
     const regionalMessages = regional
@@ -124,14 +162,22 @@ export class Service {
           },
         ]
       : [];
-    const relevant = (feed.messages || []).filter(
-      (m) => m.queue === snapshot.queue,
-    );
+    const relevant = (feed.messages || []).filter(m => m.queue === snapshot.queue).map(m => {
+      if(m.kind!=="schedule")return m;
+      const existing=(profile.messages||[]).find(x=>x.id===m.id);
+      const prior=(profile.messages||[]).some(x=>x.kind==="schedule"&&x.date===m.date&&x.queue===m.queue&&x.id!==m.id&&x.updatedAt<m.updatedAt);
+      const previousPlan=(old.plans||[]).find(x=>x.date===m.date&&x.queue===m.queue);
+      const revisionType=m.revisionType || existing?.revisionType || ((prior || previousPlan && previousPlan.publishedAt<m.updatedAt) ? "change" : "publication");
+      return {...m,revisionType};
+    });
     relevant.push(...regionalMessages);
     const before = JSON.stringify(old.categories?.emergency?.events || []),
       after = JSON.stringify(snapshot.categories?.emergency?.events || []);
     if (
       before !== after &&
+      !snapshot.failures.includes("emergency") &&
+      fresh(snapshot.categories?.emergency?.sourceAt,now) &&
+      fresh(snapshot.categories?.emergency?.checkedAt,now) &&
       snapshot.categories?.emergency?.events?.some(
         (e) => e.start <= now && (e.end === null || e.end > now),
       )
@@ -139,12 +185,13 @@ export class Service {
       relevant.push({
         id: "address:" + after,
         kind: "emergency",
+        scope: "address",
         title: "Аварійні відключення за адресою",
         date: dayKey(now),
         updatedAt: now,
         url: "https://www.cherkasyoblenergo.com/off",
       });
-    const p = {
+    let p = {
       ...profile,
       snapshot,
       messages: mergeHistory(profile.messages || [], relevant, now),
@@ -160,49 +207,43 @@ export class Service {
     };
     snapshot.failureCount =
       !address.failures.length && !feedFailed ? 0 : (old.failureCount || 0) + 1;
-    await this.db.saveProfile(p);
+    const committed = await this.db.commitProfile(p, profile.snapshot_revision || 0);
+    if (committed.status === "missing") throw new ApiError(404, "Адресу не знайдено");
+    if (committed.status === "conflict") return committed.profile;
+    p = committed.profile;
     // Initial enrollment builds history without notifying about old publications.
     if (profile.last_checked) {
       const known = new Set((profile.messages || []).map((x) => x.id)),
-        prefs = preferences(profile.preferences);
+        prefs = preferences(p.preferences);
       for (const message of p.messages.filter(
         (x) =>
           !known.has(x.id) &&
           x.updatedAt >= profile.last_checked &&
-          prefs[x.kind] &&
+          prefs[x.kind === "schedule" ? x.revisionType || "publication" : x.kind] &&
           x.scope !== "region",
       ))
-        await this.enqueue(p, message.id, message.title, message.date);
-      const policy = emergencyPolicy(snapshot, now),
-        previous = emergencyPolicy(old, now);
-      if (
-        prefs.emergency &&
-        policy.active &&
-        (!previous.active || previous.command?.id !== policy.command?.id)
-      )
-        await this.enqueue(
-          p,
-          "regional:" + policy.command.id,
-          "Аварійні відключення в області",
-          dayKey(now),
-        );
+        await this.enqueue(p, message.id, messageTitle(message), message.date, message.kind === "schedule" ? message.revisionType || "publication" : "address_emergency");
+
     }
     return p;
   }
-  async enqueue(p, key, title, date) {
+  async enqueue(p, key, title, date, channel = key.startsWith('regional:')||key.startsWith('address:')?'emergency':'schedule') {
+    if(key.startsWith("regional:"))return;
     await this.db.enqueue({
       owner: p.owner,
       profile_id: p.id,
       event_key: key,
       title,
-      body: "Відкрийте «Світло», щоб переглянути актуальний графік.",
+      body: notificationBody(p),
       date,
       expires_at: this.now() + 3600000,
+      channel,
     });
   }
   async reminders(p) {
-    const prefs = preferences(p.preferences),
-      now = this.now(),
+    const prefs = preferences(p.preferences);
+    if (!prefs.reminder && !prefs.restoration) return;
+    const now = this.now(),
       timer = countdown(p.snapshot, now);
     if (timer.minutes === undefined) return;
     const restore = timer.label === "До відновлення",
@@ -212,8 +253,9 @@ export class Service {
     await this.enqueue(
       p,
       `reminder:${restore}:${at}`,
-      `${timer.label} приблизно ${timer.minutes} хв`,
+      reminderTitle(restore, at),
       dayKey(now),
+      restore ? "restoration" : "reminder",
     );
   }
   async handle(owner, body) {
@@ -229,11 +271,12 @@ export class Service {
       throw new ApiError(429, "Забагато запитів. Спробуйте за хвилину.");
     const list = () => this.db.profiles(owner);
     const owned = async () => {
-      const p = (await list()).find((p) => p.id === body.id);
+      const p = this.db.profile ? await this.db.profile(owner,body.id) : (await list()).find((p) => p.id === body.id);
       if (!p) throw new ApiError(404, "Адресу не знайдено");
       return p;
     };
     switch (body.action) {
+      case "sync": return this.sync.run(owner,body,list);
       case "bootstrap":
         return {
           profiles: (await list()).map(publicProfile),
@@ -241,43 +284,52 @@ export class Service {
           pushReady: !!this.vapid,
         };
       case "resolve_queue": {
+        if(!body.id&&this.db.addressResolutionData) {
+          const data=await this.db.addressResolutionData(body.address);
+          if(data.record)return {resolution:addressResolution(data.record,data.registry,now)};
+          const address=await this.resolveAddress(body.address);
+          return {resolution:registryMatch(await this.db.registry?.(),address,now)};
+        }
+        const stored = !body.id ? await addressRecord(this.db, body.address) : null;
+        if (stored) return { resolution: await this.queueResolution(body.address, now, stored) };
         const address = body.id
           ? (await owned()).address
-          : await this.source.resolve(body.address);
-        const result = registryMatch(await this.db.registry?.(), address, now);
+          : await this.resolveAddress(body.address);
+        const result = await this.queueResolution(address, now);
         return { resolution: result };
       }
-      case "dictionary":
-        return {
-          items: await this.source.dictionary(body.kind, {
-            parent: body.parent,
-          }),
-        };
+      case "dictionary": {
+        try {
+          return { items: await this.source.dictionary(body.kind, { parent: body.parent }) };
+        } catch (error) {
+          const items = await this.db.addressDictionary?.(body.kind, body.parent);
+          if (items?.length) return { items };
+          throw error;
+        }
+      }
       case "preview": {
-        const address = await this.source.resolve(body.address),
+        const address = await this.resolveAddress(body.address),
           p = await this.source.address(address, now);
+        const reusable = preparedSnapshot(p), key = enrollmentKey(address);
+        if (reusable && key && this.db.rememberPreview) {
+          try { await this.db.rememberPreview(owner, key, await enrollmentProof(owner, address), reusable, reusable.checkedAt); }
+          catch { /* Preview success does not depend on optional reuse storage. */ }
+        }
+        const excluded = !p.failures.includes("hourly") && p.categories?.hourly?.inclusion === "not_in_queue";
         return {
           address: { ...address, account: undefined },
           queue:
-            p.queue ||
-            registryMatch(await this.db.registry?.(), address, now).queue,
+            excluded ? null : p.queue ||
+            (await this.queueResolution(address, now)).queue,
           verified: p.failures.length === 0,
+          checkedAt: p.checkedAt,
         };
       }
       case "save": {
         if (body.confirmed !== true)
           throw new ApiError(400, "Підтвердьте адресу");
-        const profiles = await list();
-        if (profiles.length >= 10)
-          throw new ApiError(400, "Можна зберегти до 10 адрес");
-        const address = await this.source.resolve(body.address);
-        const old = profiles.find(
-          (p) =>
-            p.address.streetId === address.streetId &&
-            p.address.house === address.house,
-        );
-        if (old) return { profile: publicProfile(old) };
-        const p = {
+        const address = await this.resolveAddress(body.address);
+        const candidate = {
           id: crypto.randomUUID(),
           owner,
           address,
@@ -289,7 +341,19 @@ export class Service {
           messages: [],
           last_checked: 0,
         };
-        return { profile: publicProfile(await this.refresh(p)) };
+        const created = await this.db.createProfile(candidate);
+        if (created.status === "limit") throw new ApiError(400, "Можна зберегти до 10 адрес");
+        const p = created.profile;
+        if (!p) throw new ApiError(404, "Адресу не знайдено");
+        if (!created.created && p.last_checked) return { profile: publicProfile(p) };
+        let prepared = null;
+        if (this.db.takePreview) {
+          try { prepared = await this.db.takePreview(owner, enrollmentKey(address), await enrollmentProof(owner, address)); }
+          catch { /* Resolve from current sources when the short-lived preview is unavailable. */ }
+        }
+        if (prepared && (prepared.checkedAt > now || now - prepared.checkedAt >= 60000 || prepared.failures?.length !== 0)) prepared = null;
+        if (prepared && !preparedSnapshot(prepared)) prepared = null;
+        return { profile: publicProfile(await this.refresh(p, prepared)) };
       }
       case "refresh": {
         const p = await owned();
@@ -298,7 +362,7 @@ export class Service {
       }
       case "weather": {
         const p = await owned();
-        return { weather: await this.source.weather(p.address.city) };
+        return { weather: await this.sync.weatherFor(p.address) };
       }
       case "delete": {
         const p = await owned();
@@ -307,9 +371,9 @@ export class Service {
       }
       case "preferences": {
         const p = await owned();
-        p.preferences = preferences(body.preferences);
-        await this.db.saveProfile(p);
-        return { profile: publicProfile(p) };
+        const changed = await this.db.setPreferences(owner,p.id,body.preferences || {});
+        if (!changed) throw new ApiError(404, "Адресу не знайдено");
+        return { profile: publicProfile(changed) };
       }
       case "subscribe": {
         if (!this.vapid)
@@ -333,41 +397,75 @@ export class Service {
     }
   }
   async jobs() {
-    const now = this.now();
-    let refreshed = 0;
-    for (const p of await this.db.due(now, 5)) {
-      try {
-        await this.refresh(p);
-        refreshed++;
-      } catch {
-        /* retry after lease expires */
+    if(this.db.reminderClaim)return runScaledJobs(this);
+    const claim = await this.db.jobsClaim();
+    if (!claim.granted) return { status:"busy",refreshed:0,sent:0 };
+    const deadline = this.now() + this.jobBudgetMs;
+    let cursor = claim.cursor || null;
+    let refreshed = 0, failedRefreshes = 0, partialRefreshes = 0, skippedRefreshes = 0;
+    let sent = 0, failedDeliveries = 0, expiredSubscriptions = 0, remindersChecked = 0;
+    try {
+      // Claim only work we can start. Failed/unclaimed work remains due for a later minute.
+      const refreshDeadline = Math.min(deadline-15000,this.now()+25000);
+      for (let attempt=0; attempt<5 && this.now()+2000<refreshDeadline; attempt++) {
+        const [p] = await this.db.due(this.now(),1);
+        if (!p) break;
+        try {
+          const updated = await this.refresh(p,null,{signal:AbortSignal.timeout(Math.max(1,refreshDeadline-this.now()-1000))});
+          refreshed++;
+          if (updated.snapshot?.failures?.length || updated.snapshot?.feedFailed) partialRefreshes++;
+        } catch (error) {
+          if (error.status === 404) skippedRefreshes++; else failedRefreshes++;
+          await this.db.releaseProfile(p).catch(()=>{});
+          // Do not hammer the same due row again in this run after a storage/source error.
+          break;
+        }
       }
-    }
-    for (let offset = 0; ; offset += 100) {
-      const batch = await this.db.reminderProfiles(now, 100, offset);
-      for (const p of batch) await this.reminders(p);
-      if (batch.length < 100) break;
-    }
-    let sent = 0;
-    for (const item of await this.db.deliveries(now, 50)) {
-      try {
-        await this.push(item.subscription, {
-          title: item.title,
-          body: item.body,
-          tag: item.event_key,
-          date: item.date,
-          profile: item.profile_id,
-        });
-        await this.db.deliveryDone(item.id);
-        sent++;
-      } catch (e) {
-        if ([404, 410].includes(e.statusCode))
-          await this.db.removeSubscription(item.subscription_id);
-        else await this.db.deliveryRetry(item.id, now);
+      reminders: for (let page=0;page<3 && this.now()+12000<deadline;page++) {
+        const batch = await this.db.reminderProfiles(this.now(),100,0,cursor);
+        for (const p of batch) {
+          if (this.now()+12000>=deadline) break reminders;
+          await this.reminders(p); cursor=p.id; remindersChecked++;
+        }
+        if (batch.length<100) { cursor=null;break; }
       }
-    }
-    await this.db.cleanup(now);
-    return { refreshed, sent };
+      let claimed=0;
+      const deliver = async () => {
+        while (claimed<10 && this.now()+11000<deadline) {
+          claimed++;
+          const [item] = await this.db.deliveries(this.now(),1);
+          if (!item) break;
+          if (this.now()+11000>=deadline) {
+            await this.db.deliveryRelease(item.id,item.lease_token,this.now());break;
+          }
+          const remaining = item.expires_at === undefined ? 3600000 : item.expires_at-this.now();
+          if (remaining<=0) { await this.db.deliveryRelease(item.id,item.lease_token,this.now());continue; }
+          try {
+            await this.push(item.subscription, {
+              title: item.title,
+              body: item.body,
+              tag: item.event_key,
+              date: item.date,
+              profile: item.profile_id,
+            }, {ttl:Math.max(1,Math.min(3600,Math.ceil(remaining/1000)))});
+            await this.db.deliveryDone(item.id,item.lease_token);
+            sent++;
+          } catch (e) {
+            if ([404, 410].includes(e.statusCode)) {
+              await this.db.removeSubscription(item.subscription_id);
+              expiredSubscriptions++;
+            } else {
+              const delay = Math.max(Math.min(300000,30000*2**Math.min(item.attempts || 1,4)),retryDelay(e.headers?.["retry-after"],this.now()));
+              await this.db.deliveryRetry(item.id,this.now(),item.lease_token,delay);failedDeliveries++;
+            }
+          }
+        }
+      };
+      await Promise.all([deliver(),deliver()]);
+      await this.db.cleanup(this.now());
+      return { refreshed,sent,failedRefreshes,partialRefreshes,failedDeliveries,expiredSubscriptions,skippedRefreshes,remindersChecked,
+        budgetExhausted:this.now()+11000>=deadline };
+    } finally { await this.db.jobsFinish(claim.token,cursor); }
   }
 }
 export class ApiError extends Error {

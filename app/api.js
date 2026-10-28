@@ -1,5 +1,6 @@
 import config from "./config.js";
 let clientPromise;
+let authPromise;
 async function client() {
   if (!clientPromise)
     clientPromise = import("./vendor/supabase.js").then(({ createClient }) =>
@@ -13,22 +14,27 @@ async function client() {
     );
   return clientPromise;
 }
+export async function identity() {
+  if(config.local)return 'local-preview';
+  if(!configured())return null;
+  const c=await client();return (await c.auth.getSession()).data.session?.user?.id || null;
+}
+export async function ensureIdentity(){return config.local?'local-preview':(await sessionForRequest()).user.id;}
+async function sessionForRequest() {
+  if(!authPromise)authPromise=(async()=>{
+    const c=await client();let session=(await c.auth.getSession()).data.session;
+    if(!session) {const r=await c.auth.signInAnonymously();if(r.error)throw Error('Не вдалося підключитися. Спробуйте пізніше.');session=r.data.session;}
+    return session;
+  })().finally(()=>authPromise=null);
+  return authPromise;
+}
 export const configured = () => !!config.apiUrl;
 export async function request(action, data = {}) {
   if (!configured())
     throw Error("Сервер ще не підключений. Збережені графіки доступні офлайн.");
   const headers = { "Content-Type": "application/json" };
   if (!config.local) {
-    const c = await client();
-    let {
-      data: { session },
-    } = await c.auth.getSession();
-    if (!session) {
-      const result = await c.auth.signInAnonymously();
-      if (result.error)
-        throw Error("Не вдалося підключитися. Спробуйте пізніше.");
-      session = result.data.session;
-    }
+    const session=await sessionForRequest();
     headers.apikey = config.publishableKey;
     headers.Authorization = "Bearer " + session.access_token;
   }
@@ -48,7 +54,7 @@ export async function post(url, options, fetcher = fetch) {
   } catch {
     throw Error("Оновлення тимчасово недоступне. Спробуйте пізніше.");
   }
-  if (!r.ok) throw Error(payload.error || "Перевірка тимчасово недоступна");
+  if (!r.ok) {const error=Error(payload.error || "Перевірка тимчасово недоступна");error.status=r.status;throw error;}
   return payload;
 }
 export async function forgetSession() {

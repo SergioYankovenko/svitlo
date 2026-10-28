@@ -3,15 +3,20 @@ import { Database } from "../../../server/database.js";
 import { Source } from "../../../server/source.js";
 import { operatorFetch } from "../../../server/transport.js";
 import { Service, httpHandler, ApiError } from "../../../server/service.js";
+import { SharedDictionaries } from "../../../server/shared-dictionaries.js";
+import { SharedFeed } from "../../../server/shared-feed.js";
+import { SharedCategories } from "../../../server/shared-categories.js";
+import { providerTransport } from "../../../server/provider-transport.js";
 const env = (k: string) => Deno.env.get(k) || "";
 const admin = createClient(
   env("SUPABASE_URL"),
   env("SUPABASE_SERVICE_ROLE_KEY"),
   { auth: { persistSession: false, autoRefreshToken: false } },
 );
+const db = new Database(admin);
 const service = new Service({
-  db: new Database(admin),
-  source: new Source(operatorFetch),
+  db,
+  source: new Source(providerTransport(db,operatorFetch),{dictionaries:new SharedDictionaries(db),feed:new SharedFeed(db),categories:new SharedCategories(db,env('SUPABASE_SERVICE_ROLE_KEY'))}),
   vapid: env("VAPID_PUBLIC_KEY"),
 });
 Deno.serve((request) =>

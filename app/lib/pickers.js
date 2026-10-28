@@ -24,6 +24,7 @@ export function enhancePickers(root = document) {
       const text = select.selectedOptions[0]?.textContent || "Оберіть…";
       button.textContent = text + " ▾";
       button.disabled = select.disabled;
+      if(select.getAttribute("aria-describedby"))button.setAttribute("aria-describedby",select.getAttribute("aria-describedby"));
       button.setAttribute("aria-label", title + ": " + text);
     };
     const observer = new MutationObserver(sync);

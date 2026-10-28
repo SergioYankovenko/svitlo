@@ -1,28 +1,7 @@
-const CACHE = "svitlo-pwa-65bcfc739cde",
+const CACHE = "svitlo-pwa-0b94c0696292",
   ROOT = new URL("./", self.location.href);
 // Build writes the complete hashed app-shell list here, including the bundled client library.
-const SHELL = [
-  "./",
-  "./index.html",
-  "./style.css",
-  "./main.js",
-  "./api.js",
-  "./config.js",
-  "./lib/time.js",
-  "./lib/icons.js",
-  "./lib/pickers.js",
-  "./lib/parsers.js",
-  "./lib/schedule.js",
-  "./lib/tiles.js",
-  "./lib/layout.js",
-  "./lib/navigation.js",
-  "./lib/day-transition.js",
-  "./manifest.webmanifest",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/icon.svg",
-  "./vendor/supabase.js",
-];
+const SHELL = ["./","./api.js","./config.js","./icons/apple-touch-icon.png","./icons/icon-192.png","./icons/icon-512.png","./icons/icon.svg","./icons/maskable-512.png","./index.html","./lib/day-transition.js","./lib/dictionary-cache.js","./lib/icons.js","./lib/layout.js","./lib/navigation.js","./lib/notifications.js","./lib/parsers.js","./lib/patch-ui.js","./lib/pickers.js","./lib/schedule.js","./lib/sync-client.js","./lib/tiles.js","./lib/time.js","./main.js","./manifest.webmanifest","./push-check.html","./push-check.js","./style.css","./vendor/supabase.js"];
 self.addEventListener("install", (event) =>
   event.waitUntil(
     caches
@@ -73,6 +52,7 @@ async function recordPush(stage, error = "") {
     /* Local diagnostics must not prevent notification delivery. */
   }
 }
+let invalidationQueue=Promise.resolve();
 self.addEventListener("push", (event) =>
   event.waitUntil(
     (async () => {
@@ -81,6 +61,19 @@ self.addEventListener("push", (event) =>
       try {
         p = event.data?.json() || {};
       } catch {}
+      if(/^[0-9a-f-]{36}$/.test(p.profile)) {
+        try {
+          invalidationQueue=invalidationQueue.catch(()=>{}).then(async()=>{
+            const c=await caches.open('svitlo-events-v1'),url=new URL(`push-invalid/${p.profile}.json`,ROOT).href;
+            const token=String(p.tag||'svitlo').slice(0,160),old=await c.match(url),record=old?await old.json():{};
+            if(record.seen?.includes(token))return;
+            await c.put(url,Response.json({token,seen:[...(record.seen||[]),token].slice(-64)}));
+            const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+            for(const window of windows)window.postMessage({type:'svitlo-invalidated',profile:p.profile});
+          });
+          await invalidationQueue;
+        } catch { /* Notification delivery remains independent of local storage. */ }
+      }
       try {
         await self.registration.showNotification(
           String(p.title || "Світло").slice(0, 160),

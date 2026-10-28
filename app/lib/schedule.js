@@ -55,12 +55,14 @@ export function dayState(data, date, now = Date.now()) {
     .filter((x) => x.start < until && (x.end === null || x.end > from));
   if (plan && !plan.uncertain)
     events = [...events.filter((x) => x.category !== "hourly"), ...plan.events];
+  const excluded = data?.queueResolution?.inclusion === "not_in_queue" && !data?.queue;
+  const checkedDate = date === dayKey(now) || !!data?.verifiedNoQueueDays?.includes(date);
   const known = plan
     ? !plan.uncertain
-    : /^[1-6]\.[12]$/.test(data?.queue) &&
+    : (excluded || /^[1-6]\.[12]$/.test(data?.queue)) &&
       complete &&
-      (date === dayKey(now) ||
-        events.some((x) => x.category === "hourly" && x.end));
+      (checkedDate ||
+        !excluded && events.some((x) => x.category === "hourly" && x.end));
   if (validity !== "active")
     events = events
       .filter(
@@ -119,7 +121,7 @@ export function dayState(data, date, now = Date.now()) {
     policy: { ...policy, validity },
     hours,
     displayHours: displayHours(events, from, until, uncertain, now),
-    reason: !data?.queue
+    reason: excluded && known && !uncertain ? "no_queue" : !data?.queue
       ? "queue_unknown"
       : stale
         ? "stale"
@@ -132,10 +134,11 @@ export function dayState(data, date, now = Date.now()) {
               : "ready",
     events,
     known,
+    excluded,
     uncertain,
     stale,
     available:
-      !!plan || events.length > 0 || (date === dayKey(now) && complete),
+      !!plan || events.length > 0 || (checkedDate && complete),
     totals: uncertain ? null : { off: lost, on: (until - from) / 60000 - lost },
   };
 }
@@ -149,7 +152,7 @@ export function countdown(data, now) {
   const state = dayState(data, dayKey(now), now);
   if (state.events.some((x) => x.start <= now && x.end === null))
     return { label: "Час відновлення уточнюється" };
-  if (!data?.queue) return { label: "Чергу не визначено" };
+  if (!data?.queue && !state.excluded) return { label: "Немає точних даних" };
   if (state.uncertain || state.stale)
     return { label: "Час відключень уточнюється" };
   const tomorrow = dayState(data, addDays(dayKey(now), 1), now),
@@ -176,7 +179,7 @@ export function countdown(data, now) {
         target: next.start,
         minutes: Math.ceil((next.start - now) / 60000),
       }
-    : { label: "Не заплановано" };
+    : { label: state.excluded ? "У вас відключень поки немає" : "Не заплановано" };
 }
 
 // Display-only rounding in real time preserves both occurrences of the Kyiv autumn hour.
@@ -218,7 +221,8 @@ export function displayHours(events, from, until, uncertain, now) {
 }
 export const dataReason = (state) =>
   ({
-    queue_unknown: "Чергу не визначено",
+    queue_unknown: "Немає точних даних",
+    no_queue: "У вас відключень поки немає",
     stale: "Дані застаріли або оновлення недоступне",
     plan_incomplete: "Графік містить неповні дані",
     not_published: "Графік на цю дату ще не опубліковано",

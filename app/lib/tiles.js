@@ -80,7 +80,7 @@ export function fitHours(grid) {
     const cell = grid.querySelector(".hour");
     if (!cell) return;
     const root = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    const time = cell.querySelector(".tile-time") || cell;
+    const time = cell.querySelector(".tile-time, .legacy-label") || cell;
     const ctx = document.createElement("canvas").getContext("2d");
     const textStyle = getComputedStyle(time);
     ctx.font = `${textStyle.fontWeight} ${textStyle.fontSize} ${textStyle.fontFamily}`;
