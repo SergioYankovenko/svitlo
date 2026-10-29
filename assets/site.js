@@ -53,6 +53,16 @@ document.querySelectorAll('[data-preview-theme]').forEach(button => {
   let selected = 0;
   let frame = 0;
 
+  function revealTab() {
+    const label = tabs[selected].getBoundingClientRect();
+    const strip = tabList.getBoundingClientRect();
+    if (label.left < strip.left + 6) {
+      tabList.scrollBy({ left: label.left - strip.left - 6, behavior: 'auto' });
+    } else if (label.right > strip.right - 6) {
+      tabList.scrollBy({ left: label.right - strip.right + 6, behavior: 'auto' });
+    }
+  }
+
   function render(index) {
     selected = Math.max(0, Math.min(slides.length - 1, index));
     if (slides.some((slide, i) => i !== selected && slide.contains(document.activeElement))) {
@@ -68,6 +78,8 @@ document.querySelectorAll('[data-preview-theme]').forEach(button => {
     previous.disabled = selected === 0;
     next.disabled = selected === slides.length - 1;
     counter.textContent = `${selected + 1} / ${slides.length}`;
+    // Reveal the active label horizontally without moving the page vertically.
+    revealTab();
   }
 
   function select(index) {
@@ -104,9 +116,12 @@ document.querySelectorAll('[data-preview-theme]').forEach(button => {
       render(Math.round(viewport.scrollLeft / viewport.clientWidth));
     });
   }, { passive: true });
-  new ResizeObserver(() => {
+  const resizeObserver = new ResizeObserver(() => {
     viewport.scrollTo({ left: slides[selected].offsetLeft - slides[0].offsetLeft, behavior: 'auto' });
-  }).observe(viewport);
+    revealTab();
+  });
+  resizeObserver.observe(viewport);
+  resizeObserver.observe(tabList);
   gallery.classList.add('is-slider');
   tabList.hidden = false;
   gallery.querySelector('.gallery-controls').hidden = false;
