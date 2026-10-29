@@ -265,3 +265,8 @@ footer .site-licensing{max-width:30rem;margin:16px 0 0;font-size:.74rem;line-hei
 .gallery-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .gallery-tabs button{flex:1 0 auto;min-width:max-content;padding:12px 8px;white-space:nowrap}
 .gallery-tabs button:focus-visible,.install-tabs button:focus-visible,.theme-preview-controls button:focus-visible{outline:2px solid #f0c875;outline-offset:-2px}
+@media(min-width:601px){
+ .hero-actions{margin-inline:0}
+ .hero-details{align-items:flex-start;text-align:left}
+ .hero-details .promises{justify-content:flex-start}
+}
