@@ -5,7 +5,7 @@ import {bounded} from './lib/session.js';
 import {DictionaryCache} from "./lib/dictionary-cache.js";
 import {SyncClient, SYNC_KEY, cityKey, legacyEnvelope} from "./lib/sync-client.js";
 import {messageTitle, shareText, canShareDay} from "./lib/notifications.js";
-import {addressCard, appearance, notificationSettings, legend, outageCategory, categoryText, fitPairs, scheduleNotice} from "./lib/patch-ui.js";
+import {addressCard, manageAddressRows, appearance, notificationSettings, legend, outageCategory, categoryText, fitPairs, scheduleNotice} from "./lib/patch-ui.js";
 import { slideDay } from "./lib/day-transition.js";
 import { fitHeader } from "./lib/layout.js";
 import { adjacentDay, bindHorizontalSwipe } from "./lib/navigation.js";
@@ -492,8 +492,9 @@ async function refresh(reason='manual'){
     state.error=error.message;if(!profile())lifecycle.phase='error';
   }finally{if(lifecycle.current(scope,true)&&token===refreshToken){state.busy=false;render();}}
 }
-function dialog(title, html) {
+function dialog(title, html, className="") {
   const d = $("#address-dialog");
+  d.className=className;
   d.innerHTML = `<button class="dialog-close" aria-label="Закрити">×</button><h2 id="dialog-title">${title}</h2>${html}`;
   d.querySelector(".dialog-close").onclick = () => d.close();
   enhancePickers(d);
@@ -617,12 +618,8 @@ function manageDialog() {
   const scope=lifecycle.capture();
   const d = dialog(
     "Ваші адреси",
-    state.profiles
-      .map(
-        (p) =>
-          `<div class="delete-row"><p>${esc(p.name || p.address.label)}</p><button data-delete="${p.id}" class="danger">Видалити</button></div>`,
-      )
-      .join(""),
+    manageAddressRows(state.profiles,profile()?.id),
+    "manage-dialog",
   );
   d.querySelectorAll("[data-delete]").forEach(
     (el) =>

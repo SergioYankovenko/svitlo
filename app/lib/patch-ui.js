@@ -12,6 +12,13 @@ export function addressLines(p,list=false) {
   const title=p.name||p.address.city, detail=p.name?p.address.label:(p.address.street ? p.address.street+', '+p.address.house : p.address.label.replace(p.address.city+', ',''));
   return `<span class="address-copy"><span class="address-name">${esc(title)}</span><span class="address-detail">${esc(detail)}</span></span>`;
 }
+export function manageAddressRows(profiles,activeId) {
+  return `<ul class="manage-address-list">${profiles.map(p=>{
+    const title=p.name||p.address.city,detail=p.name?p.address.label:(p.address.street?p.address.street+', '+p.address.house:p.address.label.replace(p.address.city+', ',''));
+    const current=p.id===activeId;
+    return `<li class="manage-entry"${current?' aria-current="true"':''}><span class="manage-copy"><span class="manage-name"><span class="manage-title">${esc(title)}</span>${current?checkIcon():''}</span><span class="manage-detail">${esc(detail)}</span></span><button type="button" class="danger manage-delete" data-delete="${esc(p.id)}" aria-label="Видалити адресу: ${esc(p.name?p.name+', '+p.address.label:p.address.label)}">Видалити</button></li>`;
+  }).join('')}</ul>`;
+}
 export function addressCard(p,profiles,open) {
   const selected=profiles.length>1 ? `<button class="address-trigger" aria-expanded="${open}" aria-controls="address-list" aria-label="Обрати адресу: ${esc(p.name||p.address.label)}">${addressLines(p)}<svg class="address-chevron" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m8 ${open?20:12} 8 ${open?-8:8} 8 ${open?8:-8}"/></svg></button>` : `<div class="address-static">${addressLines(p)}</div>`;
   return `<section class="card address">${selected}${open&&profiles.length>1?`<div id="address-list" class="address-list" aria-label="Ваші адреси">${profiles.map(x=>`<button class="address-option" data-profile="${esc(x.id)}" aria-pressed="${x.id===p.id}">${addressLines(x,true)}<span class="address-check" aria-hidden="true">${x.id===p.id?checkIcon():''}</span></button>`).join('')}</div>`:''}<div class="row fit-pair"><button data-action="add">Додати адресу</button><button data-action="manage">Керувати адресами</button></div></section>`;
