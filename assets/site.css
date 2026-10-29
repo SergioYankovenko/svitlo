@@ -69,11 +69,10 @@ h1,h2,h3,.lead,.section-intro,.eyebrow{overflow-wrap:anywhere}.button,.text-link
 .showcase .screen-tabs button{min-height:52px}
 @media(max-width:800px){.showcase .screen-grid{grid-template-columns:minmax(0,1fr);width:min(100%,440px);gap:24px}}
 
-/* A single spacing rhythm for the supporting information beneath install buttons. */
-.hero-details{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:14px;max-width:100%}
-.hero-details .download-meta{display:flex;flex-wrap:wrap;column-gap:14px;row-gap:2px;margin:0;line-height:1.55}
-.hero-details .download-meta>span{min-width:0;max-width:100%}
-.hero-details .promises{margin:8px 0 0;row-gap:8px}
+/* Center the install actions and supporting promises as one group. */
+.hero-actions{justify-content:center;align-items:center;margin-inline:auto}
+.hero-details{display:flex;flex-direction:column;align-items:center;margin-top:16px;max-width:100%;text-align:center}
+.hero-details .promises{justify-content:center;margin:0;row-gap:8px}
 
 /* Keep the gallery introduction together and aligned with its previews. */
 .showcase-heading{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;width:min(100%,920px);margin:0 auto 32px}
