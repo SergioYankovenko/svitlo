@@ -116,6 +116,16 @@ h1,h2,h3,.lead,.section-intro,.eyebrow{overflow-wrap:anywhere}.button,.text-link
 .feature-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))}
 .widget-panel{grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr))}
 .release-panel{grid-template-columns:repeat(auto-fit,minmax(min(100%,25rem),1fr))}
+.release-panel>.release-intro{container-type:inline-size;container-name:release-intro;display:block}
+.release-intro-layout{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:18px}
+.release-copy{display:grid;align-content:start;gap:16px;min-width:0}
+.release-copy>*{margin:0}
+.release-copy>.release-version{justify-self:start}
+.release-intro-layout>.mascot-release{display:block;width:min(100%,15rem);max-width:none;height:auto;margin:0;justify-self:center}
+@container release-intro (min-width:24rem){
+ .release-intro-layout{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+ .release-intro-layout>.mascot-release{width:100%;max-width:16rem;justify-self:end}
+}
 .install-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr))}
 .faq-layout{grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr))}
 @media(max-width:1100px){.navigation nav{display:none}}
