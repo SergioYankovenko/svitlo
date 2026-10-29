@@ -38,56 +38,80 @@ document.querySelectorAll('[data-preview-theme]').forEach(button => {
   });
 });
 
-// Explicit mobile tabs keep screenshot browsing separate from page scrolling.
+// One native swipe track keeps all four screenshots under a shared introduction.
 (() => {
-  const gallery = document.getElementById('screens');
-  const tabList = gallery?.querySelector('.screen-tabs');
-  if (!tabList) return;
+  const gallery = document.querySelector('.screen-carousel');
+  if (!gallery) return;
+  const viewport = gallery.querySelector('.gallery-viewport');
+  const slides = [...gallery.querySelectorAll('.gallery-slide')];
+  const tabList = gallery.querySelector('.gallery-tabs');
   const tabs = [...tabList.querySelectorAll('[role="tab"]')];
-  const panels = tabs.map(tab => document.getElementById(tab.getAttribute('aria-controls')));
-  const mobile = window.matchMedia('(max-width: 800px)');
+  const previous = gallery.querySelector('.gallery-previous');
+  const next = gallery.querySelector('.gallery-next');
+  const counter = gallery.querySelector('.gallery-counter');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let selected = 0;
+  let frame = 0;
 
-  function render() {
-    const focus = document.activeElement;
-    tabList.hidden = !mobile.matches;
-    tabs.forEach((tab, index) => {
-      const active = index === selected;
+  function render(index) {
+    selected = Math.max(0, Math.min(slides.length - 1, index));
+    if (slides.some((slide, i) => i !== selected && slide.contains(document.activeElement))) {
+      viewport.focus({ preventScroll: true });
+    }
+    tabs.forEach((tab, i) => {
+      const active = i === selected;
       tab.setAttribute('aria-selected', String(active));
       tab.tabIndex = active ? 0 : -1;
-      const panel = panels[index];
-      panel.hidden = mobile.matches && !active;
-      if (mobile.matches) {
-        panel.setAttribute('role', 'tabpanel');
-        panel.setAttribute('aria-labelledby', tab.id);
-      } else {
-        panel.removeAttribute('role');
-        panel.removeAttribute('aria-labelledby');
-      }
+      slides[i].setAttribute('aria-hidden', String(!active));
+      slides[i].querySelector('a').tabIndex = active ? 0 : -1;
     });
-    if (mobile.matches && panels.some(panel => panel.hidden && panel.contains(focus))) {
-      tabs[selected].focus({ preventScroll: true });
-    } else if (!mobile.matches && tabList.contains(focus)) {
-      panels[selected].querySelector('a')?.focus({ preventScroll: true });
-    }
+    previous.disabled = selected === 0;
+    next.disabled = selected === slides.length - 1;
+    counter.textContent = `${selected + 1} / ${slides.length}`;
+  }
+
+  function select(index) {
+    const target = Math.max(0, Math.min(slides.length - 1, index));
+    render(target);
+    viewport.scrollTo({ left: slides[target].offsetLeft - slides[0].offsetLeft,
+      behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+  }
+
+  function keyboard(event, focusTab) {
+    const target = event.key === 'ArrowRight' ? (selected + 1) % slides.length
+      : event.key === 'ArrowLeft' ? (selected + slides.length - 1) % slides.length
+      : event.key === 'Home' ? 0
+      : event.key === 'End' ? slides.length - 1 : null;
+    if (target === null) return;
+    event.preventDefault();
+    select(target);
+    if (focusTab) tabs[target].focus({ preventScroll: true });
   }
 
   tabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => { selected = index; render(); });
-    tab.addEventListener('keydown', event => {
-      const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length
-        : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
-        : event.key === 'Home' ? 0
-        : event.key === 'End' ? tabs.length - 1 : null;
-      if (next === null) return;
-      event.preventDefault();
-      selected = next;
-      render();
-      tabs[next].focus();
-    });
+    tab.addEventListener('click', () => select(index));
+    tab.addEventListener('keydown', event => keyboard(event, true));
+    slides[index].setAttribute('role', 'tabpanel');
+    slides[index].setAttribute('aria-labelledby', tab.id);
   });
-  mobile.addEventListener('change', render);
-  render();
+  previous.addEventListener('click', () => select(selected - 1));
+  next.addEventListener('click', () => select(selected + 1));
+  viewport.addEventListener('keydown', event => keyboard(event, false));
+  viewport.addEventListener('scroll', () => {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      render(Math.round(viewport.scrollLeft / viewport.clientWidth));
+    });
+  }, { passive: true });
+  new ResizeObserver(() => {
+    viewport.scrollTo({ left: slides[selected].offsetLeft - slides[0].offsetLeft, behavior: 'auto' });
+  }).observe(viewport);
+  gallery.classList.add('is-slider');
+  tabList.hidden = false;
+  gallery.querySelector('.gallery-controls').hidden = false;
+  viewport.scrollLeft = 0;
+  render(0);
 })();
 
 // Choose a phone without scrolling through two installation cards.
