@@ -128,9 +128,19 @@ h1,h2,h3,.lead,.section-intro,.eyebrow{overflow-wrap:anywhere}.button,.text-link
 }
 
 /* One installation guide at a time, with both guides available without JavaScript. */
-#install>.wrap{max-width:760px}
+#install>.wrap{max-width:760px;container-type:inline-size;container-name:install-section}
 #install .section-heading{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-bottom:28px}
 #install .section-intro{max-width:620px}
+#install .install-heading{gap:20px;align-items:center}
+#install .install-heading-copy{display:grid;gap:14px;min-width:0}
+#install .install-heading-copy>.section-intro{margin:0}
+.install-family{display:block;justify-self:center;width:min(100%,320px);height:auto;pointer-events:none;user-select:none}
+@container install-section (min-width:36rem){
+ #install .install-heading{grid-template-columns:minmax(0,1fr) minmax(0,.78fr);gap:20px}
+ #install .install-heading h2{font-size:clamp(1.65rem,4.5cqi,2rem);line-height:1.15}
+ #install .install-heading .section-intro{font-size:.92rem}
+ .install-family{width:100%;max-width:310px;justify-self:end}
+}
 .install-tabs[hidden],.install-card[hidden]{display:none}
 .install-tabs{display:flex;flex-wrap:wrap;gap:6px;width:min(100%,440px);padding:6px;margin:0 auto 24px;border:1px solid var(--border);border-radius:18px;background:var(--deep)}
 .install-tabs button{flex:1 1 6rem;min-width:0;min-height:52px;padding:12px 16px;border:0;border-radius:12px;background:transparent;color:var(--muted);font-size:.92rem;font-weight:650;line-height:1.3;white-space:nowrap;cursor:pointer;transition:background .18s,color .18s}
