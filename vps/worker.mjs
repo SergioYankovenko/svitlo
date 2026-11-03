@@ -9,6 +9,7 @@ async function tick(){
   await rt.p.query('select svitlo_telemetry.cleanup()');
   await rt.p.query('select svitlo_sensors.cleanup()');
   await rt.p.query('select svitlo_sensors.ingest_cleanup()');
+  await rt.p.query('select svitlo_sensors.history_cleanup()');
   await rt.p.query('select svitlo_sensors.phone_cleanup()');
   console.log(JSON.stringify({event:'stage_jobs',...result,delivery:'disabled'}));
 }

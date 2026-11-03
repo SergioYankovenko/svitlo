@@ -1,6 +1,6 @@
 # BE-06 · Plan232 · sensor access foundation v1
 
-Private staging only. No app/prototype/production change. Plan233 adds test-device ingestion and current point signal: [producer protocol and freshness contract](INGEST-CONTRACT.md). Real hardware provisioning/firmware, interval history, prediction, billing, transfer and recovery remain **not implemented**. All devices are explicitly test-only. Existing `capabilities.sensors=false` is preserved; additive capabilities describe identity/access and test-only current signal. No state is inferred from silence or an official plan.
+Private staging only. No app/prototype/production change. Plan233 adds test-device ingestion/current point signal; Plan234 adds [explicit observations/history/daily overview](HISTORY-CONTRACT.md). Real hardware provisioning/firmware, prediction, billing, transfer and recovery remain **not implemented**. All devices are explicitly test-only. Existing `capabilities.sensors=false` is preserved; additive capabilities describe implemented test features. No state is inferred from silence or an official plan.
 
 ## Identity and ownership
 
@@ -19,6 +19,7 @@ Maximum10active sensor memberships per reader (owner+viewer); one sensor per sav
 | list | none | Own active memberships, at most10; unlinked entries retained |
 | get | sensorId,bindingEpoch | Current active member, identity DTO |
 | signal | sensorId,bindingEpoch | Current active member, current point/transport freshness; Plan233 contract |
+| overview | sensorId,bindingEpoch,date | Current active member, bounded Kyiv daily observations/gaps; Plan234 contract |
 | claim | requestId,profileId,claimToken | Valid one-time bootstrap + own eligible canonical profile; creates owner/point/epoch |
 | members | sensorId,bindingEpoch | Owner; active opaque membership IDs/roles/join time and pending invite metadata, no peer profiles/subjects/secrets |
 | invite_create | requestId,sensorId,bindingEpoch | Owner; viewer-only invitation, returns secret inviteToken |
@@ -30,7 +31,7 @@ Maximum10active sensor memberships per reader (owner+viewer); one sensor per sav
 | link | requestId,sensorId,bindingEpoch,profileId | Active member and unlinked exact matching own profile; no silent move |
 | disconnect | requestId,sensorId,bindingEpoch,confirmed:true | Owner; ends epoch, revokes all memberships/invites, disables device |
 
-Success200JSON: `{schemaVersion:1,sensor:...}`, `{sensors:[...],complete:true}`, `{invitation:...}`, `{members:[...],invitations:[...]}`, `{signal:...}` or `{completed:true}`. Identity DTO contains sensorId,bindingEpoch,measurementPointId,canonicalAddressId,lineId,membershipId,role,accessRevision,own readerProfileId|null,isTest. Plan233 adds test-only telemetry/ingest/signal capabilities; observations/prediction/transfer/recovery remain false. No owner subject, raw bootstrap, hash, nonce or ingest credential is exposed. Only explicit owner invite_create returns a short-lived viewer token.
+Success200JSON: `{schemaVersion:1,sensor:...}`, `{sensors:[...],complete:true}`, `{invitation:...}`, `{members:[...],invitations:[...]}`, `{signal:...}`, `{overview:...}` or `{completed:true}`. Identity DTO contains sensorId,bindingEpoch,measurementPointId,canonicalAddressId,lineId,membershipId,role,accessRevision,own readerProfileId|null,isTest. Plan233 adds test-only telemetry/ingest/signal; Plan234 adds explicit observations/history/overview. Prediction/transfer/recovery remain false. No owner subject, raw bootstrap, hash, nonce or ingest credential is exposed. Only explicit owner invite_create returns a short-lived viewer token.
 
 400invalid/unsupported packet,401session required,403owner required/CSRF/Origin,404not available (known sensor UUID does not reveal another user's sensor),409request conflict/cardinality/wrong profile/used invite/owner-needs-disconnect,413size,429rate/pending cap with Retry-After60. Lost response retries use the same requestId and fields. Same ID with different fields conflicts. Replay is not cached authorization: claim/accept/link responses require the original still-active membership/epoch; revoked access is not recreated. Revoke/leave/disconnect replays acknowledge the previous operation without executing it against a new grant. A fresh membership has a fresh ID, so an old revoke does not remove it.
 
@@ -46,7 +47,7 @@ SSH-only `vps/sensors/admin.mjs provision`, `reissue <inactive-test-id>`, `purge
 
 ## Database/privacy/lifecycle
 
-Migration1005 added9private RLS tables, NOLOGIN/NOSUPERUSER/NOBYPASSRLS function owner and closed direct runtime access. Plan233/1006 adds4private ingest tables (13total), plus narrow ingest/signal functions and bounded worker cleanup; high-frequency ingest locks only its physical device. API cannot call private helpers/claims/admin provisioning directly. Own-profile SELECT has an owner-scoped RLS policy. Session cleanup retains durable sensor subjects so deleting a profile cannot orphan identity or cause FK cleanup errors. Low-frequency management transitions still serialize in the DB.
+Migration1005 added9private RLS tables, NOLOGIN/NOSUPERUSER/NOBYPASSRLS function owner and closed direct runtime access. Plan233/1006 adds4private ingest tables; Plan234/1007 adds2history tables (15total), narrow history-aware ingress/day read and bounded worker cleanup. High-frequency ingest locks only its physical device. API cannot call private helpers/claims/admin provisioning directly. Own-profile SELECT has an owner-scoped RLS policy. Session cleanup retains durable sensor subjects so deleting a profile cannot orphan identity or cause FK cleanup errors. Low-frequency management transitions still serialize in the DB.
 
 Command receipts30days, mutation-only audit up to10 000rows/90days, expired invites up to30days, counters1day; cleanup is bounded. Historical identities/memberships/bindings are not automatically reassigned or erased by an app reset; full physical-history retention/account erasure needs the next policy. Private audit contains actor/sensor UUID and operation, no profile label, token or payload. BE-05 adds only the `sensor_access` metadata category; normal reads do not create mutation audit records.
 
