@@ -1,5 +1,7 @@
 # Private VPS runtime, Plan228
 
+> Plan230 adds catalog quality policy, route coverage and reviewed city linking (additive migration1003) to the same private universal API. See [wire behavior](universal/CONTRACT.md); frontend shell and production remain unchanged. Runtime catalog roles remain readonly; the reviewed importer owns identity/coverage mutations.
+
 > Plan229 adds the working private universal v1 API and staging PWA integration: [contract and onboarding](universal/CONTRACT.md), JSON Schema and golden vectors in the same directory. Backend contract/PG/HTTP checks pass; full new-shell browser save/reload/offline QA remains pending. Android and production routes are unchanged. The Plan228 description below is historical baseline infrastructure, not the current universal implementation status.
 
 This is an isolated first working port of the existing Cherkasy PWA. It is not the complete universal BE-08 or a production cutover. No browser Supabase Auth/SDK calls, no copied production users, no live push credentials. The current branch preserves the existing production transport when `config.transport` is not `vps`; the staging build always writes its own config.

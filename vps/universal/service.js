@@ -1,6 +1,12 @@
 import {Service,publicProfile,DEFAULT_PREFS,ApiError} from '../../server/service.js';
 import {randomUUID} from 'node:crypto';
 import {universalEnvelope,selectedLine} from '../../app/lib/universal-contract.js';
+import {seal} from './normalize.js';
+export function repairSnapshot(old,now){
+ const value=old?.universal;
+ const universal=value?seal({...value,supportState:'degraded',freshUntil:Math.min(value.freshUntil,now-1),refreshAfter:now+3600000,resolution:{...value.resolution,state:'unknown',complete:false}}):null;
+ return {...old,...(universal?universalEnvelope(universal,old.selectedLineId):{}),feedFailed:true,failures:['address_requires_reselection'],addressRepair:{required:true,code:'address_requires_reselection'}};
+}
 export class UniversalService extends Service {
  constructor(options,reader){super(options);this.reader=reader;
   const oldWeather=this.sync.weatherFor.bind(this.sync);this.sync.weatherFor=a=>a.canonicalAddressId&&a.operatorId!=='ua-cherkasy'?Promise.reject(Error('weather_not_supported')):oldWeather(a);
@@ -13,14 +19,22 @@ export class UniversalService extends Service {
   return {...(e.operator_id==='ua-cherkasy'?e.source_ref:{department:'universal:'+e.operator_id,cityId:a.cityId,streetId:a.streetId,house:a.house,city:a.city,street:a.street}),
    canonicalAddressId:a.id,operatorId:a.operatorId,lineId:r.selection.lineId,lineLabel:r.resolution.lines.find(l=>l.id===r.selection.lineId)?.label||null,multipleLines:r.resolution.lines.length>1,label:a.label,synthetic:r.operator.synthetic};
  }
- async refresh(profile,...args){if(!profile.address.canonicalAddressId)return super.refresh(profile,...args);
-  const now=this.now(),s=await this.reader.snapshot(profile.address.canonicalAddressId,this.reader.range({}));
+ async resolveAddress(input){await this.reader.catalog.validateLegacy(input);const a=await super.resolveAddress(input);await this.reader.catalog.validateLegacy(a);return a;}
+ async refresh(profile,...args){const now=this.now();let s;
+  try{
+   if(!profile.address.canonicalAddressId){await this.reader.catalog.validateLegacy(profile.address);return await super.refresh(profile,...args);}
+   s=await this.reader.snapshot(profile.address.canonicalAddressId,this.reader.range({}));
+  }catch(e){if(e.code!=='address_requires_reselection')throw e;
+   const result=await this.db.commitProfile({...profile,snapshot:repairSnapshot(profile.snapshot||{},now),last_checked:now,next_check:now+3600000},profile.snapshot_revision||0);
+   if(result.status==='missing')throw new ApiError(404,'Адресу не знайдено');return result.profile;
+  }
   let lineId=profile.address.lineId;if(!lineId&&s.resolution.complete&&s.lines.length===1)lineId=s.lines[0].id;
   const snapshot=universalEnvelope(s,lineId),candidate={...profile,snapshot,last_checked:now,next_check:Math.max(now+60000,s.refreshAfter),messages:profile.messages||[]};
   const result=await this.db.commitProfile(candidate,profile.snapshot_revision||0);
   if(result.status==='missing')throw new ApiError(404,'Адресу не знайдено');return result.profile;
  }
  async handle(owner,body){
+  if(owner&&['save','preview','resolve_queue'].includes(body.action)&&body.address&&!body.address.canonicalAddressId)await this.reader.catalog.validateLegacy(body.address);
   if(body.action==='save'&&body.address?.canonicalAddressId){
    if(!owner)throw new ApiError(401,'Потрібне підключення');if(body.confirmed!==true)throw new ApiError(400,'Підтвердьте адресу');
    if(!await this.db.rate(owner,40,60000))throw new ApiError(429,'Забагато запитів');
@@ -29,6 +43,11 @@ export class UniversalService extends Service {
    if(created.status==='limit')throw new ApiError(409,'Можна зберегти до 10 адрес');
    const p=await this.refresh(created.profile);return {profile:publicProfile(p),created:created.created};
   }
-  return super.handle(owner,body);
+  const result=await super.handle(owner,body);
+  if(body.action==='dictionary'&&['city','street'].includes(body.kind)){
+   result.items=(await this.reader.bridge.query(`select item from jsonb_array_elements($1::jsonb) item where not svitlo_vps.catalog_service_label($2,item->>'name')
+    and not($2='city' and $3='3' and item->>'id'='116')`,[JSON.stringify(result.items),body.kind,body.parent||''])).rows.map(r=>r.item);
+  }
+  return result;
  }
 }

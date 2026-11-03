@@ -1,3 +1,4 @@
+import {seedCatalogPolicy} from './catalog-policy.js';
 export async function seedUniversal(c){
  await c.query(`insert into svitlo_vps.operators(id,adapter_key,label,state,config) values('ua-cherkasy','cherkasy-v1','Черкасиобленерго','available','{"coverage":"Христинівська філія: перевірений каталог","unitSupported":false}') on conflict(id) do nothing`);
  await c.query(`select count(svitlo_vps.catalog_upsert('ua-cherkasy','city',jsonb_build_array(department,city_id)::text,city,null,'{}',jsonb_build_object('coverage','branch18'))) from
@@ -15,6 +16,7 @@ export async function seedUniversal(c){
  and a.provider_key=jsonb_build_array(p.address->>'department',p.address->>'cityId',p.address->>'streetId',p.address->>'house')::text`);
  // Explicitly synthetic private staging region. Not Kyiv, not an official source.
  await seedQa(c,'qa-grid','qa-grid-v1','Тестове місто — дві лінії (синтетичні дані)');
+ await seedCatalogPolicy(c);
 }
 export async function seedQa(c,id,adapter,label){
  await c.query(`insert into svitlo_vps.operators(id,adapter_key,label,state,is_test,config) values($1,$2,$3,'available',true,'{"coverage":"Синтетичний QA; не реальний регіон","unitSupported":true}') on conflict(id) do nothing`,[id,adapter,'Тестовий оператор '+id]);

@@ -23,7 +23,7 @@ const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,origin);path=url.pathname;
     if(path==='/healthz')return json(res,200,{status:'ok',scope:'isolated-staging',release});
     if(path==='/readyz'){
-      const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1001_universal_catalog.sql') as universal_ready from svitlo_vps.release_state where id");
+      const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1003_catalog_quality.sql') as universal_ready from svitlo_vps.release_state where id");
       if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled'||!r.rows[0].universal_ready)throw Error('Schema or delivery mode mismatch');
       return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:'disabled',productionReady:false});
     }

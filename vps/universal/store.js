@@ -10,7 +10,7 @@ export class Catalog {
    const r=(await this.db.query(`select e.*,s.label as street,s.metadata as street_metadata,c.label as city,c.id as city_id from svitlo_vps.catalog e
     left join svitlo_vps.catalog s on s.id=e.parent_id left join svitlo_vps.catalog c on c.id=s.parent_id where e.id=$1`,[id])).rows[0];
    if(!r)throw apiError(404,'address_not_found','Адресу не знайдено');
-   if(!r.redirect_to)return r;id=r.redirect_to;
+   if(!r.redirect_to){if(!(await this.db.query('select svitlo_vps.catalog_allowed($1) allowed',[r.id])).rows[0].allowed)throw apiError(409,'address_requires_reselection','Потрібно повторно обрати вулицю: цей запис є службовим');return r;}id=r.redirect_to;
   }throw apiError(503,'alias_depth');
  }
  public(e){return {id:e.id,label:e.kind==='address'&&e.city?`${e.city}, ${e.street}${e.street_metadata?.districtVerified?' · '+e.street_metadata.district:''}, ${e.label}`:e.label,kind:e.kind,
@@ -22,16 +22,25 @@ export class Catalog {
   if(kind!=='cities'){const parent=await this.entity(parentId);if(parent.kind!==(kind==='streets'?'city':'street'))throw apiError(400,'invalid_parent');parentId=parent.id;}
   let after=null;if(cursor){try{if(typeof cursor!=='string'||cursor.length>1024)throw Error();after=JSON.parse(Buffer.from(cursor,'base64url'));if(after.kind!==kind||after.parentId!==parentId||after.q!==q||!uuid(after.id)||typeof after.label!=='string')throw Error();}catch{throw apiError(400,'invalid_cursor');}}
   const text='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
-  const r=await this.db.query(`select e.* from svitlo_vps.catalog e where e.kind=$1 and e.parent_id is not distinct from $2::uuid
+  const r=await this.db.query(`select e.*,case when e.kind='city' then svitlo_vps.catalog_city_state(e.id) end as route_state from svitlo_vps.catalog e where e.kind=$1 and e.parent_id is not distinct from $2::uuid
    and e.redirect_to is null and e.label ilike $3 and coalesce(e.metadata->>'catalogStatus','')<>'service'
+   and svitlo_vps.catalog_allowed(e.id) and (e.kind<>'city' or svitlo_vps.catalog_city_state(e.id)<>'empty')
+   and ($1<>'street' or svitlo_vps.catalog_city_state($2::uuid)<>'empty')
    and ($4::text is null or (e.label collate "C",e.id)>($4 collate "C",$5::uuid))
    order by e.label collate "C",e.id limit $6`,[map[kind],parentId,text,after?.label||null,after?.id||null,limit+1]);
   const page=r.rows.slice(0,limit),last=page.at(-1),more=r.rows.length>limit;
-  return {schemaVersion:1,items:page.map(e=>this.public(e)),nextCursor:more?Buffer.from(JSON.stringify({kind,parentId,q,id:last.id,label:last.label})).toString('base64url'):null,complete:!more,coverage:'Catalog contains verified imported places only'};
+  const coverage=kind==='streets'?(await this.db.query('select svitlo_vps.catalog_city_state($1) state',[parentId])).rows[0].state:'imported_subset';
+  return {schemaVersion:1,items:page.map(e=>({...this.public(e),...(e.route_state?{routeState:e.route_state}:{})})),nextCursor:more?Buffer.from(JSON.stringify({kind,parentId,q,id:last.id,label:last.label})).toString('base64url'):null,complete:!more,coverage,emptyConfirmed:page.length===0&&coverage==='empty'};
  }
  async legacy(ref){if(!ref||['department','cityId','streetId','house'].some(k=>typeof ref[k]!=='string'||!ref[k]||ref[k].length>120))throw apiError(400,'invalid_legacy');
   const r=(await this.db.query("select entity_id from svitlo_vps.catalog_aliases where operator_id='ua-cherkasy' and kind='address' and provider_key=$1::jsonb::text",[JSON.stringify([ref.department,ref.cityId,ref.streetId,ref.house])])).rows[0];
-  return r?{state:'resolved',address:this.public(await this.entity(r.entity_id))}:{state:'needs_confirmation',address:null};
+  if(!r)return {state:'needs_confirmation',address:null};
+  try{return {state:'resolved',address:this.public(await this.entity(r.entity_id))};}catch(e){if(e.code==='address_requires_reselection')return {state:'needs_confirmation',reason:e.code,address:null};throw e;}
+ }
+ async validateLegacy(ref){if(!ref)return;
+  const r=await this.db.query("select entity_id from svitlo_vps.catalog_aliases where operator_id='ua-cherkasy' and kind='street' and provider_key=$1::jsonb::text",[JSON.stringify([ref.department,ref.cityId,ref.streetId])]);
+  if(r.rows[0])await this.entity(r.rows[0].entity_id);
+  if(ref.street&&(await this.db.query("select svitlo_vps.catalog_service_label('street',$1) blocked",[ref.street])).rows[0].blocked)throw apiError(409,'address_requires_reselection','Потрібно повторно обрати вулицю');
  }
  async lines(addressId,result){
   let checkedAt=result.checkedAt||Date.now();
