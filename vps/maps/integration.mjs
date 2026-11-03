@@ -5,6 +5,7 @@ import {randomUUID,randomBytes} from 'node:crypto';
 import {runtime} from '../runtime.js';
 import {ownerContext} from '../db.js';
 import {SensorAccess,tokenHash} from '../sensors/service.js';
+import {SensorIngest} from '../sensors/ingest.js';
 import {validProfile} from '../../app/lib/cache-data.js';
 import {publicProfile} from '../../server/service.js';
 const database=process.env.PGDATABASE;
@@ -45,6 +46,15 @@ try{
   const invitation=await command(a,()=>sensor.handle(a,{schemaVersion:1,action:'invite_create',requestId:randomUUID(),...ref}));
   const accepted=await command(b,()=>sensor.handle(b,{schemaVersion:1,action:'invite_accept',requestId:randomUUID(),inviteToken:invitation.invitation.inviteToken,profileId:pb.id}));assert.equal(accepted.sensor.measurementPointId,first.sensor.measurementPointId);
   const list=await command(a,()=>sensor.handle(a,{schemaVersion:1,action:'list'}));assert.equal(list.sensors[0].readerProfileId,pa.id);
+  const token='st_'+randomBytes(32).toString('base64url'),key=(await admin.query('select svitlo_sensors.admin_ingest_credential($1,$2,$3) result',[ref.sensorId,ref.bindingEpoch,tokenHash(token)])).rows[0].result;
+  await new SensorIngest(rt.bridge).handle('Bearer '+token,{schemaVersion:1,...ref,streamId:key.streamId,eventId:randomUUID(),sequence:1,eventType:'sample',powerState:'off',observedAt:new Date().toISOString(),clockQuality:'synchronized'});
+  const fresh=await command(b,()=>sensor.handle(b,{schemaVersion:1,action:'signal',...ref}));assert.equal(fresh.signal.powerState,'off');assert.equal(fresh.signal.isTest,true);
+  assert.equal((await command(a,()=>rt.db.profiles(a)))[0].snapshot.queue,null);
+ });
+ await check('concurrent different houses allocate one new map street without collision',async()=>{
+  const local={...location,streetId:'STRQARACE'+randomUUID().replaceAll('-','').toUpperCase()};
+  const results=await Promise.all(['901','902'].map(house=>command(e,()=>rt.service.handle(e,{action:'save',confirmed:true,address:{mapCandidateToken:rt.maps.token(e,{cityId:city,street:'Флорештська',house},local)}}))));
+  assert.equal(results[0].profile.address.streetId,results[1].profile.address.streetId);assert.notEqual(results[0].profile.address.canonicalAddressId,results[1].profile.address.canonicalAddressId);
  });
  await check('per-owner map budgets enforce six lookups and no source call on seventh',async()=>{for(let i=0;i<6;i++)await search(c);const before=calls;await assert.rejects(()=>search(c),x=>x.status===429);assert.equal(calls,before);});
  await check('profile maximum ten and duplicate handling remain atomic for map-only addresses',async()=>{
