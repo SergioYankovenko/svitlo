@@ -1,6 +1,8 @@
 # BE-06 · Plan233 · test sensor ingest and current signal v1
 
-Private VPS staging, additive migration1006. Real hardware/firmware has **not** been enrolled or tested. Android/PWA/prototype/production are unchanged. This implements receipt handling and a current point signal, not day history, continuous coverage, forecast, billing, transfer or recovery. Existing `capabilities.sensors=false` is retained; `sensorAccess.signal/ingest` and `sensorIngest` describe this test-only phase.
+> Plan234 adds compatible protocol2 explicit coverage, an independent history journal and authenticated daily overview: [current history contract](HISTORY-CONTRACT.md). The protocol1 point-only and current-signal rules below remain in force. Interval history is now available for explicitly declared coverage; real firmware and prediction remain unimplemented.
+
+Private VPS staging, baseline migration1006 plus history1007. Real hardware/firmware has **not** been enrolled or tested. Android/PWA/prototype/production are unchanged. This document describes protocol1 receipt handling/current point signal; protocol2/history/overview are specified separately above. Forecast, billing, transfer and recovery remain pending. Existing `capabilities.sensors=false` is retained; additive capabilities describe only implemented test features.
 
 ## Producer transport and credential
 

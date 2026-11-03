@@ -1,5 +1,7 @@
 # Private VPS runtime, Plan228
 
+> Plan234 adds compatible explicit interval evidence and authenticated daily history/coverage gaps/overview: [protocol and bounds](sensors/HISTORY-CONTRACT.md). Legacy points do not create intervals; future/unknown/conflict remain explicit. No real firmware, prediction or client/production change.
+
 > Plan233 adds private test-device ingestion, independent epoch/stream credentials and current point signal with explicit unknown/stale semantics: [protocol, quotas and boundaries](sensors/INGEST-CONTRACT.md). No real firmware, interval history/forecast or client/production change. Existing access and universal catalog stay compatible.
 
 > Plan232 implements private test-only BE-06 identity, owner/viewer and invitation access: [contract and boundaries](sensors/CONTRACT.md). No hardware measurements/ingest/recovery/transfer or app change. BE-04/05 and the universal catalog remain compatible.
