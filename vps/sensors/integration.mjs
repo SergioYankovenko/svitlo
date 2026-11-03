@@ -19,7 +19,7 @@ try{
   for(const sql of ['select * from svitlo_sensors.devices','select * from svitlo_sensors.invitations',"select svitlo_sensors.admin_provision(repeat('a',64),null)","set role svitlo_sensor_owner"])
    await assert.rejects(()=>rt.p.query(sql),e=>e.code==='42501');
   const role=(await admin.query("select rolcanlogin,rolsuper,rolbypassrls from pg_roles where rolname='svitlo_sensor_owner'")).rows[0];assert.deepEqual(role,{rolcanlogin:false,rolsuper:false,rolbypassrls:false});
-  assert.equal((await admin.query("select count(*)::int n from pg_class t join pg_namespace n on n.oid=t.relnamespace where n.nspname='svitlo_sensors' and t.relkind='r' and relrowsecurity")).rows[0].n,13);
+  assert.equal((await admin.query("select count(*)::int n from pg_class t join pg_namespace n on n.oid=t.relnamespace where n.nspname='svitlo_sensors' and t.relkind='r' and relrowsecurity")).rows[0].n,15);
   const result=await ownerContext.run(a,()=>rt.bridge.query("select svitlo_sensors.command('claim',$1::jsonb) result",[JSON.stringify({requestId:randomUUID(),claimHash:'a'.repeat(64),profileId:pa,owner:a})]));assert.equal(result.rows[0].result.http,400);
  });
  await check('bootstrap proof expires and cannot be replaced with sensor ID or foreign profile',async()=>{

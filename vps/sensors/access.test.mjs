@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {randomUUID,randomBytes} from 'node:crypto';
 import {SensorAccess,validateSensor,tokenHash,sensorCapabilities} from './service.js';
 const req=(action,data={})=>({schemaVersion:1,action,...data});const token=prefix=>prefix+'_'+randomBytes(32).toString('base64url');
-test('sensor capability is test-only with current signal, without history/prediction/recovery',()=>{assert.equal(sensorCapabilities.foundationOnly,true);assert.equal(sensorCapabilities.testOnly,true);assert.equal(sensorCapabilities.ingest,true);assert.equal(sensorCapabilities.signal,true);for(const k of ['observations','prediction','transfer','recovery'])assert.equal(sensorCapabilities[k],false);});
+test('sensor capability is test-only with current signal, without history/prediction/recovery',()=>{assert.equal(sensorCapabilities.foundationOnly,true);assert.equal(sensorCapabilities.testOnly,true);assert.equal(sensorCapabilities.ingest,true);assert.equal(sensorCapabilities.signal,true);assert.equal(sensorCapabilities.observations,true);for(const k of ['prediction','transfer','recovery'])assert.equal(sensorCapabilities[k],false);});
 test('sensor packet allows exact actions, UUID/epoch and proof formats only',()=>{
  assert.deepEqual(validateSensor(req('list')),{action:'list',data:{}});
  for(const p of [req('claim',{requestId:randomUUID(),profileId:randomUUID(),claimToken:'DEMO-1'}),req('get',{sensorId:randomUUID(),bindingEpoch:0}),req('transfer'),req('list',{owner:'forged'}),req('invite_accept',{requestId:randomUUID(),profileId:randomUUID(),inviteToken:token('si'),role:'owner'})])assert.throws(()=>validateSensor(p),e=>e.status===400);
