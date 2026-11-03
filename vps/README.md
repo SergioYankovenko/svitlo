@@ -1,5 +1,8 @@
 # Private VPS runtime, Plan228
 
+> Plan235 is deployed privately as `phone-20261103-02`: [phone enrollment/one-scan owner QR, separate viewer and ingest credentials, producer3 batches,90-day explicit phone history and session renewal](sensors/PHONE-CONTRACT.md). Additive1009 preserves history1007 and map1008, including the maps05 UI. Both slots use the reviewed runtime. Native APK/UI, physical phone/HTTPS pilot and production remain separate gates.
+
+
 > Plan234 adds compatible explicit interval evidence and authenticated daily history/coverage gaps/overview: [protocol and bounds](sensors/HISTORY-CONTRACT.md). Legacy points do not create intervals; future/unknown/conflict remain explicit. No real firmware, prediction or client/production change.
 
 > Plan233 adds private test-device ingestion, independent epoch/stream credentials and current point signal with explicit unknown/stale semantics: [protocol, quotas and boundaries](sensors/INGEST-CONTRACT.md). No real firmware, interval history/forecast or client/production change. Existing access and universal catalog stay compatible.

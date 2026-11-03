@@ -1,5 +1,8 @@
 # BE-06 · Plan232 · sensor access foundation v1
 
+> **Current Plan235 extension:** [PHONE-CONTRACT.md](PHONE-CONTRACT.md) implements phone registration, owner QR/atomic transfer, explicit relocation, producer3/90-day phone history and sliding reader sessions on the same memberships/API. This supersedes the earlier transfer/recovery exclusions for enrolled phone/factory-test sources. The foundation behavior below still describes legacy test identities. Viewer QR remains an invitation, ingest proof never grants ownership. SQL1009 preserves history1007/map1008; private staging only.
+
+
 Private staging only. No app/prototype/production change. Plan233 adds test-device ingestion/current point signal; Plan234 adds [explicit observations/history/daily overview](HISTORY-CONTRACT.md). Real hardware provisioning/firmware, prediction, billing, transfer and recovery remain **not implemented**. All devices are explicitly test-only. Existing `capabilities.sensors=false` is preserved; additive capabilities describe implemented test features. No state is inferred from silence or an official plan.
 
 ## Identity and ownership

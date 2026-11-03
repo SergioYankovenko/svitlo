@@ -1,5 +1,8 @@
 # BE-06 · Plan233 · test sensor ingest and current signal v1
 
+> Plan235 adds [phone producer3 batches](PHONE-CONTRACT.md) to this same HTTP endpoint:≤50events/16KiB,5min sample cadence/15min freshness, explicit boot/monotonic coverage and90-day phone history. Legacy producer1/2 retains the2048-byte/180s/7-day contract below. Control, reader, owner QR and ingest credentials are independent.
+
+
 > Plan234 adds compatible protocol2 explicit coverage, an independent history journal and authenticated daily overview: [current history contract](HISTORY-CONTRACT.md). The protocol1 point-only and current-signal rules below remain in force. Interval history is now available for explicitly declared coverage; real firmware and prediction remain unimplemented.
 
 Private VPS staging, baseline migration1006 plus history1007. Real hardware/firmware has **not** been enrolled or tested. Android/PWA/prototype/production are unchanged. This document describes protocol1 receipt handling/current point signal; protocol2/history/overview are specified separately above. Forecast, billing, transfer and recovery remain pending. Existing `capabilities.sensors=false` is retained; additive capabilities describe only implemented test features.

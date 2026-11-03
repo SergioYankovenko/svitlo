@@ -1,5 +1,8 @@
 # BE-06 · Plan234 · explicit observations and daily overview v1
 
+> Plan235 adds [enrolled phone observations/90-day history](PHONE-CONTRACT.md) through the same authenticated `overview` action, preserving this legacy producer1/2 seven-day path. Phone producer3 uses explicit boot/monotonic evidence and does not feed heartbeat points into historical intervals. One current membership ACL covers both paths; owner transfer preserves the binding/point/history.
+
+
 Private test VPS only. Additive SQL1007; Android/PWA/prototype/production unchanged. [Identity/access](CONTRACT.md), [legacy producer/current signal](INGEST-CONTRACT.md). Real electrical measurement/firmware is not validated. No prediction model, billing, recovery, transfer or production cutover is implemented here.
 
 ## Evidence, not interpolation
