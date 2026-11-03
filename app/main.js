@@ -14,6 +14,7 @@ import { refreshFailure } from "./lib/schedule.js";
 import { enhancePickers } from "./lib/pickers.js";
 import {universalWizard} from './lib/universal-wizard.js';
 import {universalEnabled} from './api.js';
+import {mapSensorDialog} from './lib/map-sensor.js';
 import {
   summaryIcon,
   shareIcon,
@@ -169,6 +170,7 @@ function home(p, now, currentLabel) {
   if(!p&&lifecycle.phase!=='empty'&&lifecycle.phase!=='ready')return bootContent();
   if (!p)
     return `<section class="card empty"><div class="sun" aria-hidden="true">☀</div><h2>Знайте, коли буде світло</h2><p>Додайте адресу, щоб бачити ваш графік, погоду та зміни відключень.</p>${action("add", "Додати адресу", 'class="primary"')}${!configured() ? '<p class="install-note">Вебзастосунок підготовлено. Підключення сервера триває.</p>' : ""}</section>`;
+  if(p.address.mapOnly)return `${addressCard(p,state.profiles,state.addressOpen)}<section class="card"><h2>${p.address.mapLocation.precision==='house'?'Будинок знайдено на карті':'Розташування приблизне'}</h2><p>${p.address.mapLocation.precision==='street'?'Номер будинку збережено зі введення. ':''}Графік постачальника для цієї адреси поки недоступний.</p><p>До адреси можна прив’язати датчик для стану живлення незалежно від графіка.</p>${action('map-sensor','Датчик за адресою','class="primary"')}<p class="muted">Картографічні дані © Візіком.</p></section>`;
   const s = dayState(p.snapshot, state.date, now),
     notice = scheduleNotice(s,currentLabel),
     days = week(state.week),
@@ -356,6 +358,7 @@ async function runAction(action) {
   try {
     if (action === "retry") return startup(true);
     if (action === "add") return addressDialog();
+    if (action === 'map-sensor'&&profile()?.address.mapOnly)return mapSensorDialog({dialog,profile:profile(),currentOwner:()=>currentOwner(true),isCurrent:scope=>lifecycle.current(scope)});
     if (action === "manage") return manageDialog();
     if (action === "refresh") return refresh();
     if (action === "previous") return navigateWeek(-1);

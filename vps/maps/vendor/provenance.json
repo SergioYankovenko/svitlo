@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/goodnight000/api-anything",
+  "commit": "18772b45e8c99ce8e45067500f7e69a788ede14e",
+  "version": "0.3.2",
+  "license": "MIT (included in archive)",
+  "build": "npm ci --ignore-scripts; npm run build; npm pack --ignore-scripts",
+  "integrity": "sha512-DkxGu8Vp5YUx4AlNsu8gt0ThB7s18OlZ/5AcIYOf4dQuTS9QpfG/r6Hi6ivHBBmBAdcaBft4oNZkCa6MAmFzqg==",
+  "sourceUnmodified": true,
+  "reason": "The registry 0.3.2 predates the call-only host interface. This artifact pins the exact reviewed and tested Git commit with that interface."
+}

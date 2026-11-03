@@ -31,7 +31,7 @@ const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,origin);path=url.pathname;
     if(path==='/healthz')return json(res,200,{status:'ok',scope:'isolated-staging',release});
     if(path==='/readyz'){
-      const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1005_sensor_access.sql') as universal_ready from svitlo_vps.release_state where id");
+      const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1006_map_addresses.sql') as universal_ready from svitlo_vps.release_state where id");
       if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled'||!r.rows[0].universal_ready)throw Error('Schema or delivery mode mismatch');
       return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:'disabled',productionReady:false});
     }
@@ -69,6 +69,11 @@ const server=http.createServer(async(req,res)=>{
       if(path==='/api/v1/sensors'){
         if(url.search)throw problem(400,'sensor_query_not_allowed');
         const data=await body(req,4096);return json(res,200,await ownerContext.run(s.owner,()=>sensors.handle(s.owner,data)));
+      }
+      if(path==='/api/v1/map-search'){
+        if(url.search)throw problem(400,'query_not_allowed');
+        const data=await body(req,2048);validateRequest(path,data);rt.reader.checkVersion(data);
+        return json(res,200,await ownerContext.run(s.owner,()=>rt.maps.search(s.owner,data)));
       }
       const report=path==='/diagnostic-reports'||path==='/api/v1/diagnostic-reports';
       if(report){

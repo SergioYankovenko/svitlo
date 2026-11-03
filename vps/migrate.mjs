@@ -24,6 +24,7 @@ try{
   migrations.push(['1003_catalog_quality.sql',await readFile('vps/sql/catalog-quality.sql','utf8')]);
   migrations.push(['1004_private_telemetry.sql',await readFile('vps/sql/telemetry.sql','utf8')]);
   migrations.push(['1005_sensor_access.sql',await readFile('vps/sql/sensor-access.sql','utf8')]);
+  migrations.push(['1006_map_addresses.sql',await readFile('vps/sql/map-addresses.sql','utf8')]);
   for(const [name,sql] of migrations){
     const hash=createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex');
     const old=(await c.query('select sha256 from svitlo_vps.migrations where name=$1',[name])).rows[0];

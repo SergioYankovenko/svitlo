@@ -1,0 +1,63 @@
+{
+  "type": "Feature",
+  "id": "ADR3KIJY5CHR3S43BJ",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          29.986228,
+          48.801888
+        ],
+        [
+          29.986108,
+          48.801947
+        ],
+        [
+          29.986026,
+          48.801875
+        ],
+        [
+          29.986145,
+          48.801815
+        ],
+        [
+          29.986228,
+          48.801888
+        ]
+      ]
+    ]
+  },
+  "properties": {
+    "name": "8а",
+    "categories": "adr_address",
+    "country_code": "ua",
+    "country": "Україна",
+    "postal_code": "20001",
+    "street_id": "STR3KIJY5CHR",
+    "lang": "uk",
+    "street": "І. Богуна",
+    "street_type": "вул.",
+    "settlement_id": "STL1NYKCD",
+    "settlement": "Христинівка",
+    "settlement_type": "місто",
+    "copyright": "Map Data © 2026, «Visicom» SC",
+    "accuracy": 0,
+    "settlement_url": "https://api.visicom.ua/data-api/5.0/uk/feature/STL1NYKCD.json",
+    "street_url": "https://api.visicom.ua/data-api/5.0/uk/feature/STR3KIJY5CHR.json"
+  },
+  "bbox": [
+    29.986026,
+    48.801815,
+    29.986228,
+    48.801947
+  ],
+  "geo_centroid": {
+    "type": "Point",
+    "coordinates": [
+      29.986123,
+      48.801875
+    ]
+  },
+  "url": "https://api.visicom.ua/data-api/5.0/uk/feature/ADR3KIJY5CHR3S43BJ.json"
+}

@@ -1,0 +1,132 @@
+{
+  "name": "svitlo-visicom",
+  "baseUrl": "https://maps.visicom.ua",
+  "operations": [
+    {
+      "name": "searchAddress",
+      "description": "Public web-map search; may return a house, street, locality, or feature collection. Not an address validator.",
+      "request": {
+        "method": "GET",
+        "url": "https://maps.visicom.ua/uk/fts?q=%D0%A5%D1%80%D0%B8%D1%81%D1%82%D0%B8%D0%BD%D1%96%D0%B2%D0%BA%D0%B0+%D0%91%D0%BE%D0%B3%D1%83%D0%BD%D0%B0+8%D0%B0&c=30.346335,50.465593,12",
+        "headers": {
+          "referer": "https://maps.visicom.ua/c/30.346335,50.465593,12?lang=uk",
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+          "accept": "application/json,*/*",
+          "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"Google Chrome\";v=\"156\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Windows\""
+        }
+      },
+      "slots": [
+        {
+          "param": "query",
+          "at": [
+            "query:q"
+          ]
+        }
+      ],
+      "volatile": [],
+      "trigger": {
+        "url": "https://maps.visicom.ua/?lang=uk",
+        "steps": [
+          {
+            "action": "fill",
+            "selector": "input[placeholder=\"Шукати адреси, організації...\"]",
+            "value": "{query}"
+          },
+          {
+            "action": "press",
+            "selector": "input[placeholder=\"Шукати адреси, організації...\"]",
+            "value": "Enter"
+          },
+          {
+            "action": "wait",
+            "ms": 1800
+          }
+        ]
+      },
+      "match": {
+        "method": "GET",
+        "host": "maps.visicom.ua",
+        "path": "/uk/fts"
+      },
+      "response": {
+        "format": "json",
+        "contentType": "application/json;charset=UTF-8",
+        "extract": ""
+      },
+      "params": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": true,
+          "example": "Христинівка Богуна 8а"
+        }
+      ],
+      "readOnly": true,
+      "minTier": 1,
+      "learnedLoggedIn": false,
+      "learnedAt": "2026-11-03T17:09:04.432Z",
+      "checks": []
+    },
+    {
+      "name": "getFeature",
+      "description": "Fetch final feature details through the web map's own read endpoint.",
+      "request": {
+        "method": "GET",
+        "url": "https://maps.visicom.ua/proxy/uk/feature/ADR3KIJY5CHR3S43BJ",
+        "headers": {
+          "referer": "https://maps.visicom.ua/c/29.98505,48.80206,17/f/ADR3KIJY5CHR3S43BJ?lang=uk",
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+          "accept": "application/json,*/*",
+          "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"Google Chrome\";v=\"156\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Windows\""
+        }
+      },
+      "slots": [
+        {
+          "param": "featureId",
+          "at": [
+            "path:3"
+          ]
+        },
+        {
+          "param": "featureId",
+          "at": [
+            "header:referer"
+          ],
+          "template": "https://maps.visicom.ua/c/29.98505,48.80206,17/f/{featureId}?lang=uk"
+        }
+      ],
+      "volatile": [],
+      "trigger": {
+        "url": "https://maps.visicom.ua/c/29.98506,48.80206,17/f/{featureId}?lang=uk"
+      },
+      "match": {
+        "method": "GET",
+        "host": "maps.visicom.ua",
+        "path": "/proxy/uk/feature/*"
+      },
+      "response": {
+        "format": "json",
+        "contentType": "application/json;charset=UTF-8",
+        "extract": ""
+      },
+      "params": [
+        {
+          "name": "featureId",
+          "type": "string",
+          "required": true,
+          "example": "ADR3KIJY5CHR3S43BJ"
+        }
+      ],
+      "readOnly": true,
+      "minTier": 1,
+      "learnedLoggedIn": false,
+      "learnedAt": "2026-11-03T17:09:04.469Z",
+      "checks": []
+    }
+  ],
+  "description": "Pinned public Visicom web-map reads, learned 2026-11-03; HTTP-only runtime."
+}

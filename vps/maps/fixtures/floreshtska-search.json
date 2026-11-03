@@ -1,0 +1,35 @@
+{
+  "type": "Feature",
+  "id": "STR3KIJY5CHQ",
+  "properties": {
+    "name": "Флорештська",
+    "name_en": "Floreshtska",
+    "categories": "adr_street",
+    "country_code": "ua",
+    "country": "Україна",
+    "lang": "uk",
+    "settlement_id": "STL1NYKCD",
+    "type": "вул.",
+    "settlement": "Христинівка",
+    "settlement_type": "місто",
+    "settlement_class": "city",
+    "copyright": "Map Data © 2026, «Visicom» SC",
+    "dist_meters": 185707,
+    "relevance": 6.55000000000001,
+    "settlement_url": "https://api.visicom.ua/data-api/5.0/uk/feature/STL1NYKCD.json"
+  },
+  "bbox": [
+    29.970311,
+    48.809928,
+    29.972017,
+    48.813167
+  ],
+  "geo_centroid": {
+    "type": "Point",
+    "coordinates": [
+      29.97122,
+      48.811678
+    ]
+  },
+  "url": "https://api.visicom.ua/data-api/5.0/uk/feature/STR3KIJY5CHQ.json"
+}
