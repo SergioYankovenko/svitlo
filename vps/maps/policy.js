@@ -16,6 +16,7 @@ export function streetRelation(a,b,settlementId){
  const words=s=>s.toLocaleLowerCase('uk-UA').replace(/^(?:вулиця|вул\.?)\s*/u,'').trim().split(/[.\s]+/u).filter(Boolean);
  const x=words(a),y=words(b);
  if(x.length===2&&y.length===2&&x[1]===y[1]&&(x[0].length===1&&y[0].startsWith(x[0])||y[0].length===1&&x[0].startsWith(y[0])))return 'initial';
+ if(x.length===1&&y.length===2&&x[0]===y[1])return 'surname';
  return null;
 }
 export function features(data){
@@ -45,6 +46,7 @@ export function finalCandidate(data,candidate,input,city,now){
  if(data?.id!==candidate.featureId||p.country_code!=='ua'||p.settlement_id!==candidate.settlementId||normalName(p.settlement||'')!==normalName(city.name))throw mapError('map_unavailable');
  if(candidate.precision==='house'&&(p.categories!=='adr_address'||p.street_id!==candidate.streetId||typeof p.name!=='string'||normalHouse(p.name)!==normalHouse(input.house)))throw mapError('map_unavailable');
  if(candidate.precision==='street'&&p.categories!=='adr_street')throw mapError('map_unavailable');
+ if(!streetRelation(input.street,`${p.street_type??p.type??'вул.'} ${p.street??p.name}`,candidate.settlementId))throw mapError('map_unavailable');
  const xy=data.geo_centroid?.coordinates;
  if(!Array.isArray(xy)||xy.length!==2||!xy.every(Number.isFinite)||Math.abs(xy[0])>180||Math.abs(xy[1])>90)throw mapError('map_unavailable');
  return {...candidate,source:'visicom',city:city.name,checkedAt:now,longitude:xy[0],latitude:xy[1],url:`https://maps.visicom.ua/c/${xy[0]},${xy[1]},17/f/${candidate.featureId}?lang=uk`,

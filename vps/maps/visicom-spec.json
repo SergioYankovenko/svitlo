@@ -3,6 +3,38 @@
   "baseUrl": "https://maps.visicom.ua",
   "operations": [
     {
+      "name": "startSession",
+      "description": "Start an isolated signed-out visitor session using only cookies returned by the public map.",
+      "request": {
+        "method": "GET",
+        "url": "https://maps.visicom.ua/?lang=uk",
+        "headers": {
+          "accept": "text/html"
+        }
+      },
+      "slots": [],
+      "volatile": [],
+      "match": {
+        "method": "GET",
+        "host": "maps.visicom.ua",
+        "path": "/"
+      },
+      "response": {
+        "format": "html",
+        "html": {
+          "items": "title",
+          "fields": {}
+        }
+      },
+      "params": [],
+      "readOnly": true,
+      "minTier": 1,
+      "checks": [],
+      "trigger": {
+        "url": "https://maps.visicom.ua/?lang=uk"
+      }
+    },
+    {
       "name": "searchAddress",
       "description": "Public web-map search; may return a house, street, locality, or feature collection. Not an address validator.",
       "request": {

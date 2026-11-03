@@ -41,6 +41,7 @@ declare actor uuid:=auth.uid();city uuid;sid uuid;aid uuid;data jsonb;begin
  if not exists(select 1 from svitlo_vps.catalog where id=city and kind='city' and redirect_to is null and svitlo_vps.catalog_allowed(id)) then raise exception 'unknown city';end if;
  if svitlo_vps.catalog_service_label('street',address_data->>'street') then raise exception 'service street';end if;
  perform pg_advisory_xact_lock(hashtextextended('svitlo-profile-owner:'||actor::text,0));
+ perform pg_advisory_xact_lock(hashtextextended('map-street:'||street_key,0));
  perform pg_advisory_xact_lock(hashtextextended('map-address:'||address_key,0));
  select id into aid from svitlo_vps.catalog where metadata->>'origin'='user_map' and metadata->>'mapKey'='a:'||address_key;
  if not exists(select 1 from public.svitlo_profiles where owner=actor and address->>'canonicalAddressId'=aid::text) and (select count(*) from public.svitlo_profiles where owner=actor)>=10 then return '{"status":"limit"}';end if;
