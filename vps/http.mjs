@@ -25,7 +25,7 @@ const quotas=new Map();
 function budget(key,limit){const now=Date.now(),v=quotas.get(key);if(quotas.size>10000)for(const [k,x] of quotas)if(x.until<now)quotas.delete(k);
   if(v?.until>now)return ++v.count<=limit;quotas.set(key,{count:1,until:now+3600000});return true;}
 function json(res,status,data,reason){if(res.telemetryMeta)telemetry.reject({...res.telemetryMeta,status,reason});if(status===429&&!res.hasHeader('Retry-After'))res.setHeader('Retry-After','60');res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});res.end(JSON.stringify(data));}
-async function body(req,limit=16384){let size=0,parts=[];for await(const c of req){size+=c.length;if(size<=limit)parts.push(c);}if(size>limit)throw problem(413,'payload_too_large','size');try{const value=JSON.parse(Buffer.concat(parts).toString());if(!value||typeof value!=='object'||Array.isArray(value))throw Error();return value;}catch{throw problem(400,'invalid_json');}}
+async function body(req,limit=16384,legacyLimit=0){let size=0,parts=[];for await(const c of req){size+=c.length;if(size<=limit)parts.push(c);}if(size>limit)throw problem(413,'payload_too_large','size');let value;try{value=JSON.parse(Buffer.concat(parts).toString());}catch{if(legacyLimit&&size>legacyLimit)throw problem(413,'payload_too_large','size');throw problem(400,'invalid_json');}if(legacyLimit&&value?.schemaVersion!==3&&size>legacyLimit)throw problem(413,'payload_too_large','size');if(!value||typeof value!=='object'||Array.isArray(value))throw problem(400,'invalid_json');return value;}
 const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Robots-Tag','noindex, nofollow');res.setHeader('X-Content-Type-Options','nosniff');
   res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Cross-Origin-Resource-Policy','same-origin');
@@ -49,7 +49,7 @@ const server=http.createServer(async(req,res)=>{
       if(req.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json')return json(res,415,{error:'JSON required'});
       if(path.endsWith('/register')){if(!budget('device-register:'+req.socket.remoteAddress,30))throw problem(429,'phone_registration_limit','rate');return json(res,200,await phone.register(await body(req,1024)));}
       if(path.endsWith('/control'))return json(res,200,await phone.control(req.headers.authorization,await body(req,1024)));
-      const packet=await body(req,16384);if(packet.schemaVersion===3){const release=sensorIngest.admission.acquire();try{return json(res,200,await phone.batch(req.headers.authorization,packet));}finally{release();}}return json(res,200,await sensorIngest.handle(req.headers.authorization,packet));
+      const packet=await body(req,16384,2048);if(packet.schemaVersion===3){const release=sensorIngest.admission.acquire();try{return json(res,200,await phone.batch(req.headers.authorization,packet));}finally{release();}}return json(res,200,await sensorIngest.handle(req.headers.authorization,packet));
     }
     if(path.startsWith('/api')||path==='/diagnostic-reports'){
       const trace=telemetry.requestIds.issue();res.telemetryMeta={path:routeTag(path),correlationId:trace.id};res.setHeader('X-Svitlo-Request-ID',trace.token);
