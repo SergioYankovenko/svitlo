@@ -51,7 +51,7 @@ export async function universalWizard({dialog,currentOwner,isCurrent,save,onSave
   if(el('line'))el('line').onchange=()=>{resolved.selection={lineId:el('line').value||null,mode:'user_selected'};el('save').disabled=!el('line').value;};
   if(el('unit-check'))el('unit-check').onclick=async()=>{const gen=++generation;try{const next=await universalRequest('resolve',{addressId:r.address.id,unit:el('unit').value});if(active()&&gen===generation)preview(next);}catch(e){if(active())error.textContent=e.message;}};
  }
- for(const key of keys){state[key]={};el(key+'-query').oninput=()=>{clearAfter(key);el(key).value='';clearTimeout(state[key].timer);state[key].timer=setTimeout(()=>load(key),250);};el(key+'-more').onclick=()=>load(key,true);
+ for(const key of keys){state[key]={};el(key+'-query').oninput=()=>{controllers.get(key)?.abort();state[key]={...(state[key]||{}),token:Symbol()};clearAfter(key);el(key).value='';clearTimeout(state[key].timer);state[key].timer=setTimeout(()=>load(key),250);};el(key+'-more').onclick=()=>load(key,true);
   el(key).onchange=async()=>{clearAfter(key);if(!el(key).value)return;const i=keys.indexOf(key);if(i<2){el(keys[i+1]+'-query').disabled=false;return load(keys[i+1]);}
    const gen=++generation;error.textContent='';el('preview').textContent='Перевіряємо адресу…';try{const r=await universalRequest('resolve',{addressId:el('house').value});if(active()&&generation===gen)preview(r);}catch(e){if(active()&&generation===gen){el('preview').innerHTML='';error.textContent=e.message;}}
   };
