@@ -2,6 +2,7 @@ import config from "./config.js";
 import {appStorage} from './lib/storage.js';
 import {SessionController,RetryingLoader,bounded} from './lib/session.js';
 const loader=new RetryingLoader({load:async (attempt,signal)=>{
+  if(config.transport==='vps'){const {vpsClient}=await import('./lib/vps-auth.js');return vpsClient();}
   // A new URL is necessary: browsers cache failed module imports by URL.
   const url=new URL('./vendor/supabase.js'+(attempt?'?svitlo-retry='+attempt:''),import.meta.url);
   const {createClient}=await import(url.href);
@@ -28,8 +29,8 @@ export async function request(action, data = {}, {signal,owner}={}) {
     await ending;
     const session=owner?await sessionController.read():await sessionForRequest();
     if(owner&&session?.user.id!==owner)throw Object.assign(Error('Операція вже не актуальна'),{stale:true});
-    headers.apikey = config.publishableKey;
-    headers.Authorization = "Bearer " + session.access_token;
+    if(config.transport==='vps')headers['X-Svitlo-CSRF']=session.csrf_token;
+    else {headers.apikey=config.publishableKey;headers.Authorization='Bearer '+session.access_token;}
   }
   const controller=new AbortController(),abort=()=>controller.abort();
   const timer=setTimeout(abort,120000);
@@ -57,6 +58,6 @@ export async function post(url, options, fetcher = fetch) {
 export function forgetSession() {
   sessionController.forget();
   ending=ending.catch(()=>{}).then(async()=>{
-    if (!config.local && config.supabaseUrl)try{const c=await loader.get();await bounded(c.auth.signOut({scope:'local'}),4000);}catch{/* Local clearing remains immediate. */}
+    if (!config.local && (config.supabaseUrl||config.transport==='vps'))try{const c=await loader.get();await bounded(c.auth.signOut({scope:'local'}),4000);}catch{/* Local clearing remains immediate. */}
   });return ending;
 }

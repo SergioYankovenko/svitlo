@@ -1,0 +1,64 @@
+name: svitlo-stage
+x-runtime: &runtime
+  image: ${STAGE_IMAGE}
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs: ["/tmp:size=32m,mode=1777"]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 128
+  mem_limit: 384m
+  cpus: 0.75
+  networks: [backend,egress]
+  environment: &environment
+    PGDATABASE: svitlo_staging
+    RELEASE_ID: ${RELEASE_ID}
+    STAGE_ORIGIN: http://localhost:18765
+  secrets: &api-secrets [api_password,session_password,session_secret]
+  stop_grace_period: 135s
+  healthcheck:
+    test: [CMD,node,-e,"require('node:http').get({host:'127.0.0.1',port:8080,path:'/readyz',headers:{Host:'localhost:18765'}},r=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))}).on('error',()=>process.exit(1)).setTimeout(4000,function(){this.destroy()})"]
+    interval: 15s
+    timeout: 6s
+    retries: 3
+services:
+  api-a:
+    <<: *runtime
+    ports: [127.0.0.1:18766:8080]
+  api-b:
+    <<: *runtime
+    ports: [127.0.0.1:18767:8080]
+    profiles: [second-slot]
+  worker:
+    <<: *runtime
+    command: [node,--use-system-ca,vps/worker.mjs]
+    secrets: [worker_password,session_secret]
+    healthcheck: {disable: true}
+    mem_limit: 256m
+    cpus: 0.5
+  migrate:
+    <<: *runtime
+    profiles: [admin]
+    command: [node,vps/migrate.mjs]
+    secrets: [owner_password]
+    restart: "no"
+    healthcheck: {disable: true}
+  registry:
+    <<: *runtime
+    profiles: [scheduled]
+    command: [node,--use-system-ca,vps/registry.mjs]
+    secrets: [worker_password,session_secret]
+    restart: "no"
+    mem_limit: 512m
+    cpus: 0.75
+    healthcheck: {disable: true}
+networks:
+  backend: {external: true,name: svitlo_backend}
+  egress: {}
+secrets:
+  api_password: {file: /etc/svitlo/stage-secrets/api-password}
+  session_password: {file: /etc/svitlo/stage-secrets/session-password}
+  worker_password: {file: /etc/svitlo/stage-secrets/worker-password}
+  session_secret: {file: /etc/svitlo/stage-secrets/session-secret}
+  owner_password: {file: /etc/svitlo/secrets/postgres-owner-password}
