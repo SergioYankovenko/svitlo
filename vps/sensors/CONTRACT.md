@@ -1,6 +1,6 @@
 # BE-06 · Plan232 · sensor access foundation v1
 
-Private staging only. No app/prototype/production change. Plan233 adds test-device ingestion and current point signal: [producer protocol and freshness contract](INGEST-CONTRACT.md). Real hardware provisioning/firmware, interval history, prediction, billing, transfer and recovery remain **not implemented**. All devices are explicitly test-only. Existing `capabilities.sensors=false` is preserved; additive capabilities describe identity/access and test-only current signal. No state is inferred from silence or an official plan.
+Private staging only. No app/prototype/production change. Plan233 adds test-device ingestion/current point signal; Plan234 adds [explicit observations/history/daily overview](HISTORY-CONTRACT.md). Real hardware provisioning/firmware, prediction, billing, transfer and recovery remain **not implemented**. All devices are explicitly test-only. Existing `capabilities.sensors=false` is preserved; additive capabilities describe implemented test features. No state is inferred from silence or an official plan.
 
 ## Identity and ownership
 
@@ -19,6 +19,7 @@ Maximum10active sensor memberships per reader (owner+viewer); one sensor per sav
 | list | none | Own active memberships, at most10; unlinked entries retained |
 | get | sensorId,bindingEpoch | Current active member, identity DTO |
 | signal | sensorId,bindingEpoch | Current active member, current point/transport freshness; Plan233 contract |
+| overview | sensorId,bindingEpoch,date | Current active member, bounded Kyiv daily observations/gaps; Plan234 contract |
 | claim | requestId,profileId,claimToken | Valid one-time bootstrap + own eligible canonical profile; creates owner/point/epoch |
 | members | sensorId,bindingEpoch | Owner; active opaque membership IDs/roles/join time and pending invite metadata, no peer profiles/subjects/secrets |
 | invite_create | requestId,sensorId,bindingEpoch | Owner; viewer-only invitation, returns secret inviteToken |
