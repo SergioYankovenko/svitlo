@@ -15,7 +15,7 @@ x-runtime: &runtime
     PGDATABASE: svitlo_staging
     RELEASE_ID: ${RELEASE_ID}
     STAGE_ORIGIN: http://localhost:18765
-  secrets: &api-secrets [api_password,session_password,session_secret]
+  secrets: &api-secrets [api_password,session_password,session_secret,sensor_access_secret]
   stop_grace_period: 135s
   healthcheck:
     test: [CMD,node,-e,"require('node:http').get({host:'127.0.0.1',port:8080,path:'/readyz',headers:{Host:'localhost:18765'}},r=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))}).on('error',()=>process.exit(1)).setTimeout(4000,function(){this.destroy()})"]
@@ -62,3 +62,4 @@ secrets:
   worker_password: {file: /etc/svitlo/stage-secrets/worker-password}
   session_secret: {file: /etc/svitlo/stage-secrets/session-secret}
   owner_password: {file: /etc/svitlo/secrets/postgres-owner-password}
+  sensor_access_secret: {file: /etc/svitlo/stage-secrets/sensor-access-secret}

@@ -1,5 +1,5 @@
 import {RequestIds,diagnosticPacket,problem} from './validation.js';
-const allowed={operation:['catalog_lookup','profile_write','diagnostic_report'],field:['city','street','house','name','request'],reason:['schema','size','control','operation','owner','rate'],confidence:['schema_violation','heuristic']};
+const allowed={operation:['catalog_lookup','profile_write','diagnostic_report','sensor_access'],field:['city','street','house','name','request'],reason:['schema','size','control','operation','owner','rate'],confidence:['schema_violation','heuristic']};
 export class SecuritySink {
  constructor(write,{limit=32}={}){Object.assign(this,{write,limit});this.queue=[];this.running=null;this.failed=0;this.dropped=0;}
  emit(input){
@@ -24,7 +24,7 @@ export class Telemetry {
  }
  reject({path,status,reason,correlationId,field='request'}){
   if(reason==='upstream'||![400,401,403,405,413,415,429].includes(status))return;
-  const operation=path?.includes('diagnostic-reports')?'diagnostic_report':path==='/api'?'profile_write':'catalog_lookup';
+  const operation=path==='/api/v1/sensors'?'sensor_access':path?.includes('diagnostic-reports')?'diagnostic_report':path==='/api'?'profile_write':'catalog_lookup';
   this.sink.emit({operation,field,reason:reason||({401:'owner',403:'owner',405:'operation',413:'size',429:'rate'}[status]||'schema'),confidence:'schema_violation',correlationId});
  }
  async forget(){await this.db.query('select svitlo_telemetry.forget_reports()');}

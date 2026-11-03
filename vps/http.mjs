@@ -7,8 +7,12 @@ import {Sessions} from './session.js';
 import {Telemetry} from './telemetry/service.js';
 import {problem,validateRequest,routeTag} from './telemetry/validation.js';
 import {SourceError} from '../server/source-errors.js';
+import {SensorAccess,sensorCapabilities} from './sensors/service.js';
 const rt=await runtime(),sessionPool=pool('session',2),sessions=new Sessions(sessionPool,rt.secret);
 const telemetry=new Telemetry(rt.bridge,rt.secret);
+const sensorSecret=(await readFile('/run/secrets/sensor_access_secret','utf8')).trim();
+if(!/^[a-f0-9]{64}$/.test(sensorSecret))throw Error('Sensor access secret unavailable');
+const sensors=new SensorAccess({bridge:rt.bridge,db:rt.db,secret:sensorSecret});
 const root=resolve('dist/app'),origin=process.env.STAGE_ORIGIN||'http://localhost:18765';
 const release=process.env.RELEASE_ID||'development';
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2','.ico':'image/x-icon'};
@@ -27,7 +31,7 @@ const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,origin);path=url.pathname;
     if(path==='/healthz')return json(res,200,{status:'ok',scope:'isolated-staging',release});
     if(path==='/readyz'){
-      const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1004_private_telemetry.sql') as universal_ready from svitlo_vps.release_state where id");
+      const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1005_sensor_access.sql') as universal_ready from svitlo_vps.release_state where id");
       if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled'||!r.rows[0].universal_ready)throw Error('Schema or delivery mode mismatch');
       return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:'disabled',productionReady:false});
     }
@@ -52,7 +56,7 @@ const server=http.createServer(async(req,res)=>{
         }
         return json(res,405,{error:'Method not allowed'});
       }
-      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.reader.capabilities(),diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
+      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.reader.capabilities(),sensorAccess:sensorCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
       if(publicReader&&req.method==='POST'){
         if(path.endsWith('/capabilities'))return json(res,405,{error:'Method not allowed'});
         const data=await body(req);validateRequest(path,data);rt.reader.checkVersion(data);
@@ -62,6 +66,10 @@ const server=http.createServer(async(req,res)=>{
       if(!s)return json(res,401,{error:'Потрібна сесія'});
       if(req.method!=='POST')return json(res,405,{error:'Method not allowed'});
       if(!sessions.validCsrf(req,s))return json(res,403,{error:'CSRF rejected'});
+      if(path==='/api/v1/sensors'){
+        if(url.search)throw problem(400,'sensor_query_not_allowed');
+        const data=await body(req,4096);return json(res,200,await ownerContext.run(s.owner,()=>sensors.handle(s.owner,data)));
+      }
       const report=path==='/diagnostic-reports'||path==='/api/v1/diagnostic-reports';
       if(report){
         if(url.search)throw problem(400,'query_not_allowed');

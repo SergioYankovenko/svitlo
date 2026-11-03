@@ -1,5 +1,7 @@
 # Private VPS runtime, Plan228
 
+> Plan232 implements private test-only BE-06 identity, owner/viewer and invitation access: [contract and boundaries](sensors/CONTRACT.md). No hardware measurements/ingest/recovery/transfer or app change. BE-04/05 and the universal catalog remain compatible.
+
 > Plan231 adds private BE-04 diagnostic receipts and BE-05 metadata-only input logging: [wire contract, retention and SSH administration](telemetry/CONTRACT.md). No client collector/UI, public admin endpoint or production change. Existing Plan229/230 universal catalog and frontend shell are preserved.
 
 > Plan230 adds catalog quality policy, route coverage and reviewed city linking (additive migration1003) to the same private universal API. See [wire behavior](universal/CONTRACT.md); frontend shell and production remain unchanged. Runtime catalog roles remain readonly; the reviewed importer owns identity/coverage mutations.
