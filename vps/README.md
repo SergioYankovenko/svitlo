@@ -21,6 +21,8 @@ Runtime: Node24, pinned base image, PostgreSQL17, own HttpOnly anonymous session
 
 Errors are JSON/no-store:400invalidinput,401nosession,403Origin/CSRF,404notfound,409disabledpush,421wrongHost,429rate,503temporarilyunavailable. JSON body max16KiB. Host is `localhost:18765`, secure browser context via loopback, encrypted SSH network hop. This is not an internet HTTP deployment. For future HTTPS use Secure cookies and reviewed origins/proxy policy before exposing it.
 
+The preview quota uses the immediate socket peer, shared behind its private proxy. Before a public deployment, implement and test trusted-proxy client-IP handling and public session-abuse limits; never trust arbitrary forwarded headers. These private limits are not a production capacity configuration.
+
 ## Schema and scheduling
 
 `migrate.mjs` locks migration execution, records names/hashes and rejects changed applied SQL. The original Supabase migrations are reused with a plain-PG auth/role shim. The conditional maintenance migration is cut **before** `svitlo_internal.dispatch()`: production cron/net/Vault HTTP dispatch is intentionally excluded. Migration-only owner credentials are mounted only for the admin command. Runtime API cannot bypass RLS; the worker is a separate restricted LOGIN/BYPASSRLS role for this staging database.

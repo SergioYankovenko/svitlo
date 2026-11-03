@@ -4,3 +4,4 @@ server/operator-certificates.js -diff
 
 # App-shell integrity hashes require identical checkout and deployed bytes.
 app/** text=auto eol=lf
+vps/** text=auto eol=lf
