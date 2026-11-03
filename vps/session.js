@@ -8,7 +8,9 @@ export class Sessions {
   cookie(token,maxAge=2592000){return `svitlo_stage=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${this.secure?'; Secure':''}`;}
   async read(req){const token=this.token(req);if(!token)return null;
     const r=await this.pool.query('select owner,expires_at from svitlo_vps.sessions where token_hash=$1 and expires_at>now()',[sha(token)]);
-    return r.rows[0]?{owner:r.rows[0].owner,expiresAt:r.rows[0].expires_at.getTime(),csrf:this.csrf(token),token}:null;
+    let row=r.rows[0];if(!row)return null;let renewed=false;
+    if(row.expires_at.getTime()-Date.now()<7*86400000){const next=await this.pool.query("update svitlo_vps.sessions set expires_at=now()+interval '30 days' where token_hash=$1 and expires_at>now() returning owner,expires_at",[sha(token)]);if(!next.rows[0])return null;row=next.rows[0];renewed=true;}
+    return {owner:row.owner,expiresAt:row.expires_at.getTime(),csrf:this.csrf(token),token,...(renewed?{renewed:true}:{})};
   }
   public(s){return {user:{id:s.owner},access_token:s.csrf,csrf_token:s.csrf,expires_at:Math.floor(s.expiresAt/1000)};}
   async create(){const token=randomBytes(32).toString('hex'),owner=randomUUID(),c=await this.pool.connect();
