@@ -12,7 +12,7 @@ export class PhoneSimulator{
  }
  restartMonitoring(){this.monitorId=randomUUID();this.previous=null;}
  async flush(key,send){
-  while(this.queue.length){const events=[];for(const e of this.queue){const next={schemaVersion:3,sensorId:key.sensorId,bindingEpoch:key.bindingEpoch,streamId:key.streamId,events:[...events,e]};if(next.events.length>50||Buffer.byteLength(JSON.stringify(next))>16384)break;events.push(e);}
+  while(this.queue.length){const events=[];for(const e of [this.queue.at(-1),...this.queue.slice(0,-1)]){const next={schemaVersion:3,sensorId:key.sensorId,bindingEpoch:key.bindingEpoch,streamId:key.streamId,events:[...events,e]};if(next.events.length>50||Buffer.byteLength(JSON.stringify(next))>16384)break;events.push(e);}
    if(!events.length)throw Error('Event exceeds packet limit');const packet=validatePhoneBatch({schemaVersion:3,sensorId:key.sensorId,bindingEpoch:key.bindingEpoch,streamId:key.streamId,events});const result=await send(packet);
    if(result.schemaVersion!==3||result.sensorId!==key.sensorId||result.bindingEpoch!==key.bindingEpoch||!Array.isArray(result.acknowledged))throw Error('Invalid acknowledgment');
    const sent=new Map(events.map(e=>[e.eventId,e.sequence])),acked=new Set();for(const ack of result.acknowledged){if(sent.get(ack.eventId)!==ack.sequence)throw Error('Unsolicited acknowledgment');acked.add(ack.eventId);}
