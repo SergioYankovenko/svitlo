@@ -4,7 +4,7 @@ create schema svitlo_maps authorization svitlo_map_owner;
 revoke all on schema svitlo_maps from public;
 grant usage on schema svitlo_maps to svitlo_stage_api;
 grant usage on schema auth,public,svitlo_vps to svitlo_map_owner;
-grant execute on function auth.uid() to svitlo_map_owner;
+grant execute on function auth.uid(),svitlo_vps.catalog_allowed(uuid),svitlo_vps.catalog_service_label(text,text) to svitlo_map_owner;
 grant select,insert,update on svitlo_vps.catalog to svitlo_map_owner;
 grant select,insert,update,delete on svitlo_vps.catalog_exclusions to svitlo_map_owner;
 grant select on svitlo_vps.operators,svitlo_vps.address_lines,svitlo_vps.city_routes,public.svitlo_profiles to svitlo_map_owner;

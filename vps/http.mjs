@@ -8,11 +8,13 @@ import {Telemetry} from './telemetry/service.js';
 import {problem,validateRequest,routeTag} from './telemetry/validation.js';
 import {SourceError} from '../server/source-errors.js';
 import {SensorAccess,sensorCapabilities} from './sensors/service.js';
+import {SensorIngest,ingestCapabilities} from './sensors/ingest.js';
 const rt=await runtime(),sessionPool=pool('session',2),sessions=new Sessions(sessionPool,rt.secret);
 const telemetry=new Telemetry(rt.bridge,rt.secret);
 const sensorSecret=(await readFile('/run/secrets/sensor_access_secret','utf8')).trim();
 if(!/^[a-f0-9]{64}$/.test(sensorSecret))throw Error('Sensor access secret unavailable');
 const sensors=new SensorAccess({bridge:rt.bridge,db:rt.db,secret:sensorSecret});
+const sensorIngest=new SensorIngest(rt.bridge);
 const root=resolve('dist/app'),origin=process.env.STAGE_ORIGIN||'http://localhost:18765';
 const release=process.env.RELEASE_ID||'development';
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2','.ico':'image/x-icon'};
@@ -31,9 +33,17 @@ const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,origin);path=url.pathname;
     if(path==='/healthz')return json(res,200,{status:'ok',scope:'isolated-staging',release});
     if(path==='/readyz'){
-      const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1006_map_addresses.sql') as universal_ready from svitlo_vps.release_state where id");
+      const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1008_map_addresses.sql') and exists(select 1 from svitlo_vps.migrations where name='1006_sensor_ingest.sql') as universal_ready from svitlo_vps.release_state where id");
       if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled'||!r.rows[0].universal_ready)throw Error('Schema or delivery mode mismatch');
       return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:'disabled',productionReady:false});
+    }
+    if(path==='/api/v1/sensor-events'){
+      const trace=telemetry.requestIds.issue();res.telemetryMeta={path:routeTag(path),correlationId:trace.id};res.setHeader('X-Svitlo-Request-ID',trace.token);
+      if(url.search)throw problem(400,'sensor_query_not_allowed');
+      if(req.method!=='POST')return json(res,405,{error:'Method not allowed'});
+      if(req.headers.origin!==undefined||req.headers.cookie!==undefined)throw problem(403,'device_transport_required','owner');
+      if(req.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json')return json(res,415,{error:'JSON required'});
+      return json(res,200,await sensorIngest.handle(req.headers.authorization,await body(req,2048)));
     }
     if(path.startsWith('/api')||path==='/diagnostic-reports'){
       const trace=telemetry.requestIds.issue();res.telemetryMeta={path:routeTag(path),correlationId:trace.id};res.setHeader('X-Svitlo-Request-ID',trace.token);
@@ -56,7 +66,7 @@ const server=http.createServer(async(req,res)=>{
         }
         return json(res,405,{error:'Method not allowed'});
       }
-      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.reader.capabilities(),sensorAccess:sensorCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
+      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.reader.capabilities(),sensorAccess:sensorCapabilities,sensorIngest:ingestCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
       if(publicReader&&req.method==='POST'){
         if(path.endsWith('/capabilities'))return json(res,405,{error:'Method not allowed'});
         const data=await body(req);validateRequest(path,data);rt.reader.checkVersion(data);

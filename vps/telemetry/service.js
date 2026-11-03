@@ -24,7 +24,7 @@ export class Telemetry {
  }
  reject({path,status,reason,correlationId,field='request'}){
   if(reason==='upstream'||![400,401,403,405,413,415,429].includes(status))return;
-  const operation=path==='/api/v1/sensors'?'sensor_access':path?.includes('diagnostic-reports')?'diagnostic_report':path==='/api'?'profile_write':'catalog_lookup';
+  const operation=['/api/v1/sensors','/api/v1/sensor-events'].includes(path)?'sensor_access':path?.includes('diagnostic-reports')?'diagnostic_report':path==='/api'?'profile_write':'catalog_lookup';
   this.sink.emit({operation,field,reason:reason||({401:'owner',403:'owner',405:'operation',413:'size',429:'rate'}[status]||'schema'),confidence:'schema_violation',correlationId});
  }
  async forget(){await this.db.query('select svitlo_telemetry.forget_reports()');}

@@ -40,7 +40,7 @@ export function diagnosticPacket(input,{requestIds,owner,consent}={}){
 function keys(value,allowed){if(!object(value)||Object.keys(value).some(k=>!allowed.includes(k)))throw problem(400,'unknown_fields');}
 const publicKeys={search:['schemaVersion','kind','parentId','q','cursor','limit'],resolve:['schemaVersion','addressId','lineId','unit'],'legacy-resolve':['schemaVersion','legacy'],snapshots:['schemaVersion','fromDate','toDate','items']};
 const profileKeys={bootstrap:[],sync:['id','reason','subscription'],resolve_queue:['id','address'],dictionary:['kind','parent'],preview:['address'],save:['confirmed','address','name'],refresh:['id'],weather:['id'],delete:['id'],preferences:['id','preferences'],subscribe:['id','subscription'],unsubscribe:['endpoint'],erase:[]};
-export const knownRoutes=new Set(['/api','/api/session','/api/v1/catalog','/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/map-search','/api/v1/sensors','/api/v1/diagnostic-reports','/diagnostic-reports']);
+export const knownRoutes=new Set(['/api','/api/session','/api/v1/catalog','/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/map-search','/api/v1/sensors','/api/v1/sensor-events','/api/v1/diagnostic-reports','/diagnostic-reports']);
 export const routeTag=path=>knownRoutes.has(path)?path:'unknown_api';
 export function validateRequest(route,p){
  const op=route.split('/').at(-1);
