@@ -1,5 +1,7 @@
 # Private VPS runtime, Plan228
 
+> Plan233 adds private test-device ingestion, independent epoch/stream credentials and current point signal with explicit unknown/stale semantics: [protocol, quotas and boundaries](sensors/INGEST-CONTRACT.md). No real firmware, interval history/forecast or client/production change. Existing access and universal catalog stay compatible.
+
 > Plan232 implements private test-only BE-06 identity, owner/viewer and invitation access: [contract and boundaries](sensors/CONTRACT.md). No hardware measurements/ingest/recovery/transfer or app change. BE-04/05 and the universal catalog remain compatible.
 
 > Plan231 adds private BE-04 diagnostic receipts and BE-05 metadata-only input logging: [wire contract, retention and SSH administration](telemetry/CONTRACT.md). No client collector/UI, public admin endpoint or production change. Existing Plan229/230 universal catalog and frontend shell are preserved.
