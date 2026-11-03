@@ -2,13 +2,14 @@ import {Service,publicProfile,DEFAULT_PREFS,ApiError} from '../../server/service
 import {randomUUID} from 'node:crypto';
 import {universalEnvelope,selectedLine} from '../../app/lib/universal-contract.js';
 import {seal} from './normalize.js';
+import {mapOnlySnapshot} from '../maps/service.js';
 export function repairSnapshot(old,now){
  const value=old?.universal;
  const universal=value?seal({...value,supportState:'degraded',freshUntil:Math.min(value.freshUntil,now-1),refreshAfter:now+3600000,resolution:{...value.resolution,state:'unknown',complete:false}}):null;
  return {...old,...(universal?universalEnvelope(universal,old.selectedLineId):{}),feedFailed:true,failures:['address_requires_reselection'],addressRepair:{required:true,code:'address_requires_reselection'}};
 }
 export class UniversalService extends Service {
- constructor(options,reader){super(options);this.reader=reader;
+ constructor(options,reader){super(options);this.reader=reader;this.maps=options.maps;
   const oldWeather=this.sync.weatherFor.bind(this.sync);this.sync.weatherFor=a=>a.canonicalAddressId&&a.operatorId!=='ua-cherkasy'?Promise.reject(Error('weather_not_supported')):oldWeather(a);
  }
  async canonicalAddress(body){const r=await this.reader.resolve(body),a=r.address;
@@ -21,6 +22,8 @@ export class UniversalService extends Service {
  }
  async resolveAddress(input){await this.reader.catalog.validateLegacy(input);const a=await super.resolveAddress(input);await this.reader.catalog.validateLegacy(a);return a;}
  async refresh(profile,...args){const now=this.now();let s;
+  if(profile.address.mapOnly){const result=await this.db.commitProfile({...profile,snapshot:mapOnlySnapshot(profile.address,profile.snapshot),last_checked:now,next_check:now+86400000},profile.snapshot_revision||0);
+   if(result.status==='missing')throw new ApiError(404,'Адресу не знайдено');return result.profile;}
   try{
    if(!profile.address.canonicalAddressId){await this.reader.catalog.validateLegacy(profile.address);return await super.refresh(profile,...args);}
    s=await this.reader.snapshot(profile.address.canonicalAddressId,this.reader.range({}));
@@ -34,6 +37,13 @@ export class UniversalService extends Service {
   if(result.status==='missing')throw new ApiError(404,'Адресу не знайдено');return result.profile;
  }
  async handle(owner,body){
+  if(body.action==='save'&&body.address?.mapCandidateToken){
+   if(!owner)throw new ApiError(401,'Потрібне підключення');if(body.confirmed!==true)throw new ApiError(400,'Підтвердьте адресу');
+   if(!await this.db.rate(owner,40,60000))throw new ApiError(429,'Забагато запитів');
+   const created=await this.maps.save(owner,body.address.mapCandidateToken,body.name,DEFAULT_PREFS);
+   if(created.status==='limit')throw new ApiError(409,'Можна зберегти до 10 адрес');
+   const p=await this.refresh(created.profile);return {profile:publicProfile(p),created:created.created};
+  }
   if(owner&&['save','preview','resolve_queue'].includes(body.action)&&body.address&&!body.address.canonicalAddressId)await this.reader.catalog.validateLegacy(body.address);
   if(body.action==='save'&&body.address?.canonicalAddressId){
    if(!owner)throw new ApiError(401,'Потрібне підключення');if(body.confirmed!==true)throw new ApiError(400,'Підтвердьте адресу');

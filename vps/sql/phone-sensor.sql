@@ -1,4 +1,6 @@
--- Plan235 / additive1008. Phone protocol3; Plan234 reserves1007 for legacy history.
+-- Plan235 / additive1009. Phone protocol3; Plan234 reserves1007 for legacy history.
+alter table svitlo_sensors.bindings add column address_snapshot jsonb;
+update svitlo_sensors.bindings b set address_snapshot=(select p.address from svitlo_sensors.memberships m join svitlo_sensors.reader_links l using(member_id) join public.svitlo_profiles p on p.id=l.profile_id where m.binding_id=b.binding_id and m.role='owner' and m.revoked_at is null limit 1);
 create table svitlo_sensors.phone_devices(
  sensor_id uuid primary key references svitlo_sensors.devices on delete cascade,
  kind text not null check(kind in ('phone','factory')),registration_hash text unique,control_hash text not null unique,
@@ -125,14 +127,14 @@ declare actor uuid:=auth.uid();d svitlo_sensors.devices;f svitlo_sensors.phone_d
      if (select count(*) from public.svitlo_profiles where owner=actor)>=10 then return jsonb_build_object('http',409,'code','profile_limit');end if;
      select address into address_data from public.svitlo_profiles where id=(select profile_id from svitlo_sensors.reader_links l join svitlo_sensors.memberships sm using(member_id) where sm.binding_id=b.binding_id and sm.subject=actor limit 1);
      -- Other owners' profiles are intentionally invisible. Canonical identity suffices for a private universal profile.
-     address_data:=jsonb_build_object('canonicalAddressId',address_id,'lineId',line_id,'operatorId',(select operator_id from svitlo_vps.catalog where id=address_id),'department','universal:'||(select operator_id from svitlo_vps.catalog where id=address_id),'label',(select label from svitlo_vps.catalog where id=address_id));
+     address_data:=coalesce(b.address_snapshot,'{}'::jsonb)||jsonb_build_object('canonicalAddressId',address_id,'lineId',line_id,'operatorId',(select operator_id from svitlo_vps.catalog where id=address_id),'department','universal:'||(select operator_id from svitlo_vps.catalog where id=address_id),'label',coalesce(b.address_snapshot->>'label',(select label from svitlo_vps.catalog where id=address_id)));
      insert into public.svitlo_profiles(id,owner,address,name) values(gen_random_uuid(),actor,jsonb_strip_nulls(address_data),'Датчик') returning * into profile;
     end if;
    end if;
    if exists(select 1 from svitlo_sensors.reader_links l join svitlo_sensors.memberships sm using(member_id) where profile_id=profile.id and (b.binding_id is null or sm.binding_id<>b.binding_id)) then return jsonb_build_object('http',409,'code','profile_already_has_sensor');end if;
    if b.binding_id is null then
     update svitlo_sensors.devices set current_epoch=current_epoch+1,status='bound' where sensor_id=d.sensor_id returning * into d;
-    insert into svitlo_sensors.bindings(sensor_id,epoch,owner_subject,address_id,line_id) values(d.sensor_id,d.current_epoch,actor,address_id,line_id) returning * into b;outcome:='connected';
+    insert into svitlo_sensors.bindings(sensor_id,epoch,owner_subject,address_id,line_id,address_snapshot) values(d.sensor_id,d.current_epoch,actor,address_id,line_id,profile.address) returning * into b;outcome:='connected';
    else
     delete from svitlo_sensors.reader_links where member_id in(select member_id from svitlo_sensors.memberships where binding_id=b.binding_id);
     update svitlo_sensors.memberships set revoked_at=coalesce(revoked_at,stamp) where binding_id=b.binding_id;
@@ -180,7 +182,7 @@ declare actor uuid:=auth.uid();d svitlo_sensors.devices;b svitlo_sensors.binding
  update svitlo_sensors.invitations set revoked_at=coalesce(revoked_at,stamp) where binding_id=b.binding_id;
  update svitlo_sensors.ingest_credentials set revoked_at=stamp where binding_id=b.binding_id;
  update svitlo_sensors.devices set current_epoch=current_epoch+1,access_revision=access_revision+1 where sensor_id=d.sensor_id returning * into d;
- insert into svitlo_sensors.bindings(sensor_id,epoch,owner_subject,address_id,line_id) values(d.sensor_id,d.current_epoch,actor,(profile.address->>'canonicalAddressId')::uuid,(profile.address->>'lineId')::uuid) returning * into b;
+ insert into svitlo_sensors.bindings(sensor_id,epoch,owner_subject,address_id,line_id,address_snapshot) values(d.sensor_id,d.current_epoch,actor,(profile.address->>'canonicalAddressId')::uuid,(profile.address->>'lineId')::uuid,profile.address) returning * into b;
  insert into svitlo_sensors.memberships(binding_id,subject,role) values(b.binding_id,actor,'owner') returning * into m;
  insert into svitlo_sensors.reader_links values(m.member_id,profile.id,stamp);
  -- A previously issued phone proof must not transfer a newly relocated point. Factory label stays authoritative.

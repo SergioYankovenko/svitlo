@@ -1,6 +1,6 @@
 # BE-06 / Plan235 · phone enrollment and one-scan ownership
 
-Private staging backend. Android sensor APK/main UI and PWA integration are separate gates. No production switch, firmware manufacture, payment, prediction or push. [Access foundation](CONTRACT.md), [legacy ingest](INGEST-CONTRACT.md). Plan234 uses producer2 for legacy explicit intervals; phone batches use **producer3**, avoiding a version collision. One sensor identity, bindings and owner/viewer memberships serve all producers.
+Private staging backend. Android sensor APK/main UI and PWA integration are separate gates. No production switch, firmware manufacture, payment, prediction or push. [Access foundation](CONTRACT.md), [legacy ingest](INGEST-CONTRACT.md). Additive migration1009 preserves applied1007 history and1008 map addresses, including the selected address details on transfer. Plan234 uses producer2 for legacy explicit intervals; phone batches use **producer3**, avoiding a version collision. One sensor identity, bindings and owner/viewer memberships serve all producers.
 
 ## Device identity and secrets
 

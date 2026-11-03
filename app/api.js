@@ -22,6 +22,15 @@ export async function ensureIdentity(){return config.local?'local-preview':(awai
 const sessionForRequest=async()=>{await ending;return sessionController.ensure();};
 export const configured = () => !!config.apiUrl;
 export const universalEnabled=config.transport==='vps';
+async function privateVps(route,data,{owner,signal}={}){
+  if(!universalEnabled)throw Error('Ця дія поки недоступна');await ending;
+  const session=owner?await sessionController.read():await sessionForRequest();
+  if(!session||owner&&session.user.id!==owner)throw Object.assign(Error('Операція вже не актуальна'),{stale:true});
+  return post('/api/v1/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Svitlo-CSRF':session.csrf_token},
+    body:JSON.stringify({schemaVersion:1,...data}),cache:'no-store',signal:signal||AbortSignal.timeout(20000)});
+}
+export const mapSearch=(data,options)=>privateVps('map-search',data,options);
+export const sensorRequest=(action,data={},options)=>privateVps('sensors',{action,...data},options);
 export async function universalRequest(route,data={}, {signal}={}){
   if(!universalEnabled||!['capabilities','search','resolve','legacy-resolve','snapshots'].includes(route))throw Error('Універсальний API недоступний');
   return post('/api/v1/'+route,{method:route==='capabilities'?'GET':'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',signal:signal||AbortSignal.timeout(30000),

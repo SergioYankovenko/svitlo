@@ -10,6 +10,7 @@ import {operatorFetch} from './operator-fetch.js';
 import {PgBridge,pool} from './db.js';
 import {UniversalReader} from './universal/reader.js';
 import {UniversalService} from './universal/service.js';
+import {MapAddresses} from './maps/service.js';
 
 // Accounts remain transient adapter inputs; they never enter the persistent address/profile/catalog.
 export class PrivateSource extends Source {
@@ -25,12 +26,13 @@ export async function runtime(role='api'){
   const p=pool(role,role==='worker'?2:4),bridge=await new PgBridge(p).init();
   const db=new Database(bridge,{scheduledMaintenance:true});
   if(role==='worker')db.due=async(now,amount)=>(await p.query(`update public.svitlo_profiles set lease_until=$1+180000 where id in
-    (select id from public.svitlo_profiles where lease_until<$1 and ((next_check>0 and next_check<=$1) or (next_check=0 and last_checked<$1-3600000))
+    (select id from public.svitlo_profiles where coalesce(address->>'mapOnly','false')<>'true' and lease_until<$1 and ((next_check>0 and next_check<=$1) or (next_check=0 and last_checked<$1-3600000))
     order by next_check,last_checked limit least($2,4) for update skip locked) returning *`,[now,amount])).rows;
   const secret=readFileSync('/run/secrets/session_secret','utf8').trim();
   const source=new PrivateSource(providerTransport(db,operatorFetch),{dictionaries:new SharedDictionaries(db),feed:new SharedFeed(db),categories:new SharedCategories(db,secret)});
   const options={db,source,vapid:'',push:async()=>{throw Error('STAGING_DELIVERY_DISABLED');},jobBudgetMs:45000};
   const legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret});
-  const service=new UniversalService(options,reader);
-  return {p,bridge,db,source,service,legacy,reader,secret};
+  const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
+  const service=new UniversalService({...options,maps},reader);
+  return {p,bridge,db,source,service,legacy,reader,maps,secret};
 }

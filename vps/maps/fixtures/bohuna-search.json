@@ -1,0 +1,79 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "ADR3KIJXSHGLDK7V24",
+      "properties": {
+        "name": "8а",
+        "categories": "adr_address",
+        "country_code": "ua",
+        "country": "Україна",
+        "postal_code": "19001",
+        "street_id": "STR3KIJXSHGL",
+        "lang": "uk",
+        "street": "Івана Богуна",
+        "street_type": "вул.",
+        "settlement_id": "STL1NYKC7",
+        "settlement": "Канів",
+        "settlement_type": "місто",
+        "copyright": "Map Data © 2026, «Visicom» SC",
+        "dist_meters": 109213,
+        "relevance": 7.63583347688911,
+        "settlement_url": "https://api.visicom.ua/data-api/5.0/uk/feature/STL1NYKC7.json",
+        "street_url": "https://api.visicom.ua/data-api/5.0/uk/feature/STR3KIJXSHGL.json"
+      },
+      "bbox": [
+        31.414946,
+        49.761847,
+        31.415094,
+        49.761941
+      ],
+      "geo_centroid": {
+        "type": "Point",
+        "coordinates": [
+          31.415016,
+          49.761899
+        ]
+      },
+      "url": "https://api.visicom.ua/data-api/5.0/uk/feature/ADR3KIJXSHGLDK7V24.json"
+    },
+    {
+      "type": "Feature",
+      "id": "ADR3KIJY5CHR3S43BJ",
+      "properties": {
+        "name": "8а",
+        "categories": "adr_address",
+        "country_code": "ua",
+        "country": "Україна",
+        "postal_code": "20001",
+        "street_id": "STR3KIJY5CHR",
+        "lang": "uk",
+        "street": "І. Богуна",
+        "street_type": "вул.",
+        "settlement_id": "STL1NYKCD",
+        "settlement": "Христинівка",
+        "settlement_type": "місто",
+        "copyright": "Map Data © 2026, «Visicom» SC",
+        "dist_meters": 186797,
+        "relevance": 7.4593750000000085,
+        "settlement_url": "https://api.visicom.ua/data-api/5.0/uk/feature/STL1NYKCD.json",
+        "street_url": "https://api.visicom.ua/data-api/5.0/uk/feature/STR3KIJY5CHR.json"
+      },
+      "bbox": [
+        29.986026,
+        48.801815,
+        29.986228,
+        48.801947
+      ],
+      "geo_centroid": {
+        "type": "Point",
+        "coordinates": [
+          29.986123,
+          48.801875
+        ]
+      },
+      "url": "https://api.visicom.ua/data-api/5.0/uk/feature/ADR3KIJY5CHR3S43BJ.json"
+    }
+  ]
+}

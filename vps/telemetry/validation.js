@@ -40,7 +40,7 @@ export function diagnosticPacket(input,{requestIds,owner,consent}={}){
 function keys(value,allowed){if(!object(value)||Object.keys(value).some(k=>!allowed.includes(k)))throw problem(400,'unknown_fields');}
 const publicKeys={search:['schemaVersion','kind','parentId','q','cursor','limit'],resolve:['schemaVersion','addressId','lineId','unit'],'legacy-resolve':['schemaVersion','legacy'],snapshots:['schemaVersion','fromDate','toDate','items']};
 const profileKeys={bootstrap:[],sync:['id','reason','subscription'],resolve_queue:['id','address'],dictionary:['kind','parent'],preview:['address'],save:['confirmed','address','name'],refresh:['id'],weather:['id'],delete:['id'],preferences:['id','preferences'],subscribe:['id','subscription'],unsubscribe:['endpoint'],erase:[]};
-export const knownRoutes=new Set(['/api','/api/session','/api/v1/catalog','/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/sensors','/api/v1/sensor-events','/api/v1/sensor-devices/register','/api/v1/sensor-devices/control','/api/v1/diagnostic-reports','/diagnostic-reports']);
+export const knownRoutes=new Set(['/api','/api/session','/api/v1/catalog','/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/map-search','/api/v1/sensors','/api/v1/sensor-events','/api/v1/sensor-devices/register','/api/v1/sensor-devices/control','/api/v1/diagnostic-reports','/diagnostic-reports']);
 export const routeTag=path=>knownRoutes.has(path)?path:'unknown_api';
 export function validateRequest(route,p){
  const op=route.split('/').at(-1);
@@ -57,12 +57,13 @@ export function validateRequest(route,p){
   if(p.confirmed!==undefined&&typeof p.confirmed!=='boolean')throw problem(400,'invalid_confirmation');
   if(p.endpoint!==undefined&&(typeof p.endpoint!=='string'||p.endpoint.length>2048))throw problem(400,'invalid_endpoint');
   if(p.action==='dictionary'&&(!['department','city','street','house'].includes(p.kind)||p.parent!==undefined&&typeof p.parent!=='string'))throw problem(400,'invalid_dictionary');
-  if(p.address!==undefined){keys(p.address,['department','cityId','streetId','house','city','street','label','canonicalAddressId','operatorId','lineId','lineLabel','multipleLines','synthetic']);if(Object.entries(p.address).some(([k,v])=>['multipleLines','synthetic'].includes(k)?typeof v!=='boolean':v!==null&&typeof v!=='string'))throw problem(400,'invalid_address');}
+  if(p.address!==undefined){keys(p.address,['department','cityId','streetId','house','city','street','label','canonicalAddressId','operatorId','lineId','lineLabel','multipleLines','synthetic','mapCandidateToken']);if(Object.entries(p.address).some(([k,v])=>['multipleLines','synthetic'].includes(k)?typeof v!=='boolean':v!==null&&typeof v!=='string'))throw problem(400,'invalid_address');if(p.address.mapCandidateToken!==undefined&&(Object.keys(p.address).length!==1||p.action!=='save'||typeof p.address.mapCandidateToken!=='string'||p.address.mapCandidateToken.length>5000))throw problem(400,'invalid_address');}
   if(p.preferences!==undefined){keys(p.preferences,['schedule','emergency','reminder','restoration','lead']);if(Object.entries(p.preferences).some(([k,v])=>k==='lead'?!Number.isInteger(v)||v<0||v>120:typeof v!=='boolean'))throw problem(400,'invalid_preferences');}
   if(p.subscription!==undefined&&p.subscription!==null){keys(p.subscription,['endpoint','expirationTime','keys']);keys(p.subscription.keys,['auth','p256dh']);
    if(typeof p.subscription.endpoint!=='string'||p.subscription.endpoint.length>2048||['auth','p256dh'].some(k=>typeof p.subscription.keys[k]!=='string'||p.subscription.keys[k].length>128)||p.subscription.expirationTime!==undefined&&p.subscription.expirationTime!==null&&(!Number.isFinite(p.subscription.expirationTime)||p.subscription.expirationTime<0))throw problem(400,'invalid_subscription');
   }
- }else if(route==='/api/session')keys(p,[]);
+ }else if(route==='/api/v1/map-search'){keys(p,['schemaVersion','cityId','streetId','street','house']);}
+ else if(route==='/api/session')keys(p,[]);
  else if(route==='/api/v1/catalog'){keys(p,['kind','parent']);if(!['department','city','street','house'].includes(p.kind)||p.parent!==undefined&&typeof p.parent!=='string')throw problem(400,'invalid_dictionary');}
  // Bound structure and reject control characters; apostrophes/SQL words/Unicode remain data.
  const pending=[[p,0]];let count=0;while(pending.length){const [v,d]=pending.pop();if(++count>256||d>6)throw problem(400,'invalid_structure');

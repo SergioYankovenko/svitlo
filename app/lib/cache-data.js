@@ -6,6 +6,7 @@ const event=e=>object(e)&&['hourly','planned','emergency'].includes(e.category)&
 export function validProfile(p,owner) {
   if(!object(p)||p.owner!==owner||typeof p.id!=='string'||!p.id||!object(p.address)||!object(p.snapshot))return false;
   const a=p.address,s=p.snapshot;
+  if(a.mapOnly===true&&(!['street','house','canonicalAddressId'].every(k=>typeof a[k]==='string'&&a[k])||a.operatorId!=='map-only'||a.lineId!==null||a.mapLocation?.source!=='visicom'||!['house','street'].includes(a.mapLocation.precision)||!Number.isFinite(a.mapLocation.latitude)||!Number.isFinite(a.mapLocation.longitude)||!/^(ADR|STR)[A-Z0-9]{4,80}$/.test(a.mapLocation.featureId||'')))return false;
   if(s.universal!==undefined&&!validUniversal(s.universal))return false;
   if(!['department','cityId','city'].every(k=>typeof a[k]==='string'&&a[k]))return false;
   if(a.label!==undefined&&typeof a.label!=='string'||p.name!==undefined&&typeof p.name!=='string')return false;

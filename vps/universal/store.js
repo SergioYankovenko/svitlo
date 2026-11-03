@@ -2,7 +2,7 @@ const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9
 export const apiError=(status,code,message=code)=>Object.assign(Error(message),{status,code});
 export class Catalog {
  constructor(bridge){this.db=bridge;}
- async operators(){return (await this.db.query('select * from svitlo_vps.operators order by id')).rows;}
+ async operators(){return (await this.db.query("select * from svitlo_vps.operators where id<>'map-only' order by id")).rows;}
  async operator(id){return (await this.db.query('select * from svitlo_vps.operators where id=$1',[id])).rows[0];}
  async entity(id){if(!uuid(id))throw apiError(400,'invalid_id','Некоректний ідентифікатор');
   const seen=new Set();for(let n=0;n<8;n++){
@@ -10,7 +10,7 @@ export class Catalog {
    const r=(await this.db.query(`select e.*,s.label as street,s.metadata as street_metadata,c.label as city,c.id as city_id from svitlo_vps.catalog e
     left join svitlo_vps.catalog s on s.id=e.parent_id left join svitlo_vps.catalog c on c.id=s.parent_id where e.id=$1`,[id])).rows[0];
    if(!r)throw apiError(404,'address_not_found','Адресу не знайдено');
-   if(!r.redirect_to){if(!(await this.db.query('select svitlo_vps.catalog_allowed($1) allowed',[r.id])).rows[0].allowed)throw apiError(409,'address_requires_reselection','Потрібно повторно обрати вулицю: цей запис є службовим');return r;}id=r.redirect_to;
+   if(!r.redirect_to){if(!(await this.db.query('select svitlo_vps.catalog_allowed($1) allowed',[r.id])).rows[0].allowed){if(r.operator_id==='map-only')throw apiError(404,'address_not_found','Адресу не знайдено');throw apiError(409,'address_requires_reselection','Потрібно повторно обрати вулицю: цей запис є службовим');}return r;}id=r.redirect_to;
   }throw apiError(503,'alias_depth');
  }
  public(e){return {id:e.id,label:e.kind==='address'&&e.city?`${e.city}, ${e.street}${e.street_metadata?.districtVerified?' · '+e.street_metadata.district:''}, ${e.label}`:e.label,kind:e.kind,
@@ -23,7 +23,7 @@ export class Catalog {
   let after=null;if(cursor){try{if(typeof cursor!=='string'||cursor.length>1024)throw Error();after=JSON.parse(Buffer.from(cursor,'base64url'));if(after.kind!==kind||after.parentId!==parentId||after.q!==q||!uuid(after.id)||typeof after.label!=='string')throw Error();}catch{throw apiError(400,'invalid_cursor');}}
   const text='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
   const r=await this.db.query(`select e.*,case when e.kind='city' then svitlo_vps.catalog_city_state(e.id) end as route_state from svitlo_vps.catalog e where e.kind=$1 and e.parent_id is not distinct from $2::uuid
-   and e.redirect_to is null and e.label ilike $3 and coalesce(e.metadata->>'catalogStatus','')<>'service'
+   and e.redirect_to is null and e.label ilike $3 and coalesce(e.metadata->>'catalogStatus','')<>'service' and e.operator_id is distinct from 'map-only'
    and svitlo_vps.catalog_allowed(e.id) and (e.kind<>'city' or svitlo_vps.catalog_city_state(e.id)<>'empty')
    and ($1<>'street' or svitlo_vps.catalog_city_state($2::uuid)<>'empty')
    and ($4::text is null or (e.label collate "C",e.id)>($4 collate "C",$5::uuid))

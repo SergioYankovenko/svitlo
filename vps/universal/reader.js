@@ -9,7 +9,7 @@ import {degraded,normalizeLegacy,retainPartial} from './normalize.js';
 export class UniversalReader {
  constructor({db,bridge,legacy,source,secret}){Object.assign(this,{db,bridge,legacy,source,secret});this.catalog=new Catalog(bridge);this.shared=new SharedCategories(db,secret,{ttl:300000});}
  async capabilities(){const operators=await this.catalog.operators();return {schemaVersion:1,apiVersion:'1.0.0',featureSet:'universal',timeZones:['Europe/Kyiv'],
-  categories:['hourly','planned','unplanned','emergency'],limits:{search:50,batch:10,days:14},operators:operators.map(o=>({id:o.id,label:o.label,supportState:adapterFor(o,this)?o.state:'unsupported',synthetic:o.is_test,coverage:o.config.coverage,unitSupported:o.config.unitSupported===true})),push:false,sensors:false};}
+  categories:['hourly','planned','unplanned','emergency'],limits:{search:50,batch:10,days:14},addressFallback:{source:'visicom',requiresSession:true,approximate:true,preserveHouse:true},operators:operators.map(o=>({id:o.id,label:o.label,supportState:adapterFor(o,this)?o.state:'unsupported',synthetic:o.is_test,coverage:o.config.coverage,unitSupported:o.config.unitSupported===true})),push:false,sensors:false};}
  checkVersion(body){if(body.schemaVersion!==undefined&&body.schemaVersion!==1)throw apiError(400,'unsupported_schema','Ця версія формату не підтримується');}
  range(body){const fromDate=body.fromDate??monday(dayKey()),toDate=body.toDate??addDays(fromDate,13);
   if(!validDate(fromDate)||!validDate(toDate)||toDate<fromDate||(Date.parse(toDate)-Date.parse(fromDate))/86400000>13||Math.abs(Date.parse(fromDate)-Date.parse(dayKey()))>31*86400000)throw apiError(400,'invalid_date_range');

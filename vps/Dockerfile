@@ -4,6 +4,7 @@ ENV NODE_ENV=production TZ=UTC
 WORKDIR /srv/svitlo
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
+COPY vps/maps/vendor ./vps/maps/vendor
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY app ./app
 COPY server ./server
