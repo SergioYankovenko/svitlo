@@ -8,6 +8,8 @@ import {SharedCategories} from '../server/shared-categories.js';
 import {providerTransport} from '../server/provider-transport.js';
 import {operatorFetch} from './operator-fetch.js';
 import {PgBridge,pool} from './db.js';
+import {UniversalReader} from './universal/reader.js';
+import {UniversalService} from './universal/service.js';
 
 // Accounts remain transient adapter inputs; they never enter the persistent address/profile/catalog.
 export class PrivateSource extends Source {
@@ -27,6 +29,8 @@ export async function runtime(role='api'){
     order by next_check,last_checked limit least($2,4) for update skip locked) returning *`,[now,amount])).rows;
   const secret=readFileSync('/run/secrets/session_secret','utf8').trim();
   const source=new PrivateSource(providerTransport(db,operatorFetch),{dictionaries:new SharedDictionaries(db),feed:new SharedFeed(db),categories:new SharedCategories(db,secret)});
-  const service=new Service({db,source,vapid:'',push:async()=>{throw Error('STAGING_DELIVERY_DISABLED');},jobBudgetMs:45000});
-  return {p,bridge,db,source,service,secret};
+  const options={db,source,vapid:'',push:async()=>{throw Error('STAGING_DELIVERY_DISABLED');},jobBudgetMs:45000};
+  const legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret});
+  const service=new UniversalService(options,reader);
+  return {p,bridge,db,source,service,legacy,reader,secret};
 }

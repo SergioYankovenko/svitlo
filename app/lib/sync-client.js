@@ -13,7 +13,9 @@ export function legacyEnvelope(owner,profiles,weather,now=Date.now()) {
   return {version:1,owner,profiles:owned,weather:cities,at:0,day:dayKey(now),vapid:'',pushReady:false,invalidations:{}};
 }
 export function dataUntil(p,now) {
-  const s=p?.snapshot,stamps=[s?.checkedAt,s?.feedCheckedAt,...['hourly','planned','emergency'].flatMap(k=>[s?.categories?.[k]?.checkedAt,s?.categories?.[k]?.sourceAt])];
+  const s=p?.snapshot;
+  if(s?.universal)return Math.min(s.universal.refreshAfter,s.universal.freshUntil);
+  const stamps=[s?.checkedAt,s?.feedCheckedAt,...['hourly','planned','emergency'].flatMap(k=>[s?.categories?.[k]?.checkedAt,s?.categories?.[k]?.sourceAt])];
   if(!s||s.failures?.length||s.feedFailed||stamps.some(t=>!Number.isFinite(t)||t<0||t>now+300000))return 0;
   return Math.min(...stamps)+HOUR;
 }

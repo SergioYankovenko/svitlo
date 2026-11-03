@@ -21,6 +21,12 @@ export async function identity() {
 export async function ensureIdentity(){return config.local?'local-preview':(await sessionForRequest()).user.id;}
 const sessionForRequest=async()=>{await ending;return sessionController.ensure();};
 export const configured = () => !!config.apiUrl;
+export const universalEnabled=config.transport==='vps';
+export async function universalRequest(route,data={}, {signal}={}){
+  if(!universalEnabled||!['capabilities','search','resolve','legacy-resolve','snapshots'].includes(route))throw Error('Універсальний API недоступний');
+  return post('/api/v1/'+route,{method:route==='capabilities'?'GET':'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',signal:signal||AbortSignal.timeout(30000),
+    ...(route==='capabilities'?{}:{body:JSON.stringify({schemaVersion:1,...data})})});
+}
 export async function request(action, data = {}, {signal,owner}={}) {
   if (!configured())
     throw Error("Сервер ще не підключений. Збережені графіки доступні офлайн.");

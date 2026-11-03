@@ -23,13 +23,14 @@ const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,origin);path=url.pathname;
     if(path==='/healthz')return json(res,200,{status:'ok',scope:'isolated-staging',release});
     if(path==='/readyz'){
-      const r=await rt.p.query('select schema_version,delivery_mode from svitlo_vps.release_state where id');
-      if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled')throw Error('Schema or delivery mode mismatch');
+      const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1001_universal_catalog.sql') as universal_ready from svitlo_vps.release_state where id");
+      if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled'||!r.rows[0].universal_ready)throw Error('Schema or delivery mode mismatch');
       return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:'disabled',productionReady:false});
     }
     if(path.startsWith('/api')){
       if(!budget('http:'+req.socket.remoteAddress,4000))return json(res,429,{error:'Забагато запитів'});
-      if(req.method!=='GET'&&(req.headers.origin!==origin||req.headers['content-type']?.split(';')[0]!=='application/json'))return json(res,403,{error:'Origin or content type rejected'});
+      const publicReader=path.startsWith('/api/v1/')&&['/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots'].includes(path);
+      if(req.method!=='GET'&&((req.headers.origin!==origin&&(!publicReader||req.headers.origin))||req.headers['content-type']?.split(';')[0]!=='application/json'))return json(res,403,{error:'Origin or content type rejected'});
       let s=await sessions.read(req);
       if(path==='/api/session'){
         if(req.method==='GET')return json(res,200,{session:s?sessions.public(s):null});
@@ -44,7 +45,13 @@ const server=http.createServer(async(req,res)=>{
         }
         return json(res,405,{error:'Method not allowed'});
       }
-      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{version:1,operators:[{id:'ua-cherkasy',name:'Черкасиобленерго',status:'available'}],catalogScope:'christynivka-branch-18',profileTransport:'legacy-compatible-v1',sensors:false,push:false});
+      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,await rt.reader.capabilities());
+      if(publicReader&&req.method==='POST'){
+        if(path.endsWith('/capabilities'))return json(res,405,{error:'Method not allowed'});
+        const data=await body(req);rt.reader.checkVersion(data);
+        const result=path.endsWith('/search')?await rt.reader.catalog.search(data):path.endsWith('/resolve')?await rt.reader.resolve(data):path.endsWith('/legacy-resolve')?await rt.reader.catalog.legacy(data.legacy):path.endsWith('/snapshots')?await rt.reader.batch(data):null;
+        return json(res,200,result);
+      }
       if(!s)return json(res,401,{error:'Потрібна сесія'});
       if(req.method!=='POST')return json(res,405,{error:'Method not allowed'});
       if(!sessions.validCsrf(req,s))return json(res,403,{error:'CSRF rejected'});
@@ -70,7 +77,7 @@ const server=http.createServer(async(req,res)=>{
     const info=await stat(file);if(!info.isFile())return json(res,404,{error:'Not found'});
     res.writeHead(200,{'content-type':mime[extname(file)]||'application/octet-stream','cache-control':'no-cache','content-length':info.size});
     res.end(req.method==='HEAD'?undefined:await readFile(file));
-  }catch(e){const status=e.status||(e.code==='ENOENT'?404:503);json(res,status,{error:status===503?'Сервіс тимчасово недоступний':e.message});
+  }catch(e){const status=e.status||(e.code==='ENOENT'?404:503);json(res,status,{error:status===503?'Сервіс тимчасово недоступний':e.message,code:status===503?'temporarily_unavailable':e.code||'request_rejected'});
     if(status>=500)console.error(JSON.stringify({event:'request_failed',route:path,code:e.code||'service_error'}));
   }finally{if(path?.startsWith('/api'))console.log(JSON.stringify({event:'request',route:path,status:res.statusCode,ms:Date.now()-start}));}
 });

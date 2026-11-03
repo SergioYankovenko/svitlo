@@ -1,0 +1,53 @@
+const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
+export const apiError=(status,code,message=code)=>Object.assign(Error(message),{status,code});
+export class Catalog {
+ constructor(bridge){this.db=bridge;}
+ async operators(){return (await this.db.query('select * from svitlo_vps.operators order by id')).rows;}
+ async operator(id){return (await this.db.query('select * from svitlo_vps.operators where id=$1',[id])).rows[0];}
+ async entity(id){if(!uuid(id))throw apiError(400,'invalid_id','Некоректний ідентифікатор');
+  const seen=new Set();for(let n=0;n<8;n++){
+   if(seen.has(id))throw apiError(503,'alias_cycle');seen.add(id);
+   const r=(await this.db.query(`select e.*,s.label as street,s.metadata as street_metadata,c.label as city,c.id as city_id from svitlo_vps.catalog e
+    left join svitlo_vps.catalog s on s.id=e.parent_id left join svitlo_vps.catalog c on c.id=s.parent_id where e.id=$1`,[id])).rows[0];
+   if(!r)throw apiError(404,'address_not_found','Адресу не знайдено');
+   if(!r.redirect_to)return r;id=r.redirect_to;
+  }throw apiError(503,'alias_depth');
+ }
+ public(e){return {id:e.id,label:e.kind==='address'&&e.city?`${e.city}, ${e.street}${e.street_metadata?.districtVerified?' · '+e.street_metadata.district:''}, ${e.label}`:e.label,kind:e.kind,
+  ...(e.kind==='address'?{cityId:e.city_id,city:e.city,streetId:e.parent_id,street:e.street,house:e.label,operatorId:e.operator_id}:{}),
+  ...(e.metadata?.districtVerified?{district:e.metadata.district,districtVerified:true}:{}),synthetic:e.metadata?.synthetic===true};}
+ async search({kind,parentId=null,q='',cursor=null,limit=50}={}){
+  const map={cities:'city',streets:'street',houses:'address'};if(!map[kind]||typeof q!=='string'||q.length>120||!Number.isInteger(limit)||limit<1||limit>50)throw apiError(400,'invalid_search');
+  if(kind!=='cities'&&!uuid(parentId))throw apiError(400,'invalid_parent');
+  if(kind!=='cities'){const parent=await this.entity(parentId);if(parent.kind!==(kind==='streets'?'city':'street'))throw apiError(400,'invalid_parent');parentId=parent.id;}
+  let after=null;if(cursor){try{if(typeof cursor!=='string'||cursor.length>1024)throw Error();after=JSON.parse(Buffer.from(cursor,'base64url'));if(after.kind!==kind||after.parentId!==parentId||after.q!==q||!uuid(after.id)||typeof after.label!=='string')throw Error();}catch{throw apiError(400,'invalid_cursor');}}
+  const text='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
+  const r=await this.db.query(`select e.* from svitlo_vps.catalog e where e.kind=$1 and e.parent_id is not distinct from $2::uuid
+   and e.redirect_to is null and e.label ilike $3 and coalesce(e.metadata->>'catalogStatus','')<>'service'
+   and ($4::text is null or (e.label collate "C",e.id)>($4 collate "C",$5::uuid))
+   order by e.label collate "C",e.id limit $6`,[map[kind],parentId,text,after?.label||null,after?.id||null,limit+1]);
+  const page=r.rows.slice(0,limit),last=page.at(-1),more=r.rows.length>limit;
+  return {schemaVersion:1,items:page.map(e=>this.public(e)),nextCursor:more?Buffer.from(JSON.stringify({kind,parentId,q,id:last.id,label:last.label})).toString('base64url'):null,complete:!more,coverage:'Catalog contains verified imported places only'};
+ }
+ async legacy(ref){if(!ref||['department','cityId','streetId','house'].some(k=>typeof ref[k]!=='string'||!ref[k]||ref[k].length>120))throw apiError(400,'invalid_legacy');
+  const r=(await this.db.query("select entity_id from svitlo_vps.catalog_aliases where operator_id='ua-cherkasy' and kind='address' and provider_key=$1::jsonb::text",[JSON.stringify([ref.department,ref.cityId,ref.streetId,ref.house])])).rows[0];
+  return r?{state:'resolved',address:this.public(await this.entity(r.entity_id))}:{state:'needs_confirmation',address:null};
+ }
+ async lines(addressId,result){
+  let checkedAt=result.checkedAt||Date.now();
+  // One transaction and address lock: partial replies merge, complete replies may retire old lines.
+  const c=await this.db.pool.connect();try{await c.query('begin');await c.query("select pg_advisory_xact_lock(hashtextextended('universal-lines:'||$1,0))",[addressId]);
+   const prior=(await c.query('select state,complete,checked_at,evidence from svitlo_vps.address_resolutions where address_id=$1',[addressId])).rows[0];
+   const stale=prior&&prior.checked_at>checkedAt;
+   if(stale){result={...result,state:prior.state,complete:prior.complete,provenance:prior.evidence,lines:[]};checkedAt=prior.checked_at;}
+   if(!stale){
+   if(result.complete)await c.query('update svitlo_vps.address_lines set active=false where address_id=$1',[addressId]);
+   for(const line of result.lines){await c.query(`insert into svitlo_vps.address_lines(address_id,source_key,label,group_code,evidence)
+    values($1,$2,$3,$4,$5) on conflict(address_id,source_key) do update set label=excluded.label,group_code=excluded.group_code,evidence=excluded.evidence,active=true`,[addressId,line.key,line.label,line.groupCode??null,JSON.stringify(line.provenance||{})]);}
+   await c.query(`insert into svitlo_vps.address_resolutions values($1,$2,$3,$4,$5) on conflict(address_id) do update set state=excluded.state,complete=excluded.complete,checked_at=excluded.checked_at,evidence=excluded.evidence`,[addressId,result.state,result.complete,checkedAt,JSON.stringify(result.provenance||{})]);
+   }
+   const rows=(await c.query('select id,source_key,label,group_code,evidence from svitlo_vps.address_lines where address_id=$1 and active order by id',[addressId])).rows;await c.query('commit');
+   return {state:result.state,complete:result.complete,checkedAt,lines:rows.map(r=>({id:r.id,key:r.source_key,label:r.label,groupCode:r.group_code,provenance:r.evidence})),provenance:result.provenance||{}};
+  }catch(e){await c.query('rollback');throw e;}finally{c.release();}
+ }
+}

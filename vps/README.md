@@ -1,5 +1,7 @@
 # Private VPS runtime, Plan228
 
+> Plan229 adds the working private universal v1 API and staging PWA integration: [contract and onboarding](universal/CONTRACT.md), JSON Schema and golden vectors in the same directory. Backend contract/PG/HTTP checks pass; full new-shell browser save/reload/offline QA remains pending. Android and production routes are unchanged. The Plan228 description below is historical baseline infrastructure, not the current universal implementation status.
+
 This is an isolated first working port of the existing Cherkasy PWA. It is not the complete universal BE-08 or a production cutover. No browser Supabase Auth/SDK calls, no copied production users, no live push credentials. The current branch preserves the existing production transport when `config.transport` is not `vps`; the staging build always writes its own config.
 
 Runtime: Node24, pinned base image, PostgreSQL17, own HttpOnly anonymous sessions and owner RLS. `PgBridge` is a server-only compatibility layer for the existing Database class, not an exposed generic SQL/RPC endpoint. Transactions use one checked-out connection and `SET LOCAL` owner context, released in finally. Owner/CSRF metadata stored in browser storage is only an offline cache selector; an opaque cookie must authenticate every server operation.

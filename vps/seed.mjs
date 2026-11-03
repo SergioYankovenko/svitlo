@@ -1,5 +1,6 @@
 import pg from 'pg';
 import {readFile} from 'node:fs/promises';
+import {seedUniversal} from './universal/seed.js';
 const c=new pg.Client({host:'postgres',database:'svitlo_staging',user:'svitlo_owner',password:(await readFile('/run/secrets/owner_password','utf8')).trim()});
 const rows=JSON.parse(await readFile('/seed/rows.json','utf8')),registry=JSON.parse(await readFile('/seed/registry-state.json','utf8'));
 if(rows.length!==17940||new Set(rows.map(r=>JSON.stringify([r.department,r.city_id,r.street_id,r.house]))).size!==17940)throw Error('Catalog count/key mismatch');
@@ -24,5 +25,6 @@ try{
  select version_id,ordinal,city,street,scope,queue,evidence from jsonb_to_recordset($1::jsonb)
  as r(version_id text,ordinal integer,city text,street text,scope text,queue text,evidence jsonb) on conflict(version_id,ordinal) do nothing`,[JSON.stringify(registry.rules.slice(i,i+250))]);
  await c.query("insert into public.svitlo_cache(key,value) values('queue-registry-state',$1) on conflict(key) do nothing",[JSON.stringify(registry.state)]);
+ await seedUniversal(c);
  await c.query('commit');console.log(JSON.stringify({seed:'public-catalog',...counts,productionUsersImported:0}));
 }catch(e){await c.query('rollback');throw e;}finally{await c.end();}

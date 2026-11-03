@@ -12,6 +12,8 @@ import { adjacentDay, bindHorizontalSwipe } from "./lib/navigation.js";
 import { hourTile, fitHours, groupRepeatedHours } from "./lib/tiles.js";
 import { refreshFailure } from "./lib/schedule.js";
 import { enhancePickers } from "./lib/pickers.js";
+import {universalWizard} from './lib/universal-wizard.js';
+import {universalEnabled} from './api.js';
 import {
   summaryIcon,
   shareIcon,
@@ -502,6 +504,8 @@ function dialog(title, html, className="") {
   return d;
 }
 async function addressDialog() {
+  if(universalEnabled)return universalWizard({dialog,currentOwner:()=>currentOwner(true),isCurrent:scope=>lifecycle.current(scope),save:(scope,data)=>ownedRequest('save',data,scope),
+    onSaved:async(r,scope)=>{if(!validProfile(r.profile,scope.owner))throw Error('Отримано неповні дані адреси');patchProfiles(profiles=>[...profiles.filter(p=>p.id!==r.profile.id),r.profile]);state.active=r.profile.id;state.date=dayKey();state.week=monday();state.explicit=false;persist();render();await syncPush();}});
   const d = dialog(
     "Додати адресу",
     `<form id="address-form"><label for="department">Філія</label><select id="department" required><option value="">Завантажуємо…</option></select><label for="city">Населений пункт</label><select id="city" required disabled></select><label for="street">Вулиця</label><select id="street" required disabled></select><label for="house">Будинок</label><select id="house" required disabled></select><div id="preview"></div><p class="error" id="form-error" role="alert"></p></form>`,

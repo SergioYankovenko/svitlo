@@ -79,7 +79,7 @@ export class Service {
     }
     return registryMatch(await this.db.registry?.(), address, now);
   }
-  async refresh(profile, prepared = null, { signal, feedResult } = {}) {
+  async prepareSnapshot(profile, prepared = null, { signal, feedResult } = {}) {
     const now = this.now(),
       old = profile.snapshot || {};
     const [address, registry] = await Promise.all([
@@ -145,6 +145,11 @@ export class Service {
     if(snapshot.queueResolution?.inclusion === "not_in_queue" && !snapshot.failures.length && !snapshot.feedFailed) {
       snapshot.verifiedNoQueueDays=[...new Set([...(old.verifiedNoQueueDays||[]),dayKey(now)])].filter(d=>d>=addDays(dayKey(now),-7));
     }
+    return {snapshot,feed,address,feedFailed};
+  }
+  async refresh(profile, prepared = null, { signal, feedResult } = {}) {
+    const now=this.now(), old=profile.snapshot||{};
+    const {snapshot,feed,address,feedFailed}=await this.prepareSnapshot(profile,prepared,{signal,feedResult});
     const currentPolicy = emergencyPolicy(snapshot, now);
     const regional = currentPolicy.command;
     const regionalMessages = regional

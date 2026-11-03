@@ -1,3 +1,4 @@
+import {validUniversal} from './universal-contract.js';
 import {validDate} from './lifecycle.js';
 const object=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
 const time=x=>Number.isFinite(x)&&x>=0;
@@ -5,6 +6,7 @@ const event=e=>object(e)&&['hourly','planned','emergency'].includes(e.category)&
 export function validProfile(p,owner) {
   if(!object(p)||p.owner!==owner||typeof p.id!=='string'||!p.id||!object(p.address)||!object(p.snapshot))return false;
   const a=p.address,s=p.snapshot;
+  if(s.universal!==undefined&&!validUniversal(s.universal))return false;
   if(!['department','cityId','city'].every(k=>typeof a[k]==='string'&&a[k]))return false;
   if(a.label!==undefined&&typeof a.label!=='string'||p.name!==undefined&&typeof p.name!=='string')return false;
   if(s.categories!==undefined&&!object(s.categories)||s.failures!==undefined&&!Array.isArray(s.failures))return false;

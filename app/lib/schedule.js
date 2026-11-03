@@ -1,5 +1,6 @@
 import { civil, dayKey, addDays, fresh, monday } from "./time.js";
 import { categoryPriority, eventKind } from "./outage-types.js";
+import {universalDay,selectedLine,validUniversal} from './universal-contract.js';
 export function emergencyPolicy(data, now) {
   const commands = (data?.emergencies || [])
     .filter(
@@ -28,6 +29,7 @@ export function emergencyPolicy(data, now) {
   return { active, validity, command };
 }
 export function dayState(data, date, now = Date.now()) {
+  if(data?.universal)return universalState(data,date,now);
   const from = civil(date),
     until = civil(addDays(date, 1)),
     plan = /^[1-6]\.[12]$/.test(data?.queue)
@@ -82,35 +84,7 @@ export function dayState(data, date, now = Date.now()) {
   const open = events.some((x) => x.end === null && x.start <= now);
   const uncertain = !known || validity !== "active" || open;
   const stale = !complete;
-  const hours = [];
-  for (let t = from; t < until; t += 3600000) {
-    const end = Math.min(t + 3600000, until),
-      bounds = new Set([t, end]);
-    for (const e of events) {
-      if (e.start > t && e.start < end) bounds.add(e.start);
-      const eEnd = e.end ?? now;
-      if (eEnd > t && eEnd < end) bounds.add(eEnd);
-    }
-    if (now > t && now < end) bounds.add(now);
-    const b = [...bounds].sort((a, b) => a - b),
-      segments = [];
-    for (let i = 0; i < b.length - 1; i++) {
-      const s = b[i],
-        e = b[i + 1],
-        matches = events
-          .filter((x) => x.start < e && (x.end ?? now) > s)
-          .sort(
-            (a, b) =>
-              categoryPriority[b.category] - categoryPriority[a.category],
-          );
-      segments.push({
-        start: s,
-        end: e,
-        kind: eventKind(matches[0]) || (uncertain ? "unknown" : "clear"),
-      });
-    }
-    hours.push({ start: t, end, segments });
-  }
+  const hours=exactHours(events,from,until,uncertain,now);
   const lost = hours
     .flatMap((x) => x.segments)
     .filter((x) => isOutage(x.kind))
@@ -144,6 +118,7 @@ export function dayState(data, date, now = Date.now()) {
 }
 export function canNextWeek(data, now) {
   const next = addDays(monday(dayKey(now)), 7);
+  if(data?.universal){const s=data.universal,l=selectedLine(s,data.selectedLineId);return !!l&&s.freshUntil>now&&l.categories.hourly?.days.some(d=>d.date===next&&d.state==='published');}
   return !!data?.plans?.some(
     (p) => p.date === next && p.queue === data.queue && !p.uncertain,
   );
@@ -152,7 +127,7 @@ export function countdown(data, now) {
   const state = dayState(data, dayKey(now), now);
   if (state.events.some((x) => x.start <= now && x.end === null))
     return { label: "Час відновлення уточнюється" };
-  if (!data?.queue && !state.excluded) return { label: "Немає точних даних" };
+  if (!data?.queue && !data?.universal && !state.excluded) return { label: "Немає точних даних" };
   if (state.uncertain || state.stale)
     return { label: "Час відключень уточнюється" };
   const tomorrow = dayState(data, addDays(dayKey(now), 1), now),
@@ -227,9 +202,13 @@ export const dataReason = (state) =>
     plan_incomplete: "Графік містить неповні дані",
     not_published: "Графік на цю дату ще не опубліковано",
     uncertain: "Немає точних даних",
+    line_unknown: "Лінію живлення не визначено",
+    provider_disabled: "Джерело регіону тимчасово недоступне",
+    unsupported: "Формат графіка поки не підтримується",
   })[state.reason] || "";
 
 export function refreshFailure(snapshot) {
+  if(snapshot?.universal)return snapshot.universal.supportState==='available'?'':'Джерело цього регіону тимчасово недоступне. Показуємо збережені дані, якщо вони є.';
   if (!snapshot?.failures?.length && !snapshot?.feedFailed) return "";
   const causes = [...Object.values(snapshot.errors || {}), snapshot.feedError];
   if (causes.includes("rate_limited"))
@@ -241,4 +220,43 @@ export function refreshFailure(snapshot) {
   if (causes.includes("invalid_response"))
     return "Сервіс Черкасиобленерго повернув некоректні дані. Спробуємо пізніше.";
   return "Не вдалося оновити частину даних Черкасиобленерго. Спробуємо пізніше.";
+}
+
+function exactHours(events,from,until,uncertain,now){
+  const hours = [];
+  for (let t = from; t < until; t += 3600000) {
+    const end = Math.min(t + 3600000, until),
+      bounds = new Set([t, end]);
+    for (const e of events) {
+      if (e.start > t && e.start < end) bounds.add(e.start);
+      const eEnd = e.end ?? now;
+      if (eEnd > t && eEnd < end) bounds.add(eEnd);
+    }
+    if (now > t && now < end) bounds.add(now);
+    const b = [...bounds].sort((a, b) => a - b),
+      segments = [];
+    for (let i = 0; i < b.length - 1; i++) {
+      const s = b[i],
+        e = b[i + 1],
+        matches = events
+          .filter((x) => x.start < e && (x.end ?? now) > s)
+          .sort(
+            (a, b) =>
+              categoryPriority[b.category] - categoryPriority[a.category],
+          );
+      segments.push({
+        start: s,
+        end: e,
+        kind: eventKind(matches[0]) || (uncertain ? "unknown" : "clear"),
+      });
+    }
+    hours.push({ start: t, end, segments });
+  }
+  return hours;
+}
+function universalState(data,date,now){
+  const d=universalDay(data.universal,date,data.selectedLineId,now),hours=exactHours(d.events,d.from,d.until,d.uncertain,now);
+  const lost=hours.flatMap(h=>h.segments).filter(x=>isOutage(x.kind)).reduce((n,x)=>n+(x.end-x.start)/60000,0);
+  return {...d,date,hours,displayHours:displayHours(d.events,d.from,d.until,d.uncertain,now),policy:{active:false,validity:d.known?'active':'unknown'},
+    available:!!d.line,totals:d.uncertain?null:{off:lost,on:(d.until-d.from)/60000-lost}};
 }

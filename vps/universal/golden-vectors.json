@@ -1,0 +1,16 @@
+{
+ "schemaVersion":1,
+ "frozenCherkasy":{"date":"2026-11-03","now":"2026-11-03T12:00:00Z","groupCode":"3.2","hourlyFromMinute":960,"hourlyUntilMinute":1080,"expectedOffMinutes":120,"expectedKnown":true},
+ "cases":[
+  {"name":"two lines without selection","expectedKnown":false},
+  {"name":"explicit second line, group B-12","expectedKnown":true},
+  {"name":"direct address, no groupCode","expectedKnown":true},
+  {"name":"unpublished empty schedule","expectedKnown":false},
+  {"name":"source failure and retained snapshot","expectedKnown":false,"preserveSourceUpdatedAt":true},
+  {"name":"disabled operator","expectedKnown":false},
+  {"name":"unknown schema/category enum","expectedKnown":false},
+  {"name":"explicit exclusion","expectedResolution":"excluded"},
+  {"name":"fall DST day","date":"2026-10-25","expectedHourlyTiles":25},
+  {"name":"spring DST day","date":"2026-03-29","expectedHourlyTiles":23}
+ ]
+}

@@ -10,13 +10,13 @@ export function scheduleNotice(day,currentLabel) {
 }
 export function addressLines(p,list=false) {
   const title=p.name||p.address.city, detail=p.name?p.address.label:(p.address.street ? p.address.street+', '+p.address.house : p.address.label.replace(p.address.city+', ',''));
-  return `<span class="address-copy"><span class="address-name">${esc(title)}</span><span class="address-detail">${esc(detail)}</span></span>`;
+  return `<span class="address-copy"><span class="address-name">${esc(title)}</span><span class="address-detail">${esc(detail)}${p.address.multipleLines?' · '+esc(p.address.lineLabel||''):''}</span></span>`;
 }
 export function manageAddressRows(profiles,activeId) {
   return `<ul class="manage-address-list">${profiles.map(p=>{
     const title=p.name||p.address.city,detail=p.name?p.address.label:(p.address.street?p.address.street+', '+p.address.house:p.address.label.replace(p.address.city+', ',''));
     const current=p.id===activeId;
-    return `<li class="manage-entry"${current?' aria-current="true"':''}><span class="manage-copy"><span class="manage-name"><span class="manage-title">${esc(title)}</span>${current?checkIcon():''}</span><span class="manage-detail">${esc(detail)}</span></span><button type="button" class="danger manage-delete" data-delete="${esc(p.id)}" aria-label="Видалити адресу: ${esc(p.name?p.name+', '+p.address.label:p.address.label)}">Видалити</button></li>`;
+    return `<li class="manage-entry"${current?' aria-current="true"':''}><span class="manage-copy"><span class="manage-name"><span class="manage-title">${esc(title)}</span>${current?checkIcon():''}</span><span class="manage-detail">${esc(detail)}${p.address.multipleLines?' · '+esc(p.address.lineLabel||''):''}</span></span><button type="button" class="danger manage-delete" data-delete="${esc(p.id)}" aria-label="Видалити адресу: ${esc(p.name?p.name+', '+p.address.label:p.address.label)}">Видалити</button></li>`;
   }).join('')}</ul>`;
 }
 export function addressCard(p,profiles,open) {
