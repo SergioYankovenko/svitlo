@@ -1,0 +1,6734 @@
+{
+  "result": true,
+  "data": {
+    "1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:11 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "5": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "6": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "7": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "9": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "10": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "11": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "12": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "13": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "14": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "15": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "16": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "17": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "18": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "19": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "20": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "21": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "22": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "23": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "24": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "25": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "26": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "27": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "28": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1",
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "29": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2",
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "30": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "31": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1",
+        "GPV2.1",
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "32": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "33": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1",
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "34": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "35": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1",
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "36": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "37": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "38": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "39": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "40": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "41": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "42": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "43": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "44": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "46": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "47": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "48": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1",
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "49": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "50": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "52": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "53": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "54": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2",
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "55": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2",
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "56": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1",
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "57": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "58": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "59": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "60": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "61": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "63": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "64": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "65": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1Г": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1Д": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1О": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1П": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1П/1": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Ч": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1Ш": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/11": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/12": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/14": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/15": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "34А": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "35-а": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "36Б": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "36-В": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "39А": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:08 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-А": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:11 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1с": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:11 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1-К": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:11 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1к/18": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:11 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-к": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:11 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-С/2": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:11 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2с/2/18": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:11 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-с/1": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:11 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/1": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/2": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/3": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1 корп.В": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1 секц 2": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1 секц.5": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "Г": {
+      "sub_type": "Стабілізаційне відключення (Згідно графіку погодинних відключень)",
+      "start_date": "10:12 04.11.2026",
+      "end_date": "17:30 04.11.2026",
+      "type": "2",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-С": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "9/2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6/пр. 4": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "11А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2Ф/3": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Л..1-Н": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7/пр. 14": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1,с.2,пр": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-П": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/101": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/151": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/209": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/11/246": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7пр.16": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1,пр.121": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "29А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1",
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/109": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1 к.2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "4/2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "12А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/прим.213": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/206": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "25Г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "25Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "27-г/4": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/124": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/147": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/121": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-О": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/112": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-Ю": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/154": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Д": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/118": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1 секц 1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16/98": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/11/243": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6/прим.3": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/149/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "13А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/207": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8, пр.12": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/116": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "26А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13; 3/16": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/147/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7, п.6": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "15А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Ш": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7/5": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8,п.13": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7/4": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/106": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3-К": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "11Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "10/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/123": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "8а": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "№30": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16/101": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "27-А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2Л": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "27Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "14а": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/12/145": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/106": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6 пр5": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/12/150": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/152": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "36/2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6, п.2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "8/3": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7пр.20": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/214": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/1/157": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7пр.21": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1ц, 1ч": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "9А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "27-г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1КОР_В": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "№25": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Л/секц 2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "25В": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "25-г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6 пр17": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6, пр.8": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2 Г кв 17": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/113": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/100": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "65Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6пр.12": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-З": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8, пр.7": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "33А,81,81А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/156": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6пр.13": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8,пр.9": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1КОРП_В": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "біля №25": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-М/1/секц 5": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "27Г/7": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7, пр.2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "65А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/149": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/104": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/11/244": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/12/146": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/153": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Ш/1068": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "25/2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/95": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "10б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/105": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "34Г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "34-г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/149": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "29А/16": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "51/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/215": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "34В": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "34-в": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6, п.6": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/119": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6,пр.1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8,пр.6": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/103": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/105": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "56/2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/208": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/110": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Н/секц 6": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7/прим.10": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/148": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1ш, 1щ": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/122": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8,п.14": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/11/247": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-М/секц 4": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7пр.17": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-р": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/1/142": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "62/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/101": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/104": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/99": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "20а": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-В": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "59А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/100": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/151": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/154": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8,п.12": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "33-А/48": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/150": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/102": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16/94": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "62А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/148": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/3/6": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16/93": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/210": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/1/135/148": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-е": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "10-а": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/111": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Ч/1068": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/3/12": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/150": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/97": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-В/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1 пр.1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "26/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/96": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/прим.212": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1, Г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/10/211": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/152": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "11Д": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "11-д": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16/99": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/99": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1 буд..2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1Ч/1070": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/12/112": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/114": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "20/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Л/секц 1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "61В": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "18А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "24Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/15/пр.255": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6пр.14": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/98": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "29А/15": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8, пр10": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "33А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/4/153": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "63Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/117": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "53А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/107": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "23а": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Н/секц 7": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2ю,пр.55/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8,пр.3": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6,пр.16": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "53Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16/97": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/155": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7/пр. 12": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-П/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "8/2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/115": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16/96": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "6А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-П/133": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Л,М,Н/секц 3": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1 к.1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/8,пр.8": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1, к.3": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16/95": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2 ж/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "11Ж": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "9/1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/120": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1сек1": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7/пр. 13": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/102": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "43 А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "61Б": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-ж": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7,пр.11": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/9/108": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "61А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "20в": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "15/2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV3.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "50А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "25д": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/13/98": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1 буд. 2": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "11Г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "11-Г": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "27Г/3": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/2/8": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/16/100": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7,п.7": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/5/147": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6,пр15": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2/1КОРПВ": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "1-Ч/1067": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "11Е": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV1.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "25А": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/7/прим.9": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/6, пр.7": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "3/15/пр.256": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV6.1"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2В": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    },
+    "2-в": {
+      "sub_type": "",
+      "start_date": "",
+      "end_date": "",
+      "type": "",
+      "sub_type_reason": [
+        "GPV2.2"
+      ],
+      "voluntarily": null,
+      "cek": null
+    }
+  },
+  "showCurOutageParam": true,
+  "showCurSchedule": true,
+  "showTableSchedule": true,
+  "showTablePlan": false,
+  "showTableFact": true,
+  "showUserGroup": true,
+  "updateTimestamp": "11:24 04.11.2026",
+  "fact": {
+    "data": {
+      "1793743200": {
+        "GPV1.1": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "no",
+          "5": "no",
+          "6": "no",
+          "7": "no",
+          "8": "first",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "second",
+          "15": "no",
+          "16": "no",
+          "17": "no",
+          "18": "no",
+          "19": "no",
+          "20": "no",
+          "21": "no",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "GPV1.2": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "no",
+          "5": "no",
+          "6": "no",
+          "7": "no",
+          "8": "no",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "second",
+          "15": "no",
+          "16": "no",
+          "17": "no",
+          "18": "no",
+          "19": "no",
+          "20": "no",
+          "21": "no",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "GPV2.1": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "no",
+          "5": "no",
+          "6": "no",
+          "7": "no",
+          "8": "no",
+          "9": "no",
+          "10": "no",
+          "11": "first",
+          "12": "yes",
+          "13": "yes",
+          "14": "second",
+          "15": "no",
+          "16": "no",
+          "17": "no",
+          "18": "no",
+          "19": "no",
+          "20": "no",
+          "21": "no",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "GPV2.2": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "no",
+          "5": "no",
+          "6": "no",
+          "7": "no",
+          "8": "no",
+          "9": "no",
+          "10": "no",
+          "11": "first",
+          "12": "yes",
+          "13": "yes",
+          "14": "second",
+          "15": "no",
+          "16": "no",
+          "17": "no",
+          "18": "no",
+          "19": "no",
+          "20": "no",
+          "21": "no",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "GPV3.1": {
+          "1": "no",
+          "2": "no",
+          "3": "no",
+          "4": "first",
+          "5": "yes",
+          "6": "yes",
+          "7": "second",
+          "8": "no",
+          "9": "no",
+          "10": "no",
+          "11": "first",
+          "12": "yes",
+          "13": "no",
+          "14": "no",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "no",
+          "19": "no",
+          "20": "no",
+          "21": "no",
+          "22": "no",
+          "23": "yes",
+          "24": "yes"
+        },
+        "GPV3.2": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "second",
+          "8": "no",
+          "9": "no",
+          "10": "no",
+          "11": "first",
+          "12": "yes",
+          "13": "no",
+          "14": "no",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "no",
+          "19": "no",
+          "20": "no",
+          "21": "no",
+          "22": "no",
+          "23": "no",
+          "24": "no"
+        },
+        "GPV4.1": {
+          "1": "no",
+          "2": "no",
+          "3": "no",
+          "4": "first",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "no",
+          "10": "no",
+          "11": "no",
+          "12": "no",
+          "13": "no",
+          "14": "no",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "no",
+          "19": "no",
+          "20": "no",
+          "21": "no",
+          "22": "no",
+          "23": "no",
+          "24": "no"
+        },
+        "GPV4.2": {
+          "1": "no",
+          "2": "no",
+          "3": "no",
+          "4": "first",
+          "5": "yes",
+          "6": "yes",
+          "7": "second",
+          "8": "no",
+          "9": "no",
+          "10": "no",
+          "11": "no",
+          "12": "no",
+          "13": "no",
+          "14": "no",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "no",
+          "19": "no",
+          "20": "no",
+          "21": "no",
+          "22": "no",
+          "23": "no",
+          "24": "no"
+        },
+        "GPV5.1": {
+          "1": "no",
+          "2": "no",
+          "3": "no",
+          "4": "no",
+          "5": "no",
+          "6": "no",
+          "7": "no",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "no",
+          "12": "no",
+          "13": "no",
+          "14": "no",
+          "15": "no",
+          "16": "no",
+          "17": "no",
+          "18": "first",
+          "19": "yes",
+          "20": "yes",
+          "21": "second",
+          "22": "no",
+          "23": "no",
+          "24": "no"
+        },
+        "GPV5.2": {
+          "1": "no",
+          "2": "no",
+          "3": "no",
+          "4": "no",
+          "5": "no",
+          "6": "no",
+          "7": "no",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "no",
+          "12": "no",
+          "13": "no",
+          "14": "no",
+          "15": "no",
+          "16": "no",
+          "17": "no",
+          "18": "first",
+          "19": "yes",
+          "20": "yes",
+          "21": "second",
+          "22": "no",
+          "23": "no",
+          "24": "no"
+        },
+        "GPV6.1": {
+          "1": "no",
+          "2": "no",
+          "3": "no",
+          "4": "first",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "no",
+          "12": "no",
+          "13": "no",
+          "14": "no",
+          "15": "no",
+          "16": "no",
+          "17": "no",
+          "18": "first",
+          "19": "yes",
+          "20": "yes",
+          "21": "second",
+          "22": "no",
+          "23": "no",
+          "24": "no"
+        },
+        "GPV6.2": {
+          "1": "no",
+          "2": "no",
+          "3": "no",
+          "4": "no",
+          "5": "no",
+          "6": "no",
+          "7": "no",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "no",
+          "12": "no",
+          "13": "no",
+          "14": "no",
+          "15": "no",
+          "16": "no",
+          "17": "no",
+          "18": "first",
+          "19": "yes",
+          "20": "yes",
+          "21": "second",
+          "22": "no",
+          "23": "no",
+          "24": "no"
+        }
+      }
+    },
+    "update": "04.11.2026 11:25",
+    "today": 1793743200
+  },
+  "preset": {
+    "days": {
+      "1": "Понеділок",
+      "2": "Вівторок",
+      "3": "Середа",
+      "4": "Четвер",
+      "5": "П'ятниця",
+      "6": "Субота",
+      "7": "Неділя"
+    },
+    "days_mini": {
+      "1": "Пн",
+      "2": "Вт",
+      "3": "Ср",
+      "4": "Чт",
+      "5": "Пт",
+      "6": "Сб",
+      "7": "Нд"
+    },
+    "sch_names": {
+      "GPV1.1": "Черга 1.1",
+      "GPV1.2": "Черга 1.2",
+      "GPV2.1": "Черга 2.1",
+      "GPV2.2": "Черга 2.2",
+      "GPV3.1": "Черга 3.1",
+      "GPV3.2": "Черга 3.2",
+      "GPV4.1": "Черга 4.1",
+      "GPV4.2": "Черга 4.2",
+      "GPV5.1": "Черга 5.1",
+      "GPV5.2": "Черга 5.2",
+      "GPV6.1": "Черга 6.1",
+      "GPV6.2": "Черга 6.2"
+    },
+    "time_zone": {
+      "1": [
+        "00-01",
+        "00:00",
+        "01:00"
+      ],
+      "2": [
+        "01-02",
+        "01:00",
+        "02:00"
+      ],
+      "3": [
+        "02-03",
+        "02:00",
+        "03:00"
+      ],
+      "4": [
+        "03-04",
+        "03:00",
+        "04:00"
+      ],
+      "5": [
+        "04-05",
+        "04:00",
+        "05:00"
+      ],
+      "6": [
+        "05-06",
+        "05:00",
+        "06:00"
+      ],
+      "7": [
+        "06-07",
+        "06:00",
+        "07:00"
+      ],
+      "8": [
+        "07-08",
+        "07:00",
+        "08:00"
+      ],
+      "9": [
+        "08-09",
+        "08:00",
+        "09:00"
+      ],
+      "10": [
+        "09-10",
+        "09:00",
+        "10:00"
+      ],
+      "11": [
+        "10-11",
+        "10:00",
+        "11:00"
+      ],
+      "12": [
+        "11-12",
+        "11:00",
+        "12:00"
+      ],
+      "13": [
+        "12-13",
+        "12:00",
+        "13:00"
+      ],
+      "14": [
+        "13-14",
+        "13:00",
+        "14:00"
+      ],
+      "15": [
+        "14-15",
+        "14:00",
+        "15:00"
+      ],
+      "16": [
+        "15-16",
+        "15:00",
+        "16:00"
+      ],
+      "17": [
+        "16-17",
+        "16:00",
+        "17:00"
+      ],
+      "18": [
+        "17-18",
+        "17:00",
+        "18:00"
+      ],
+      "19": [
+        "18-19",
+        "18:00",
+        "19:00"
+      ],
+      "20": [
+        "19-20",
+        "19:00",
+        "20:00"
+      ],
+      "21": [
+        "20-21",
+        "20:00",
+        "21:00"
+      ],
+      "22": [
+        "21-22",
+        "21:00",
+        "22:00"
+      ],
+      "23": [
+        "22-23",
+        "22:00",
+        "23:00"
+      ],
+      "24": [
+        "23-24",
+        "23:00",
+        "24:00"
+      ]
+    },
+    "time_type": {
+      "yes": "Світло є",
+      "maybe": "Можливо відключення",
+      "no": "Світла немає",
+      "first": "Світла не буде перші 30 хв.",
+      "second": "Світла не буде другі 30 хв",
+      "mfirst": "Світла можливо не буде перші 30 хв.",
+      "msecond": "Світла можливо не буде другі 30 хв"
+    },
+    "data": {
+      "GPV1.1": {
+        "1": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "mfirst",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "yes",
+          "18": "yes",
+          "19": "yes",
+          "20": "msecond",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "2": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "mfirst",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "yes",
+          "15": "yes",
+          "16": "yes",
+          "17": "msecond",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "mfirst"
+        },
+        "3": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "msecond",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "mfirst",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "4": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "msecond",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "mfirst",
+          "19": "yes",
+          "20": "yes",
+          "21": "yes",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "5": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "msecond",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "mfirst",
+          "16": "yes",
+          "17": "yes",
+          "18": "yes",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "6": {
+          "1": "maybe",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "msecond",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "mfirst",
+          "13": "yes",
+          "14": "yes",
+          "15": "yes",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "yes",
+          "24": "yes"
+        },
+        "7": {
+          "1": "yes",
+          "2": "msecond",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "mfirst",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "yes",
+          "21": "yes",
+          "22": "yes",
+          "23": "msecond",
+          "24": "maybe"
+        }
+      },
+      "GPV1.2": {
+        "1": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "mfirst",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "yes",
+          "18": "yes",
+          "19": "yes",
+          "20": "msecond",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "2": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "mfirst",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "yes",
+          "15": "yes",
+          "16": "yes",
+          "17": "msecond",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "mfirst"
+        },
+        "3": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "msecond",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "mfirst",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "4": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "msecond",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "mfirst",
+          "19": "yes",
+          "20": "yes",
+          "21": "yes",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "5": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "msecond",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "mfirst",
+          "16": "yes",
+          "17": "yes",
+          "18": "yes",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "6": {
+          "1": "maybe",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "msecond",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "mfirst",
+          "13": "yes",
+          "14": "yes",
+          "15": "yes",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "yes",
+          "24": "yes"
+        },
+        "7": {
+          "1": "yes",
+          "2": "msecond",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "mfirst",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "yes",
+          "21": "yes",
+          "22": "yes",
+          "23": "msecond",
+          "24": "maybe"
+        }
+      },
+      "GPV2.1": {
+        "1": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "mfirst",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "yes",
+          "18": "yes",
+          "19": "yes",
+          "20": "msecond",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "2": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "mfirst",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "yes",
+          "15": "yes",
+          "16": "yes",
+          "17": "msecond",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "mfirst"
+        },
+        "3": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "msecond",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "mfirst",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "4": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "msecond",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "mfirst",
+          "19": "yes",
+          "20": "yes",
+          "21": "yes",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "5": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "msecond",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "mfirst",
+          "16": "yes",
+          "17": "yes",
+          "18": "yes",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "6": {
+          "1": "maybe",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "msecond",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "mfirst",
+          "13": "yes",
+          "14": "yes",
+          "15": "yes",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "yes",
+          "24": "yes"
+        },
+        "7": {
+          "1": "yes",
+          "2": "msecond",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "mfirst",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "yes",
+          "21": "yes",
+          "22": "yes",
+          "23": "msecond",
+          "24": "maybe"
+        }
+      },
+      "GPV2.2": {
+        "1": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "mfirst",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "yes",
+          "18": "yes",
+          "19": "yes",
+          "20": "msecond",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "2": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "mfirst",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "yes",
+          "15": "yes",
+          "16": "yes",
+          "17": "msecond",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "mfirst"
+        },
+        "3": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "msecond",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "mfirst",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "4": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "msecond",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "mfirst",
+          "19": "yes",
+          "20": "yes",
+          "21": "yes",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "5": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "msecond",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "mfirst",
+          "16": "yes",
+          "17": "yes",
+          "18": "yes",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "6": {
+          "1": "maybe",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "msecond",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "mfirst",
+          "13": "yes",
+          "14": "yes",
+          "15": "yes",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "yes",
+          "24": "yes"
+        },
+        "7": {
+          "1": "yes",
+          "2": "msecond",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "mfirst",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "yes",
+          "21": "yes",
+          "22": "yes",
+          "23": "msecond",
+          "24": "maybe"
+        }
+      },
+      "GPV3.1": {
+        "1": {
+          "1": "yes",
+          "2": "yes",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "msecond",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "mfirst",
+          "21": "yes",
+          "22": "yes",
+          "23": "yes",
+          "24": "maybe"
+        },
+        "2": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "msecond",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "mfirst",
+          "18": "yes",
+          "19": "yes",
+          "20": "yes",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "3": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "msecond",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "mfirst",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "4": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "msecond",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "mfirst",
+          "12": "yes",
+          "13": "yes",
+          "14": "yes",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "5": {
+          "1": "msecond",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "mfirst",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "yes",
+          "20": "yes",
+          "21": "yes",
+          "22": "msecond",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "6": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "mfirst",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "yes",
+          "17": "yes",
+          "18": "yes",
+          "19": "msecond",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "7": {
+          "1": "maybe",
+          "2": "mfirst",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "yes",
+          "14": "yes",
+          "15": "yes",
+          "16": "msecond",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "mfirst",
+          "24": "yes"
+        }
+      },
+      "GPV3.2": {
+        "1": {
+          "1": "yes",
+          "2": "yes",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "msecond",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "mfirst",
+          "21": "yes",
+          "22": "yes",
+          "23": "yes",
+          "24": "maybe"
+        },
+        "2": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "msecond",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "mfirst",
+          "18": "yes",
+          "19": "yes",
+          "20": "yes",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "3": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "msecond",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "mfirst",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "4": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "msecond",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "mfirst",
+          "12": "yes",
+          "13": "yes",
+          "14": "yes",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "5": {
+          "1": "msecond",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "mfirst",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "yes",
+          "20": "yes",
+          "21": "yes",
+          "22": "msecond",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "6": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "mfirst",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "yes",
+          "17": "yes",
+          "18": "yes",
+          "19": "msecond",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "7": {
+          "1": "maybe",
+          "2": "mfirst",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "yes",
+          "14": "yes",
+          "15": "yes",
+          "16": "msecond",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "mfirst",
+          "24": "yes"
+        }
+      },
+      "GPV4.1": {
+        "1": {
+          "1": "yes",
+          "2": "yes",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "msecond",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "mfirst",
+          "21": "yes",
+          "22": "yes",
+          "23": "yes",
+          "24": "maybe"
+        },
+        "2": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "msecond",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "mfirst",
+          "18": "yes",
+          "19": "yes",
+          "20": "yes",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "3": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "msecond",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "mfirst",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "4": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "msecond",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "mfirst",
+          "12": "yes",
+          "13": "yes",
+          "14": "yes",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "5": {
+          "1": "msecond",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "mfirst",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "yes",
+          "20": "yes",
+          "21": "yes",
+          "22": "msecond",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "6": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "mfirst",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "yes",
+          "17": "yes",
+          "18": "yes",
+          "19": "msecond",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "7": {
+          "1": "maybe",
+          "2": "mfirst",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "yes",
+          "14": "yes",
+          "15": "yes",
+          "16": "msecond",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "mfirst",
+          "24": "yes"
+        }
+      },
+      "GPV4.2": {
+        "1": {
+          "1": "yes",
+          "2": "yes",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "yes",
+          "11": "yes",
+          "12": "yes",
+          "13": "msecond",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "mfirst",
+          "21": "yes",
+          "22": "yes",
+          "23": "yes",
+          "24": "maybe"
+        },
+        "2": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "msecond",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "mfirst",
+          "18": "yes",
+          "19": "yes",
+          "20": "yes",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "3": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "msecond",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "mfirst",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "4": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "msecond",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "mfirst",
+          "12": "yes",
+          "13": "yes",
+          "14": "yes",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "yes",
+          "23": "yes",
+          "24": "yes"
+        },
+        "5": {
+          "1": "msecond",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "mfirst",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "yes",
+          "20": "yes",
+          "21": "yes",
+          "22": "msecond",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "6": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "mfirst",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "yes",
+          "17": "yes",
+          "18": "yes",
+          "19": "msecond",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "7": {
+          "1": "maybe",
+          "2": "mfirst",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "yes",
+          "14": "yes",
+          "15": "yes",
+          "16": "msecond",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "mfirst",
+          "24": "yes"
+        }
+      },
+      "GPV5.1": {
+        "1": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "msecond",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "mfirst",
+          "14": "yes",
+          "15": "yes",
+          "16": "yes",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "yes"
+        },
+        "2": {
+          "1": "yes",
+          "2": "yes",
+          "3": "msecond",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "mfirst",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "yes",
+          "22": "yes",
+          "23": "yes",
+          "24": "msecond"
+        },
+        "3": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "mfirst",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "yes",
+          "19": "yes",
+          "20": "yes",
+          "21": "msecond",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "4": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "mfirst",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "msecond",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "5": {
+          "1": "mfirst",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "yes",
+          "13": "yes",
+          "14": "yes",
+          "15": "msecond",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "mfirst",
+          "23": "yes",
+          "24": "yes"
+        },
+        "6": {
+          "1": "yes",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "msecond",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "mfirst",
+          "20": "yes",
+          "21": "yes",
+          "22": "yes",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "7": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "msecond",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "mfirst",
+          "17": "yes",
+          "18": "yes",
+          "19": "yes",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        }
+      },
+      "GPV5.2": {
+        "1": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "msecond",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "mfirst",
+          "14": "yes",
+          "15": "yes",
+          "16": "yes",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "yes"
+        },
+        "2": {
+          "1": "yes",
+          "2": "yes",
+          "3": "msecond",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "mfirst",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "yes",
+          "22": "yes",
+          "23": "yes",
+          "24": "msecond"
+        },
+        "3": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "mfirst",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "yes",
+          "19": "yes",
+          "20": "yes",
+          "21": "msecond",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "4": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "mfirst",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "msecond",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "5": {
+          "1": "mfirst",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "yes",
+          "13": "yes",
+          "14": "yes",
+          "15": "msecond",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "mfirst",
+          "23": "yes",
+          "24": "yes"
+        },
+        "6": {
+          "1": "yes",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "msecond",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "mfirst",
+          "20": "yes",
+          "21": "yes",
+          "22": "yes",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "7": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "msecond",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "mfirst",
+          "17": "yes",
+          "18": "yes",
+          "19": "yes",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        }
+      },
+      "GPV6.1": {
+        "1": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "msecond",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "mfirst",
+          "14": "yes",
+          "15": "yes",
+          "16": "yes",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "yes"
+        },
+        "2": {
+          "1": "yes",
+          "2": "yes",
+          "3": "msecond",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "mfirst",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "yes",
+          "22": "yes",
+          "23": "yes",
+          "24": "msecond"
+        },
+        "3": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "mfirst",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "yes",
+          "19": "yes",
+          "20": "yes",
+          "21": "msecond",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "4": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "mfirst",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "msecond",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "5": {
+          "1": "mfirst",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "yes",
+          "13": "yes",
+          "14": "yes",
+          "15": "msecond",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "mfirst",
+          "23": "yes",
+          "24": "yes"
+        },
+        "6": {
+          "1": "yes",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "msecond",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "mfirst",
+          "20": "yes",
+          "21": "yes",
+          "22": "yes",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "7": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "msecond",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "mfirst",
+          "17": "yes",
+          "18": "yes",
+          "19": "yes",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        }
+      },
+      "GPV6.2": {
+        "1": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "msecond",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "mfirst",
+          "14": "yes",
+          "15": "yes",
+          "16": "yes",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "yes"
+        },
+        "2": {
+          "1": "yes",
+          "2": "yes",
+          "3": "msecond",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "mfirst",
+          "11": "yes",
+          "12": "yes",
+          "13": "yes",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "yes",
+          "22": "yes",
+          "23": "yes",
+          "24": "msecond"
+        },
+        "3": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "mfirst",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "yes",
+          "19": "yes",
+          "20": "yes",
+          "21": "msecond",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "4": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "mfirst",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "yes",
+          "16": "yes",
+          "17": "yes",
+          "18": "msecond",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "5": {
+          "1": "mfirst",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "maybe",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "yes",
+          "13": "yes",
+          "14": "yes",
+          "15": "msecond",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "maybe",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "mfirst",
+          "23": "yes",
+          "24": "yes"
+        },
+        "6": {
+          "1": "yes",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "maybe",
+          "7": "maybe",
+          "8": "maybe",
+          "9": "yes",
+          "10": "yes",
+          "11": "yes",
+          "12": "msecond",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "maybe",
+          "17": "maybe",
+          "18": "maybe",
+          "19": "mfirst",
+          "20": "yes",
+          "21": "yes",
+          "22": "yes",
+          "23": "maybe",
+          "24": "maybe"
+        },
+        "7": {
+          "1": "maybe",
+          "2": "maybe",
+          "3": "maybe",
+          "4": "maybe",
+          "5": "maybe",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "msecond",
+          "10": "maybe",
+          "11": "maybe",
+          "12": "maybe",
+          "13": "maybe",
+          "14": "maybe",
+          "15": "maybe",
+          "16": "mfirst",
+          "17": "yes",
+          "18": "yes",
+          "19": "yes",
+          "20": "maybe",
+          "21": "maybe",
+          "22": "maybe",
+          "23": "maybe",
+          "24": "maybe"
+        }
+      }
+    },
+    "updateFact": "04.11.2026 11:25"
+  }
+}

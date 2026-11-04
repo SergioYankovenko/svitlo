@@ -2,6 +2,7 @@ import {rows} from '../../app/lib/parsers.js';
 import {civil} from '../../app/lib/time.js';
 import {CATEGORIES,universalEnvelope} from '../../app/lib/universal-contract.js';
 import {normalizeLegacy,seal,dates} from './normalize.js';
+import {DtekAdapter} from '../regions/service.js';
 export class CherkasyAdapter {
  constructor({legacy,source}){Object.assign(this,{legacy,source});}
  async resolve(entity){const r=await this.legacy.queueResolution(entity.source_ref,Date.now());
@@ -38,6 +39,7 @@ export class QaAdapter {
  }
 }
 export function adapterFor(operator,context){
+ if(operator.adapter_key==='dtek-public-v1'&&context.regions?.handles(operator.id))return new DtekAdapter(context.regions);
  if(operator.adapter_key==='cherkasy-v1'&&operator.id==='ua-cherkasy')return new CherkasyAdapter(context);
  if(operator.is_test&&operator.adapter_key==='qa-grid-v1')return new QaAdapter();
  if(operator.is_test&&operator.adapter_key==='qa-alt-v1')return new QaAdapter({variant:'alternative-wire'});

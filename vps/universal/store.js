@@ -1,7 +1,7 @@
 const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
 export const apiError=(status,code,message=code)=>Object.assign(Error(message),{status,code});
 export class Catalog {
- constructor(bridge){this.db=bridge;}
+ constructor(bridge,regions){this.db=bridge;this.regions=regions;}
  async operators(){return (await this.db.query("select * from svitlo_vps.operators where id<>'map-only' order by id")).rows;}
  async operator(id){return (await this.db.query('select * from svitlo_vps.operators where id=$1',[id])).rows[0];}
  async entity(id){if(!uuid(id))throw apiError(400,'invalid_id','Некоректний ідентифікатор');
@@ -10,6 +10,7 @@ export class Catalog {
    const r=(await this.db.query(`select e.*,s.label as street,s.metadata as street_metadata,c.label as city,c.id as city_id from svitlo_vps.catalog e
     left join svitlo_vps.catalog s on s.id=e.parent_id left join svitlo_vps.catalog c on c.id=s.parent_id where e.id=$1`,[id])).rows[0];
    if(!r)throw apiError(404,'address_not_found','Адресу не знайдено');
+   if(r.metadata?.regionOperator&&r.metadata.sourceActive===false)throw apiError(409,'address_requires_reselection','Адресу більше не підтверджує джерело. Повторіть пошук');
    if(!r.redirect_to){if(!(await this.db.query('select svitlo_vps.catalog_allowed($1) allowed',[r.id])).rows[0].allowed){if(r.operator_id==='map-only')throw apiError(404,'address_not_found','Адресу не знайдено');throw apiError(409,'address_requires_reselection','Потрібно повторно обрати вулицю: цей запис є службовим');}return r;}id=r.redirect_to;
   }throw apiError(503,'alias_depth');
  }
@@ -19,11 +20,12 @@ export class Catalog {
  async search({kind,parentId=null,q='',cursor=null,limit=50}={}){
   const map={cities:'city',streets:'street',houses:'address'};if(!map[kind]||typeof q!=='string'||q.length>120||!Number.isInteger(limit)||limit<1||limit>50)throw apiError(400,'invalid_search');
   if(kind!=='cities'&&!uuid(parentId))throw apiError(400,'invalid_parent');
-  if(kind!=='cities'){const parent=await this.entity(parentId);if(parent.kind!==(kind==='streets'?'city':'street'))throw apiError(400,'invalid_parent');parentId=parent.id;}
+  if(kind!=='cities'){const parent=await this.entity(parentId);if(parent.kind!==(kind==='streets'?'city':'street'))throw apiError(400,'invalid_parent');parentId=parent.id;await this.regions?.ensureSearch(parent,kind);}
   let after=null;if(cursor){try{if(typeof cursor!=='string'||cursor.length>1024)throw Error();after=JSON.parse(Buffer.from(cursor,'base64url'));if(after.kind!==kind||after.parentId!==parentId||after.q!==q||!uuid(after.id)||typeof after.label!=='string')throw Error();}catch{throw apiError(400,'invalid_cursor');}}
   const text='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
   const r=await this.db.query(`select e.*,case when e.kind='city' then svitlo_vps.catalog_city_state(e.id) end as route_state from svitlo_vps.catalog e where e.kind=$1 and e.parent_id is not distinct from $2::uuid
-   and e.redirect_to is null and e.label ilike $3 and coalesce(e.metadata->>'catalogStatus','')<>'service' and e.operator_id is distinct from 'map-only'
+   and e.redirect_to is null and e.label ilike $3 and coalesce(e.metadata->>'catalogStatus','')<>'service' and coalesce(e.metadata->>'sourceActive','true')<>'false' and e.operator_id is distinct from 'map-only'
+   and (e.kind<>'city' or e.metadata->>'regionOperator' is null or e.source_ref->>'sourceName' ilike $3)
    and svitlo_vps.catalog_allowed(e.id) and (e.kind<>'city' or svitlo_vps.catalog_city_state(e.id)<>'empty')
    and ($1<>'street' or svitlo_vps.catalog_city_state($2::uuid)<>'empty')
    and ($4::text is null or (e.label collate "C",e.id)>($4 collate "C",$5::uuid))

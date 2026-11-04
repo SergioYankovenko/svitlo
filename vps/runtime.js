@@ -11,6 +11,7 @@ import {PgBridge,pool} from './db.js';
 import {UniversalReader} from './universal/reader.js';
 import {UniversalService} from './universal/service.js';
 import {MapAddresses} from './maps/service.js';
+import {Regions} from './regions/service.js';
 
 // Accounts remain transient adapter inputs; they never enter the persistent address/profile/catalog.
 export class PrivateSource extends Source {
@@ -31,8 +32,8 @@ export async function runtime(role='api'){
   const secret=readFileSync('/run/secrets/session_secret','utf8').trim();
   const source=new PrivateSource(providerTransport(db,operatorFetch),{dictionaries:new SharedDictionaries(db),feed:new SharedFeed(db),categories:new SharedCategories(db,secret)});
   const options={db,source,vapid:'',push:async()=>{throw Error('STAGING_DELIVERY_DISABLED');},jobBudgetMs:45000};
-  const legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret});
+  const regions=new Regions({db,bridge,secret}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions});
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
   const service=new UniversalService({...options,maps},reader);
-  return {p,bridge,db,source,service,legacy,reader,maps,secret};
+  return {p,bridge,db,source,service,legacy,reader,maps,regions,secret};
 }

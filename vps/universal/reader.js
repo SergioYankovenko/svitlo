@@ -7,7 +7,7 @@ import {Catalog,apiError} from './store.js';
 import {adapterFor} from './adapters.js';
 import {degraded,normalizeLegacy,retainPartial} from './normalize.js';
 export class UniversalReader {
- constructor({db,bridge,legacy,source,secret}){Object.assign(this,{db,bridge,legacy,source,secret});this.catalog=new Catalog(bridge);this.shared=new SharedCategories(db,secret,{ttl:300000});}
+ constructor({db,bridge,legacy,source,secret,regions}){Object.assign(this,{db,bridge,legacy,source,secret,regions});this.catalog=new Catalog(bridge,regions);this.shared=new SharedCategories(db,secret,{ttl:300000});}
  async capabilities(){const operators=await this.catalog.operators();return {schemaVersion:1,apiVersion:'1.0.0',featureSet:'universal',timeZones:['Europe/Kyiv'],
   categories:['hourly','planned','unplanned','emergency'],limits:{search:50,batch:10,days:14},addressFallback:{source:'visicom',requiresSession:true,approximate:true,preserveHouse:true},operators:operators.map(o=>({id:o.id,label:o.label,supportState:adapterFor(o,this)?o.state:'unsupported',synthetic:o.is_test,coverage:o.config.coverage,unitSupported:o.config.unitSupported===true})),push:false,sensors:false};}
  checkVersion(body){if(body.schemaVersion!==undefined&&body.schemaVersion!==1)throw apiError(400,'unsupported_schema','Ця версія формату не підтримується');}
@@ -40,7 +40,8 @@ export class UniversalReader {
   const key=createHmac('sha256',this.secret).update(JSON.stringify(scope)).digest('hex');
   const old=async()=>{const r=(await this.bridge.query('select value from public.svitlo_source_cache where key=$1',[key])).rows[0]?.value;return validUniversal(r)&&r.addressId===entity.id?r:null;};
   if(!adapter||operator.state==='disabled')return degraded(entity,range,await old(),!adapter?'adapter_unsupported':'operator_disabled',Date.now(),!adapter?'unsupported':'disabled');
-  return this.shared.load(scope,async()=>{
+  const cache=this.regions?.handles(entity.operator_id)?this.regions.snapshotCache:this.shared;
+  return cache.load(scope,async()=>{
    const previous=await old();try{
     let resolution=(await this.resolveEntity(entity)).resolution;
     const result=await adapter.snapshot(entity,resolution,range,previous);
