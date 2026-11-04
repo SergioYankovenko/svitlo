@@ -50,7 +50,7 @@ export async function jsonFetch(url, fetcher = fetch, limit = 8_000_000, signal)
   }
   return JSON.parse(new TextDecoder().decode(all));
 }
-const norm = (s) =>
+export const addressNorm = (s) =>
   plain(s)
     .toLowerCase()
     .replace(/[’ʼ]/g, "'")
@@ -60,6 +60,7 @@ const norm = (s) =>
     .replace(/^(провулок|пров\.)\s*/, "пров ")
     .replace(/\s+/g, " ")
     .trim();
+const norm=addressNorm;
 export function matchesAddress(html, a) {
   const sections = [
     ...String(html).matchAll(/<strong\b[^>]*>(.*?)<\/strong>/gis),
@@ -97,7 +98,7 @@ export function matchesAddress(html, a) {
   return found;
 }
 export class Source {
-  constructor(fetcher = fetch, { dictionaries = null, feed = null, categories = null } = {}) {
+  constructor(fetcher = fetch, { dictionaries = null, feed = null, categories = null, departmentSchedules = null } = {}) {
     this.fetcher = fetcher;
     this.publicCache = null;
     this.pending = null;
@@ -105,6 +106,7 @@ export class Source {
     this.sharedDictionaries = dictionaries;
     this.sharedFeed = feed;
     this.sharedCategories = categories;
+    this.departmentSchedules = departmentSchedules;
     this.departmentRequests = new InflightDepartmentRequests();
   }
   request(params, signal) {
@@ -343,7 +345,10 @@ export class Source {
           return next;
           };
           const scope=[category === 'planned' ? 'address-types-v2' : 'address-v1',a.account ? ['account',a.account] : ['address',a.department,a.cityId,a.streetId,a.house,a.city,a.street],category,base.n_date,base.k_date];
-          const next=this.sharedCategories ? await this.sharedCategories.load(scope,load,signal) : await load();
+          const pooled=!a.account&&this.departmentSchedules?.supports(a)
+            ? await this.departmentSchedules.address(a,category,base,now,ownedSignal=>this.request({...base,disconn_selector:String(selector),op:'disconn_by_dept',dept_id:a.department},ownedSignal),signal)
+            : null;
+          const next=pooled || (this.sharedCategories ? await this.sharedCategories.load(scope,load,signal) : await load());
           // Retain already elapsed intervals if upstream omits them on a later request.
           const historical = (
             previous.categories?.[category]?.events || []

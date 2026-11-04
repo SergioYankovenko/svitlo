@@ -26,8 +26,9 @@ async function privateVps(route,data,{owner,signal}={}){
   if(!universalEnabled)throw Error('Ця дія поки недоступна');await ending;
   const session=owner?await sessionController.read():await sessionForRequest();
   if(!session||owner&&session.user.id!==owner)throw Object.assign(Error('Операція вже не актуальна'),{stale:true});
-  return post('/api/v1/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Svitlo-CSRF':session.csrf_token},
-    body:JSON.stringify({schemaVersion:1,...data}),cache:'no-store',signal:signal||AbortSignal.timeout(20000)});
+  try{return await post('/api/v1/'+route,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Svitlo-CSRF':session.csrf_token},
+    body:JSON.stringify({schemaVersion:1,...data}),cache:'no-store',signal:signal||AbortSignal.timeout(20000)});}
+  catch(e){if(e.status===401||e.status===403)await sessionController.invalidate();throw e;}
 }
 export const mapSearch=(data,options)=>privateVps('map-search',data,options);
 export const sensorRequest=(action,data={},options)=>privateVps('sensors',{action,...data},options);
@@ -56,7 +57,8 @@ export async function request(action, data = {}, {signal,owner}={}) {
     body: JSON.stringify({ action, ...data }),
     signal: controller.signal,
     cache: "no-store",
-  });}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+  });}catch(e){if(config.transport==='vps'&&(e.status===401||e.status===403))await sessionController.invalidate();throw e;}
+  finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
 }
 export async function post(url, options, fetcher = fetch) {
   let r, payload;
