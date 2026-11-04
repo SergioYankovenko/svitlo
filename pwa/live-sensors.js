@@ -82,7 +82,7 @@ window.SvitloLiveSensors={create(ctx){
     function sharing() {
       const p = managed(); if (!p) return connect();
       hubView = "sharing";
-      const actions = owner(p) ? button("Запросити телефон","invite")+button("Учасники","members")+
+      const actions = owner(p) ? button("Запросити телефон","invite","",'disabled aria-disabled="true"')+button("Учасники","members")+
         button("Передати власність","transfer","",'disabled aria-disabled="true"')+button("Від’єднати для всіх","disconnect","cancel")
         : member(p) ? button("Прибрати у себе","leave","cancel") : button("Прийняти запрошення","join")+button("Відновити доступ","recover");
       hubDialog("Доступ до датчика",`<p>Ви: ${owner(p) ? "власник" : member(p) ? "глядач" : "доступу немає"}.</p><div class="sensor-menu-actions">${actions}</div>`,button("До огляду","overview"));
@@ -288,11 +288,10 @@ window.SvitloLiveSensors={create(ctx){
       case 'summary-source':if(p&&member(p)&&['plan','actual'].includes(el.dataset.source)){p.actualSummary=el.dataset.source==='actual';save();ctx.render();settings();}break;
       case 'hour':hourDetails(el);break;
       case 'hour-overview':if(el.dataset.address===ctx.address().id&&el.dataset.date===ctx.date()){managedAddressId=el.dataset.address;hourContext={addressId:managedAddressId,date:el.dataset.date};profile().overviewDate=el.dataset.date;hubViewport=null;await details();}break;
-      case 'invite':if(owner(p))await invitation();break;
+      case 'invite':break; // Explicitly deferred: no approved live invitation window.
       case 'transfer': case 'transfer-confirm': break; // Explicitly deferred by the user.
       case 'members':if(owner(p))await members();break;
       case 'revoke':if(owner(p)){await call('member_revoke',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch,membershipId:el.dataset.member});await members();}break;
-      case 'copy-code':await navigator.clipboard.writeText(document.getElementById('sensor-share-code').value);ctx.toast('Код скопійовано');break;
       case 'leave':if(member(p)&&!owner(p)){await call('leave',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch,membershipId:p.membershipId});await live.refreshSensors();ctx.close();ctx.render();}break;
       case 'disconnect':if(owner(p))ctx.dialog('Від’єднати для всіх?','<p>Усі учасники втратять доступ до цієї точки. Інші адреси залишаться.</p>',ctx.button('Скасувати','close','cancel')+button('Від’єднати','disconnect-confirm'),'',{footerClass:'paired'});break;
       case 'disconnect-confirm':if(owner(p)){await call('disconnect',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch,confirmed:true});generation++;signals.clear();views.clear();await live.refreshSensors();ctx.close();ctx.render();}break;
@@ -301,14 +300,10 @@ window.SvitloLiveSensors={create(ctx){
   async function members(){const p=managed();if(!owner(p))return;const r=await live.sensor('members',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch});
     ctx.dialog('Учасники',(r.members||r.memberships||[]).map(m=>`<p>${m.role==='owner'?'Власник':'Глядач'} ${m.role==='viewer'?button('Відкликати','revoke','',`data-member="${e(m.membershipId)}"`):''}</p>`).join(''),button('До доступу','sharing'));
   }
-  async function invitation(){const p=managed();if(!owner(p))return;const r=await call('invite_create',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch}),qr={version:1,kind:'viewer_invite',sensorId:p.sensorId,proof:r.invitation.inviteToken};
-    ctx.dialog('Запрошення',`<p>Одноразове запрошення на 15 хв. Не містить ключа передавання вимірів.</p><canvas class="sensor-qr" id="sensor-qr" aria-label="QR для підключення датчика"></canvas><textarea class="field" id="sensor-share-code" readonly aria-label="Код датчика">${e(JSON.stringify(qr))}</textarea>`,button('Скопіювати','copy-code')+button('До доступу','sharing'));
-    const canvas=document.getElementById('sensor-qr'),{default:QR}=await import('./vendor/qrcode.js');if(canvas.isConnected)await QR.toCanvas(canvas,JSON.stringify(qr),{width:256,margin:4,errorCorrectionLevel:'M'});
-  }
   document.getElementById('app').addEventListener('change',async event=>{
     if(event.target.dataset.sensorLayer!=='notifications')return;const p=managed();if(!member(p))return;const input=event.target;input.disabled=true;try{const r=await live.sensor('notice_set',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch,enabled:input.checked});noticePrefs.set(key(p),r.enabled===true);input.checked=r.enabled===true;}catch(error){input.checked=noticePrefs.get(key(p))===true;ctx.toast(error.message);}finally{input.disabled=false;}
   });
   return {pruneProfiles,hasBinding,preferActual:()=>!!profile()?.actualSummary,observation,indicator,tracks,optionsHTML,messagesHTML:()=>'',examplePlan:()=>null,
     handle(name,el){if(!name.startsWith('sensor-'))return false;execute(name,el).catch(error=>ctx.toast(error.message));return true;},
-    refresh(){const p=record();if(p)load(p,ctx.date());},sync(){const p=record(),date=ctx.date();if(p&&Date.now()-(fetched.get(viewKey(p,date))||0)>=60000&&!pending.has(viewKey(p,date)))load(p,date);}};
+    refresh(){const p=record();if(p)load(p,ctx.date());},sync(){if(managedAddressId&&document.querySelector('.sensor-details-dialog')&&!binding(managedAddressId)){generation++;signals.clear();views.clear();ctx.close();}const p=record(),date=ctx.date();if(p&&Date.now()-(fetched.get(viewKey(p,date))||0)>=60000&&!pending.has(viewKey(p,date)))load(p,date);}};
 }};
