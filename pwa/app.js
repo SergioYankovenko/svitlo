@@ -762,7 +762,19 @@
       case "save-name":
         await live.rename(id,$("rename-value").value.trim()); live.adopt(state); returnToAddresses(); break;
       case "delete-address":
-        dialog("Видалити адресу?","<p>Адресу буде видалено з цього облікового запису.</p>",dialogButton("Видалити","delete-confirm","",`data-id="${id}"`)+dialogButton("Скасувати","close","cancel")); break;
+        if (state.addresses.length === 1) {
+          dialog(
+            "Видалити адресу?",
+            "<p>Після видалення ви зможете додати нову адресу.</p>",
+            dialogButton("Видалити", "delete-confirm", "", `data-id="${esc(id)}"`) +
+              dialogButton("Відмінити", "address-list", "cancel"),
+          );
+        } else {
+          await live.remove(id);
+          live.adopt(state);
+          returnToAddresses();
+        }
+        break;
       case "delete-confirm":
         await live.remove(id); live.adopt(state); closeDialog(); tab="home";
         if (!state.addresses.length) { journey.emptied(state); state.onboardingSeen=false; }

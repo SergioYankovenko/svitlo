@@ -38,6 +38,7 @@ window.SvitloOnboarding = {
         editBackup: flow.editBackup ? {
           city: flow.editBackup.city?.id, street: flow.editBackup.street?.id,
           house: flow.editBackup.house?.id, queries: flow.editBackup.queries,
+          selected: Object.fromEntries(['city','street','house'].map(kind=>[kind,flow.editBackup[kind]||null])),
         } : null,
         failure:
           flow.request?.phase === "error"
@@ -52,7 +53,7 @@ window.SvitloOnboarding = {
         !draft ||
         draft.source !== state().catalogSource ||
         !["address", "preferences"].includes(draft.phase) ||
-        (!draft.initial && !draft.resume && !state().addresses.length)
+        (!draft.initial && !draft.resume && !state().addresses.length && !state().liveOwner)
       ) {
         delete state().onboardingDraft;
         return false;
@@ -91,13 +92,14 @@ window.SvitloOnboarding = {
         const current = {city:flow.city,street:flow.street,house:flow.house};
         const backup = {queries:{...draft.editBackup.queries}};
         for (const kind of ["city","street","house"]) {
-          flow[kind] = draft.editBackup[kind]===draft.selected?.[kind]?.id?draft.selected[kind]:null;
+          const record=draft.editBackup.selected?.[kind] || draft.selected?.[kind];
+          flow[kind] = record&&record.id===draft.editBackup[kind]&&/^[a-f0-9-]{36}$/i.test(record.id)&&typeof record.name==='string'&&record.name.length<=500?record:null;
           backup[kind] = flow[kind];
         }
         Object.assign(flow,current);
         if (backup.city && backup.street && backup.house) flow.editBackup = backup;
       }
-      if (flow.initial && flow.house) flow.inlineReview = true;
+      if (flow.house) flow.inlineReview = true;
       if (flow.initial && flow.house && !draft.reviewed) flow.phase = "address";
       if (flow.phase === "preferences" && !flow.resume && !flow.house) {
         flow = null;
@@ -452,7 +454,7 @@ window.SvitloOnboarding = {
         (request &&
           (["searching", "slow", "error"].includes(request.phase) ||
             request.kind === "submit"));
-      const extendedReview = !preferences && !waiting && flow.initial && (flow.house || flow.inlineReview);
+      const extendedReview = !preferences && !waiting && (flow.house || flow.inlineReview);
       const picture = extendedReview ? "ready-extended-v1" : empty
         ? "search-catalog-empty-notice"
         : waiting
@@ -469,7 +471,7 @@ window.SvitloOnboarding = {
       const [intro, question] = copy[stage];
       const speech = waiting
         ? '<div class="lookup-speech-host"></div>'
-        : flow.initial && flow.inlineReview && !preferences
+        : flow.inlineReview && !preferences
           ? '<p class="mascot-intro">Перевір адресу й продовжимо.</p>'
         : stage === "city"
           ? `<p class="mascot-intro" id="onboard-city-intro">${intro}${intro ? " " : ""}<strong class="mascot-question">${question}</strong></p>`
@@ -512,7 +514,7 @@ window.SvitloOnboarding = {
     function addressScreen() {
       const submitting = flow.request?.kind === "submit" && pending();
       const review = !!flow.house,
-        inline = flow.initial && (flow.inlineReview || review),
+        inline = flow.inlineReview || review,
         additional = !flow.initial;
       if (review) window.SvitloMascot?.warmSubmit();
       const fields = submitting
@@ -521,7 +523,7 @@ window.SvitloOnboarding = {
           const value = flow[kind] || (flow.editing === kind ? flow.editBackup?.[kind] : null);
           const enabled = kind === "city" || (kind === "street" ? !!flow.city : !!flow.street);
           return `<div class="onboard-review-row"><button class="review-row-toggle" data-action="onboard-edit-kind" data-kind="${kind}" aria-expanded="${flow.editing === kind}" ${enabled ? "" : "disabled"}><span><small>${fieldLabel(kind)}</small><strong>${e(value?.name || "Обери зі списку")}</strong></span><span class="review-row-icon" aria-hidden="true">${window.SvitloNativeUI.icon(flow.editing === kind ? "chevron" : "edit")}</span></button>${flow.editing === kind ? search(kind) : ""}</div>`;
-        }).join("")}</div>` : `<div class="onboard-fields">${review ? `<div class="confirmed-inline-host">${selectedAddress(true)}</div>` : flow.city ? selectedAddress() : ""}${!flow.city ? search("city") : !flow.street ? search("street") : !review ? search("house") : ""}${review && additional ? `<input class="field onboard-name" id="onboard-name" data-onboard-name maxlength="32" enterkeyhint="done" aria-label="Назва адреси (необов’язково)" aria-describedby="onboard-selected-address" placeholder="Назва адреси (необов’язково)" value="${e(flow.name)}">` : ""}</div>`;
+        }).join("")}</div>${additional ? `<input class="field onboard-name" id="onboard-name" data-onboard-name maxlength="32" enterkeyhint="done" aria-label="Назва адреси (необов’язково)" placeholder="Назва адреси (необов’язково)" value="${e(flow.name)}">` : ""}` : `<div class="onboard-fields">${flow.city ? selectedAddress() : ""}${!flow.city ? search("city") : !flow.street ? search("street") : search("house")}</div>`;
       const failed =
         flow.request?.phase === "error" ||
         state().scenario === "offline" ||
@@ -532,7 +534,7 @@ window.SvitloOnboarding = {
           : "";
       const actions =
         (review || inline) && !submitting
-          ? `<div class="onboard-review-actions ${flow.initial ? "first-review-actions" : ""}"><button class="action onboard-primary" ${review && !flow.editing ? "" : "disabled"} data-action="${flow.request?.kind === "submit" && flow.request.phase === "error" ? "onboard-retry" : "onboard-continue"}" data-kind="submit">${flow.request?.kind === "submit" && flow.request.phase === "error" ? "Спробувати ще" : flow.initial ? "Продовжити" : "Показати графік"}</button></div>`
+          ? `<div class="onboard-review-actions first-review-actions"><button class="action onboard-primary" ${review && !flow.editing ? "" : "disabled"} data-action="${flow.request?.kind === "submit" && flow.request.phase === "error" ? "onboard-retry" : "onboard-continue"}" data-kind="submit">${flow.request?.kind === "submit" && flow.request.phase === "error" ? "Спробувати ще" : "Продовжити"}</button></div>`
           : "";
       const content = submitting
         ? status
@@ -665,18 +667,15 @@ window.SvitloOnboarding = {
           break;
         case "onboard-edit-address":
           if (flow?.house) {
-            ctx.dialog(
-              "Змінити адресу",
-              `<div class="picker-list">${["city", "street", "house"].map((kind) => `<button class="picker-row" data-action="onboard-edit-kind" data-kind="${kind}">${fieldLabel(kind)}: ${e(flow[kind].name)}</button>`).join("")}</div>`,
-              ctx.dialogButton("Скасувати", "close", "cancel"),
-            );
+            flow.inlineReview = true;
+            ctx.render(false);
           }
           break;
         case "onboard-edit-kind":
           if (flow) {
             const kind = element.dataset.kind;
             if (!["city","street","house"].includes(kind)) break;
-            if (flow.initial && flow.inlineReview && flow.editing === kind && flow.editBackup) {
+            if (flow.inlineReview && flow.editing === kind && flow.editBackup) {
               Object.assign(flow, flow.editBackup);
               delete flow.editBackup;
               flow.editing = null;
@@ -694,7 +693,7 @@ window.SvitloOnboarding = {
             for (const key of fields.slice(fields.indexOf(kind)))
               flow[key] = null;
             flow.reviewed = false;
-            if (flow.initial) { flow.inlineReview = true; flow.editing = kind; }
+            flow.inlineReview = true; flow.editing = kind;
             flow.revisiting = kind;
             cancelRequest();
             ctx.closeDialog();
@@ -740,13 +739,13 @@ window.SvitloOnboarding = {
           if (kind === "house") {
             document.activeElement?.blur();
             delete flow.editBackup;
-            if (flow.initial) flow.inlineReview = true;
+            flow.inlineReview = true;
             flow.editing = null;
             ctx.render(false);
             break;
           }
           const next = fields[fields.indexOf(kind) + 1];
-          if (flow.initial && flow.inlineReview) flow.editing = next;
+          if (flow.inlineReview) flow.editing = next;
           if (next) beginRequest(next);
           ctx.render(kind !== "house");
           document

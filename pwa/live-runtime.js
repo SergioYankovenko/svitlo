@@ -10,7 +10,7 @@ const safeRead=()=>{try {const raw=localStorage.getItem(KEY);if(!raw||raw.length
 const weatherType=code=>code===0?['☀️','Ясно']:code<3?['🌤️','Мінлива хмарність']:code===3?['☁️','Хмарно']:code<50?['🌫️','Туман']:code<70?['🌧️','Дощ']:code<80?['🌨️','Сніг']:code<95?['🌦️','Злива']:['⛈️','Гроза'];
 export async function createLive(){
   let old=safeRead(),owner=old?.owner||null,profiles=old?.profiles||[],weather=old?.weather||{},active=old?.active||null;
-  let epoch=0,dataRevision=0,pending=null,lastSync=0,ui=null,offline=false,pushSubscribed=false,vapid='',sensors=[],sensorFetched=0,sensorPending=null,pushBinding=null,pushRestore=null,pushRequest=0,pushPending=null;
+  let epoch=0,dataRevision=0,pending=null,lastSync=0,ui=null,offline=false,pushSubscribed=false,vapid='',sensors=[],sensorFetched=0,sensorPending=null,pushBinding=null,pushRestore=null,pushRequest=0,pushPending=null,identityConfirmed=false;
   const PUSH_CHOICE='svitlo.pwa.v2.push-choice';
   const pushChoice=()=>{try{return JSON.parse(localStorage.getItem(PUSH_CHOICE)||'null');}catch{return null;}};
   const savePushChoice=(enabled,subject=owner)=>{try{localStorage.setItem(PUSH_CHOICE,JSON.stringify({owner:subject,enabled}));}catch{}};
@@ -19,9 +19,10 @@ export async function createLive(){
   const emit=()=>listeners.forEach(f=>f());
   function persist(){try{const raw=JSON.stringify({version:1,owner,profiles,weather,active});if(owner&&raw.length<=MAX_CACHE)localStorage.setItem(KEY,raw);else localStorage.removeItem(KEY);}catch{/* Storage never blocks a fetched schedule. */}}
   const current=id=>profiles.find(p=>p.id===(id||active));
-  function clear(){savePushChoice(false,null);epoch++;pushRequest++;pushPending=null;pushSubscribed=false;pushBinding=null;profiles=[];weather={};sensors=[];active=null;owner=null;try{localStorage.removeItem(KEY);}catch{}emit();}
+  function clear(){identityConfirmed=true;savePushChoice(false,null);epoch++;pushRequest++;pushPending=null;pushSubscribed=false;pushBinding=null;profiles=[];weather={};sensors=[];active=null;owner=null;try{localStorage.removeItem(KEY);}catch{}emit();}
   async function session(explicit=false){
     const who=explicit?await ensureIdentity():await identity();
+    identityConfirmed=true;
     if(who!==owner){epoch++;profiles=[];weather={};sensors=[];active=null;owner=who;persist();}
     return who;
   }
@@ -67,8 +68,8 @@ export async function createLive(){
   }
   function adopt(state){
     ui=state;
-    if(state.liveOwner&&state.liveOwner!==owner){delete state.onboardingDraft;state.onboardingSeen=false;state.sessionReset=true;}
-    state.liveOwner=owner;state.addresses=profiles.map(profileView);if(!profiles.some(p=>p.id===state.active))state.active=active||profiles[0]?.id||null;
+    if(identityConfirmed&&state.liveOwner&&state.liveOwner!==owner){delete state.onboardingDraft;state.onboardingSeen=false;state.sessionReset=true;}
+    if(identityConfirmed)state.liveOwner=owner;state.addresses=profiles.map(profileView);if(!profiles.some(p=>p.id===state.active))state.active=active||profiles[0]?.id||null;
     if(state.active!==active){active=state.active;persist();lastSync=0;queueMicrotask(()=>sync().catch(()=>{}));}
     const p=current(),pref=p?.preferences;
     if(pref) {state.switches={before:!!pref.reminder,restore:!!pref.restoration,tomorrow:!!(pref.publication??pref.schedule),changes:!!(pref.change??pref.schedule),emergency:!!pref.emergency,versions:false};state.reminder=pref.lead||30;}
