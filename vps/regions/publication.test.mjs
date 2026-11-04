@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {projectStreet,resolveHouse,dtekSnapshot,parseHours,localStamp} from './policy.js';
 import {validUniversal} from '../../app/lib/universal-contract.js';import {civil} from '../../app/lib/time.js';
+import {SharedCategories} from '../../server/shared-categories.js';
 const fixture=n=>JSON.parse(readFileSync(new URL('./fixtures/'+n+'.json',import.meta.url),'utf8'));
 const date='2026-11-04',now=civil(date,17*60+30),range={fromDate:date,toDate:'2026-11-05'};
 const cases=[['kyiv-dehtiarivska-20261104','вул. Дегтярівська','25','22.1'],['kyiv-dehtiarivska-20261104','вул. Дегтярівська','25А/к.1','14.1'],['kyiv-mrii-20261104','вул. Мрії','15Б','21.1']];
@@ -20,4 +21,12 @@ test('incomplete or invalid-clock table is retained as unknown, never a complete
 });
 test('a valid group plus an invalid companion record does not silently choose a line',()=>{
  const r=snapshot(...cases[2],raw=>raw.data['15Б'].push({sub_type:'Стабілізаційне відключення',sub_type_reason:[]}));assert.equal(r.resolution.complete,false);assert.equal(r.resolution.state,'unknown');
+});
+test('snapshot cache cannot outlive the remaining street/status freshness',async()=>{
+ let saved;const db={sourceClaim:async()=>({state:'owner',token:'test'}),sourceFinish:async(...args)=>{saved=args;}};
+ const cache=new SharedCategories(db,'test-secret',{now:()=>now,ttl:60000,boundFreshUntil:true});await cache.load(['region-test'],async()=>({freshUntil:now+5000}));assert.equal(saved[3],now);assert.equal(saved[4],5000);
+});
+test('expired/degraded payload keeps a bounded retry cache instead of causing a request storm',async()=>{
+ let ttl;const db={sourceClaim:async()=>({state:'owner',token:'test'}),sourceFinish:async(...args)=>{ttl=args[4];}};
+ const cache=new SharedCategories(db,'test-secret',{now:()=>now,ttl:60000,boundFreshUntil:true});await cache.load(['region-unavailable'],async()=>({freshUntil:now-1,supportState:'degraded'}));assert.equal(ttl,60000);
 });

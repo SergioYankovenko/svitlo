@@ -5,7 +5,7 @@ import {projectYasno} from './yasno.js';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 export class Regions {
  constructor({db,bridge,secret,fetcher=fetch,now=Date.now}){
-  Object.assign(this,{db,bridge,fetcher,now});this.indexCache=new SharedCategories(db,secret,{ttl:86400000,now});this.streetCache=new SharedCategories(db,secret,{ttl:120000,now});this.snapshotCache=new SharedCategories(db,secret,{ttl:60000,now});this.statusCache=new SharedCategories(db,secret,{ttl:120000,now});this.clients=new Map();
+  Object.assign(this,{db,bridge,fetcher,now});this.indexCache=new SharedCategories(db,secret,{ttl:86400000,now});this.streetCache=new SharedCategories(db,secret,{ttl:120000,now});this.snapshotCache=new SharedCategories(db,secret,{ttl:60000,boundFreshUntil:true,now});this.statusCache=new SharedCategories(db,secret,{ttl:120000,now});this.clients=new Map();
  }
  handles(op){return Object.hasOwn(REGIONS,op);}
  async gate(op){const deadline=Date.now()+6000;while(true){const r=(await this.bridge.query('select svitlo_regions.acquire($1) result',[op])).rows[0].result;if(r.granted)return r.ticket;if(r.reason==='cooldown')throw regionError(r.code==='forbidden'?'forbidden':'rate_limited',r.code==='forbidden'?503:429);if(Date.now()>=deadline)throw regionError('rate_limited',429);await pause(Math.min(500,r.waitMs||100));}}
