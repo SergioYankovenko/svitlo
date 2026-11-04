@@ -19,6 +19,14 @@ export class MapAddresses {
   const city=await this.catalog.entity(input.cityId);if(city.kind!=='city'||city.metadata?.synthetic)throw mapError('map_invalid_input',400);
   if(input.streetId){const street=await this.catalog.entity(input.streetId);if(street.kind!=='street'||street.parent_id!==city.id)throw mapError('map_invalid_input',400);input.street=street.label;}
   const routes=(await this.bridge.query("select operator_id,provider_key,state from svitlo_vps.city_routes where city_id=$1",[city.id])).rows;
+  const operator=city.metadata?.regionOperator;
+  if(['ua-kyiv-dtek','ua-kyiv-region-dtek'].includes(operator)){
+   if(!routes.some(r=>r.operator_id===operator&&r.state==='available'))throw mapError('map_unavailable');
+   const sourceName=city.source_ref?.sourceName||city.label,name=sourceName.replace(/^(?:м\.|місто|с\.|село|смт\.?|селище)\s*/iu,'').trim();
+   const type=/^(?:с\.|село)\s*/iu.test(sourceName)?'село':/^(?:м\.|місто)\s*/iu.test(sourceName)?'місто':undefined;
+   if(operator==='ua-kyiv-dtek'&&normalName(name)!=='київ')throw mapError('map_unavailable');
+   return {id:city.id,name,region:operator==='ua-kyiv-dtek'?'Київ':'Київська область',regionOperator:operator,...(type?{type}:{}),...(operator==='ua-kyiv-dtek'?{settlementId:'STL1NQ7EP',type:'місто'}:{})};
+  }
   if(!routes.some(r=>r.operator_id==='ua-cherkasy'&&r.state==='available'))throw mapError('map_unavailable');
   const type=/^(?:с\.|село)\s*/iu.test(city.label)?'село':/^(?:м\.|місто)\s*/iu.test(city.label)?'місто':undefined;
   const name=city.label.replace(/^(?:м\.|місто|с\.|село|смт\.?|селище)\s*/iu,'').trim();
@@ -28,20 +36,36 @@ export class MapAddresses {
  async providerAddress(input){
   const rows=(await this.bridge.query(`select a.id,a.label,s.label street,s.id street_id from svitlo_vps.catalog a join svitlo_vps.catalog s on s.id=a.parent_id
    where a.kind='address' and s.parent_id=$1 and a.operator_id<>'map-only' and svitlo_vps.catalog_allowed(a.id)
-   and ($2::uuid is null or s.id=$2::uuid) and lower(regexp_replace(a.label,'[[:space:]]','','g'))=lower(regexp_replace($3,'[[:space:]]','','g'))`,[input.cityId,input.streetId||null,input.house])).rows;
+   and (a.metadata->>'regionOperator' is null or (coalesce(a.metadata->>'sourceActive','true')<>'false' and coalesce(s.metadata->>'sourceActive','true')<>'false'))
+   and ($2::uuid is null or s.id=$2::uuid) and (lower(regexp_replace(a.label,'[[:space:]]','','g'))=lower(regexp_replace($3,'[[:space:]]','','g'))
+    or a.metadata->>'regionOperator' in ('ua-kyiv-dtek','ua-kyiv-region-dtek') and regexp_replace(lower(regexp_replace(a.label,'[[:space:]]','','g')),'^([0-9]+)/([a-zа-яіїєґ])$','\\1\\2')=$4)`,[input.cityId,input.streetId||null,input.house,normalHouse(input.house)])).rows;
   const matches=rows.filter(r=>input.streetId||normalName(r.street)===normalName(input.street));
   return matches.length===1?matches[0]:null;
  }
+ async prepareProvider(input,city){
+  if(!city.regionOperator)return;
+  const parent=await this.catalog.entity(city.id),index=await this.catalog.regions.ensureSearch(parent,'streets');let fresh=index?.state!=='cached';
+  let streets;
+  if(input.streetId)streets=[await this.catalog.entity(input.streetId)];
+  else streets=(await this.bridge.query("select * from svitlo_vps.catalog where kind='street' and parent_id=$1 and metadata->>'regionOperator'=$2 and coalesce(metadata->>'sourceActive','true')<>'false' and redirect_to is null",[city.id,city.regionOperator])).rows.filter(s=>normalName(s.label)===normalName(input.street));
+  // Only a successful provider lookup can establish absence before a map fallback.
+  for(const street of streets){const source=await this.catalog.regions.ensureSearch(street,'houses');if(source?.state==='cached')fresh=false;}
+  return {fresh};
+ }
  async search(owner,packet){
   const input=inputAddress(packet),city=await this.context(input);
+  const source=await this.prepareProvider(input,city);
   const existing=await this.providerAddress(input);if(existing)return {schemaVersion:1,state:'provider_found',addressId:existing.id,candidates:[]};
+  if(source?.fresh===false)throw mapError('map_unavailable');
   if(!(await this.bridge.query('select svitlo_maps.take_budget() allowed')).rows[0].allowed)throw mapError('map_rate_limited',429);
   const locations=await this.connector.lookup(input,city);
   return {schemaVersion:1,state:locations.length?'found':'not_found',input:{city:city.name,street:input.street,house:input.house},candidates:locations.map(location=>({label:location.label,precision:location.precision,matchedHouse:location.matchedHouse,url:location.url,token:this.token(owner,input,location)}))};
  }
  async save(owner,token,name,preferences){
   const proof=this.open(owner,token),input=proof.input,city=await this.context(input);
+  const source=await this.prepareProvider(input,city);
   if(await this.providerAddress(input))throw Object.assign(mapError('map_expired',409),{message:'Адреса вже з’явилась у довіднику. Повторіть пошук.'});
+  if(source?.fresh===false)throw mapError('map_unavailable');
   const location=proof.location;
   const hash=s=>createHmac('sha256',this.secret).update(s).digest('hex');
   const streetKey=hash(JSON.stringify(['map-street',city.id,location.streetId]));

@@ -1,7 +1,7 @@
 import pg from 'pg';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,randomBytes} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import http from 'node:http';
 import {runtime} from '../runtime.js';
@@ -9,6 +9,9 @@ import {ownerContext} from '../db.js';
 import {validUniversal} from '../../app/lib/universal-contract.js';
 import {projectYasno} from './yasno.js';
 import {projectStreet} from './policy.js';
+import {finalCandidate,normalHouse} from '../maps/policy.js';
+import {SensorAccess,tokenHash} from '../sensors/service.js';
+import {SensorIngest} from '../sensors/ingest.js';
 const database=process.env.PGDATABASE;
 if(!/^svitlo_kyiv_qa_\d+$/.test(database||''))throw Error('Disposable restored Kyiv QA database required');
 const admin=new pg.Client({host:'postgres',user:'svitlo_owner',database,password:(await readFile('/run/secrets/owner_password','utf8')).trim()});await admin.connect();
@@ -66,11 +69,23 @@ try{
   const first=(await save()).profile,second=(await save()).profile;assert.equal(first.id,second.id);assert.equal(first.address.lineId,lineId);
   assert.equal((await command(actors[1],()=>rt.db.profiles(actors[1]))).length,0);
  });
+ let mapCalls=0;rt.maps.connector={lookup:async(input,context)=>{mapCalls++;const capital=context.name==='Київ';assert.equal(context.region,capital?'Київ':'Київська область');const geo=JSON.parse(await readFile(new URL('./fixtures/'+(capital?'kyiv':'brovary')+'-visicom-street.json',import.meta.url),'utf8')),p=geo.properties;return [finalCandidate(geo,{featureId:geo.id,streetId:geo.id,settlementId:p.settlement_id,street:p.name,streetType:p.type,matchedHouse:null,precision:'street',relation:'same'},input,context,Date.now())];}};
+ await check('regional provider addresses and slash-before-letter aliases avoid map fallback',async()=>{const result=await command(actors[0],()=>rt.maps.search(actors[0],{schemaVersion:1,cityId:city,streetId:street,street:'вул.Хрещатик',house:'36/а'}));assert.equal(result.state,'provider_found');assert.equal((await rt.reader.catalog.entity(result.addressId)).label,'36А');assert.equal(mapCalls,0);});
+ for(const [cityId,streetName,house] of [[city,'Хрещатик','10а/51'],[town,'Київська','8/а']])await check('regional map fallback preserves full house and allows independent sensor '+house,async()=>{
+  const result=await command(actors[0],()=>rt.maps.search(actors[0],{schemaVersion:1,cityId,street:streetName,house}));assert.equal(result.state,'found');assert.equal(result.candidates[0].precision,'street');
+  const saved=(await command(actors[0],()=>rt.service.handle(actors[0],{action:'save',confirmed:true,name:'Region map QA',address:{mapCandidateToken:result.candidates[0].token}}))).profile;assert.equal(saved.address.house,house);assert.equal(saved.address.mapOnly,true);assert.equal(saved.address.lineId,null);assert.equal(saved.snapshot.queue,null);assert.equal(saved.snapshot.checkedAt,0);
+  const sensor=new SensorAccess({bridge:rt.bridge,db:rt.db,secret:(await readFile('/run/secrets/sensor_access_secret','utf8')).trim()}),claim='sc_'+randomBytes(32).toString('base64url');await admin.query('select svitlo_sensors.admin_provision($1,null)',[tokenHash(claim)]);
+  const attached=await command(actors[0],()=>sensor.handle(actors[0],{schemaVersion:1,action:'claim',requestId:randomUUID(),claimToken:claim,profileId:saved.id}));assert.equal(attached.sensor.canonicalAddressId,saved.address.canonicalAddressId);assert.equal(attached.sensor.lineId,null);
+  const ref={sensorId:attached.sensor.sensorId,bindingEpoch:attached.sensor.bindingEpoch},token='st_'+randomBytes(32).toString('base64url'),stream=(await admin.query('select svitlo_sensors.admin_ingest_credential($1,$2,$3) result',[ref.sensorId,ref.bindingEpoch,tokenHash(token)])).rows[0].result;
+  await new SensorIngest(rt.bridge).handle('Bearer '+token,{schemaVersion:1,...ref,streamId:stream.streamId,eventId:randomUUID(),sequence:1,eventType:'sample',powerState:'off',observedAt:new Date().toISOString(),clockQuality:'synchronized'});
+  assert.equal((await command(actors[0],()=>sensor.handle(actors[0],{schemaVersion:1,action:'signal',...ref}))).signal.powerState,'off');
+ });
  await check('import retirement is restricted to this new parent and stale replay cannot restore it',async()=>{
   const e=await rt.reader.catalog.entity(other.id),version=Date.now()+1000;await rt.regions.import(op,'address',street,['36'],version);
   await assert.rejects(()=>rt.reader.catalog.entity(e.id),x=>x.code==='address_requires_reselection');
   await rt.regions.import(op,'address',street,['36',e.label],version-1);await assert.rejects(()=>rt.reader.catalog.entity(e.id),x=>x.code==='address_requires_reselection');
  });
+ await check('retired regional street or city cannot keep a direct child address active',async()=>{for(const parent of [street,city]){await admin.query("update svitlo_vps.catalog set metadata=jsonb_set(metadata,'{sourceActive}','false') where id=$1",[parent]);await assert.rejects(()=>rt.reader.catalog.entity(address),e=>e.code==='address_requires_reselection');await admin.query("update svitlo_vps.catalog set metadata=jsonb_set(metadata,'{sourceActive}','true') where id=$1",[parent]);}});
  await check('upstream budget serializes workers and persists forbidden cooldown',async()=>{
   const first=(await rt.bridge.query('select svitlo_regions.acquire($1) result',['yasno-kyiv'])).rows[0].result;assert(first.granted);
   assert.equal((await rt2.bridge.query('select svitlo_regions.acquire($1) result',['yasno-kyiv'])).rows[0].result.granted,false);
