@@ -2,6 +2,7 @@ import {civil,dayKey,addDays} from '../../app/lib/time.js';
 import {CATEGORIES} from '../../app/lib/universal-contract.js';
 import {seal,dates} from '../universal/normalize.js';
 import {REGIONS,regionError} from './dtek.js';
+import {reconcileDay,RECONCILIATION_VERSION} from './reconcile.js';
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
 const group=x=>typeof x==='string'&&/^GPV[1-9]\d{0,2}\.[1-9]\d?$/.test(x);
 const text=x=>typeof x==='string'?x.slice(0,600).replace(/[\x00-\x1f]/g,' ').trim():'';
@@ -18,7 +19,7 @@ export function projectStreet(raw,checkedAt=Date.now()){
   const records=(Array.isArray(value)?value:[value]).filter(object);if(!records.length||records.length>32)throw regionError('invalid_house_record');
   const groups=new Set(),outages=[];let partial=false,invalid=false,external=false;
   for(const record of records){const reason=text(record.sub_type),kind=outageKind(reason),rawGroups=record.sub_type_reason;
-   if(!Array.isArray(rawGroups)||rawGroups.length>32||rawGroups.some(x=>!group(x)))invalid=true;
+   if(!Array.isArray(rawGroups)||rawGroups.length===0||rawGroups.length>32||rawGroups.some(x=>!group(x)))invalid=true;
    const valid=(Array.isArray(rawGroups)?rawGroups:[]).filter(group);for(const id of valid)groups.add(id);
    if(reason){outages.push({reason,kind,start:localStamp(record.start_date,'timeFirst'),end:localStamp(record.end_date,'timeFirst'),groups:valid});if(kind==='hourly')partial=true;}
    external=external||!!record.cek;
@@ -54,16 +55,22 @@ export function dtekSnapshot(entity,resolution,range,data,cityStatus=null,now=Da
  const config=REGIONS[entity.operator_id],house=data.houses[entity.source_ref.house];if(!config||!house)throw regionError('address_requires_reselection',409);
  const sourceUpdatedAt=localStamp(data.fact?.update),freshUntil=data.checkedAt+120000,all=dates(range.fromDate,range.toDate),factDays=new Map();
  if(object(data.fact?.data))for(const [stamp,groups] of Object.entries(data.fact.data)){if(!/^\d{9,11}$/.test(stamp)||!object(groups))continue;const at=Number(stamp)*1000;if(!Number.isFinite(at))continue;factDays.set(dayKey(at),groups);}
- const statusFresh=!!cityStatus&&cityStatus.checkedAt+120000>now&&cityStatus.checkedAt<=now+300000&&(cityStatus.updatedAt===null||cityStatus.updatedAt<=now+300000);
- const noticeDates=new Set(),sourceUnavailable=sourceUpdatedAt===null||sourceUpdatedAt>now+300000||data.checkedAt>now+300000;
+ const statusFresh=!!cityStatus&&cityStatus.checkedAt+120000>now&&cityStatus.checkedAt<=now+300000;
+ const noticeDates=new Set(),decisions={},sourceUnavailable=sourceUpdatedAt===null||sourceUpdatedAt>now+300000||data.checkedAt>now+300000;
  const lines=resolution.lines.map(line=>{
   const categories={};for(const kind of CATEGORIES)categories[kind]={checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil,days:all.map(date=>{
    if(kind==='hourly'){
-    const status=cityStatus?.groups?.[line.key]?.[date],emergency=statusFresh&&status==='EmergencyShutdowns';if(emergency)noticeDates.add(date);
-    if(emergency||data.flags.showTableSchedule===false||data.flags.showTableFact===false)return {date,state:'suspended',intervals:[]};
-    if(sourceUnavailable||config.city&&(!statusFresh||status===undefined))return {date,state:'unknown',intervals:[]};
-    const hours=factDays.get(date)?.[line.key];if(!hours)return {date,state:'not_published',intervals:[]};
-    const parsed=parseHours(hours,date);return {date,state:freshUntil<=now?'stale':parsed.state,intervals:parsed.intervals};
+    const hours=factDays.get(date)?.[line.key],parsed=hours?parseHours(hours,date):{state:'not_published',intervals:[]};
+    const hidden=data.flags.showTableSchedule===false||data.flags.showTableFact===false;
+    const from=civil(date),until=civil(addDays(date,1)),addressEmergency=data.flags.showCurOutageParam!==false&&house.outages.some(o=>o.kind==='emergency'&&o.groups.includes(line.key)&&o.start!==null&&o.start<until&&(o.end===null||o.end>from));
+    if(config.city){const status=cityStatus?.groups?.[line.key]?.[date],publishedAt=cityStatus?.groupUpdatedAt?.[line.key]??cityStatus?.updatedAt??null;
+     const result=reconcileDay({date,primary:{...parsed,publishedAt:sourceUpdatedAt,checkedAt:data.checkedAt},secondary:cityStatus?{date:status===undefined?null:date,status,checkedAt:cityStatus.checkedAt,publishedAt}:null,addressEmergency,hidden,now});
+     decisions[line.key+':'+date]={state:result.state,...result.evidence};if(result.state==='suspended'&&result.reason==='emergency_report_newer_than_plan')noticeDates.add(date);
+     return {date,state:result.state,intervals:result.intervals};
+    }
+    if(hidden||addressEmergency)return {date,state:'suspended',intervals:[]};
+    if(sourceUnavailable)return {date,state:'unknown',intervals:[]};
+    return {date,state:freshUntil<=now?'stale':parsed.state,intervals:parsed.intervals};
    }
    const from=civil(date),to=civil(addDays(date,1)),events=(data.flags.showCurOutageParam===false?[]:house.outages).filter(o=>o.kind===kind&&o.groups.includes(line.key)&&o.start!==null&&(o.end===null||o.end>o.start)&&o.start<to&&(o.end===null||o.end>from)).map(o=>({start:o.start,end:o.end}));
    // Current-address events are positive evidence only; an empty current reply is not a full-day zero.
@@ -75,5 +82,5 @@ export function dtekSnapshot(entity,resolution,range,data,cityStatus=null,now=Da
  return seal({schemaVersion:1,addressId:entity.id,operatorId:entity.operator_id,timeZone:'Europe/Kyiv',coverage:range,resolution:{state:resolution.state,complete:resolution.complete},lines,
   notices:[...noticeDates].map(date=>({kind:'regional_emergency',active:date===dayKey(now),start:civil(date),end:civil(addDays(date,1)),sourceUpdatedAt:cityStatus.updatedAt,checkedAt:cityStatus.checkedAt,url:'https://static.yasno.ua/kyiv/outages/',reason:'official_sources_emergency_override'})),
   checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil:Math.min(freshUntil,cityStatus?cityStatus.checkedAt+120000:freshUntil),refreshAfter:now+60000,supportState,
-  provenance:[{operatorId:entity.operator_id,adapter:'dtek-public-v1',url:`https://${config.host}/ua/shutdowns`,allocation:resolution.provenance,categoryCoverage:'daily_hourly_and_positive_current_address_events',cityEmergencyStatus:cityStatus?'yasno-official':null}],synthetic:false});
+  provenance:[{operatorId:entity.operator_id,adapter:'dtek-public-v1',url:`https://${config.host}/ua/shutdowns`,allocation:resolution.provenance,categoryCoverage:'daily_hourly_and_positive_current_address_events',cityEmergencyStatus:cityStatus?'yasno-official':null,...(config.city?{reconciliation:{version:RECONCILIATION_VERSION,days:decisions}}:{})}],synthetic:false});
 }

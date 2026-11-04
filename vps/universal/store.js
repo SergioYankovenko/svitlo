@@ -24,7 +24,7 @@ export class Catalog {
   let after=null;if(cursor){try{if(typeof cursor!=='string'||cursor.length>1024)throw Error();after=JSON.parse(Buffer.from(cursor,'base64url'));if(after.kind!==kind||after.parentId!==parentId||after.q!==q||!uuid(after.id)||typeof after.label!=='string')throw Error();}catch{throw apiError(400,'invalid_cursor');}}
   const text='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
   const r=await this.db.query(`select e.*,case when e.kind='city' then svitlo_vps.catalog_city_state(e.id) end as route_state from svitlo_vps.catalog e where e.kind=$1 and e.parent_id is not distinct from $2::uuid
-   and e.redirect_to is null and e.label ilike $3 and coalesce(e.metadata->>'catalogStatus','')<>'service' and coalesce(e.metadata->>'sourceActive','true')<>'false' and e.operator_id is distinct from 'map-only'
+   and e.redirect_to is null and e.label ilike $3 and coalesce(e.metadata->>'catalogStatus','')<>'service' and (e.metadata->>'regionOperator' is null or coalesce(e.metadata->>'sourceActive','true')<>'false') and e.operator_id is distinct from 'map-only'
    and (e.kind<>'city' or e.metadata->>'regionOperator' is null or e.source_ref->>'sourceName' ilike $3)
    and svitlo_vps.catalog_allowed(e.id) and (e.kind<>'city' or svitlo_vps.catalog_city_state(e.id)<>'empty')
    and ($1<>'street' or svitlo_vps.catalog_city_state($2::uuid)<>'empty')

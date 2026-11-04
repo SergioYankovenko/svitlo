@@ -18,14 +18,14 @@ create function svitlo_regions.import_entries(op text,entity_kind text,parent uu
 language plpgsql security definer set search_path='' as $$
 declare parent_row svitlo_vps.catalog;name text;display_name text;city text;street text;region text;url text;key text;source_key text;eid uuid;n integer:=0;stamp bigint:=floor(extract(epoch from clock_timestamp())*1000);begin
  if op not in ('ua-kyiv-dtek','ua-kyiv-region-dtek') or entity_kind not in ('city','street','address') or jsonb_typeof(labels) is distinct from 'array' then raise exception 'invalid region import';end if;
- if jsonb_array_length(labels)>10000 or checked<0 or checked>stamp+300000 then raise exception 'invalid region import';end if;
+ if jsonb_array_length(labels) not between 1 and 10000 or checked is null or checked<0 or checked>stamp+300000 then raise exception 'invalid region import';end if;
  if entity_kind='city' and session_user not in ('svitlo_stage_worker','svitlo_owner') then raise exception 'city importer required';end if;
  if entity_kind='city' and parent is not null or entity_kind<>'city' and parent is null then raise exception 'invalid parent';end if;
  if exists(select 1 from jsonb_array_elements(labels) v where jsonb_typeof(v)<>'string' or length(v#>>'{}') not between 1 and 240 or v#>>'{}' ~ '[[:cntrl:]]') then raise exception 'invalid region label';end if;
  if entity_kind='city' and op='ua-kyiv-dtek' and labels<>'["м. Київ"]'::jsonb then raise exception 'invalid Kyiv city';end if;
  if parent is not null then
   select * into parent_row from svitlo_vps.catalog where id=parent;
-  if not found or parent_quota.metadata->>'regionOperator' is distinct from op or parent_quota.kind<>case when entity_kind='street' then 'city' else 'street' end then raise exception 'foreign region parent';end if;
+  if not found or parent_row.metadata->>'regionOperator' is distinct from op or parent_row.kind<>(case when entity_kind='street' then 'city' else 'street' end) then raise exception 'foreign region parent';end if;
  end if;
  key:=coalesce(parent::text,'root');perform pg_advisory_xact_lock(hashtextextended('dtek-catalog:'||op||entity_kind||key,0));
  if exists(select 1 from svitlo_regions.imports i where i.operator=op and i.kind=entity_kind and i.parent_key=key and i.checked_at>=checked) then return '{"status":"cached","count":0}';end if;
@@ -34,8 +34,8 @@ declare parent_row svitlo_vps.catalog;name text;display_name text;city text;stre
  update svitlo_vps.catalog e set metadata=e.metadata||'{"sourceActive":false}'::jsonb where e.kind=entity_kind and e.parent_id is not distinct from parent and e.metadata->>'regionOperator'=op and not (labels ? coalesce(e.source_ref->>'sourceName',e.label));
  for name in select distinct jsonb_array_elements_text(labels) loop
   if entity_kind='street' and (regexp_replace(lower(name),'[[:space:]]','','g') in ('безвулиці','невизначена','вул.невизначена')) then continue;end if;
-  city:=case when entity_kind='city' then name else parent_quota.source_ref->>'city' end;
-  street:=case when entity_kind='street' then name else parent_quota.source_ref->>'street' end;
+  city:=case when entity_kind='city' then name else parent_row.source_ref->>'city' end;
+  street:=case when entity_kind='street' then name else parent_row.source_ref->>'street' end;
   display_name:=case when entity_kind='city' and op='ua-kyiv-region-dtek' then name||' · Київська область' else name end;
   source_key:=jsonb_build_array(entity_kind,city,street,case when entity_kind='address' then name end)::text;
   eid:=svitlo_vps.catalog_upsert(op,entity_kind,source_key,display_name,parent,
