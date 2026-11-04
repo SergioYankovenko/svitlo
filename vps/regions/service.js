@@ -15,12 +15,15 @@ export class Regions {
  async seed(){const result=[];for(const op of Object.keys(REGIONS)){const index=await this.index(op);result.push({operator:op,...await this.import(op,'city',null,Object.keys(index.cities),index.checkedAt),settlements:Object.keys(index.cities).length,streetNames:Object.values(index.cities).reduce((n,a)=>n+a.length,0)});}return result;}
  async ensureSearch(parent,kind){
   const op=parent.metadata?.regionOperator;if(!this.handles(op))return;
+  try{
   if(kind==='streets'){const index=await this.index(op),labels=index.cities[parent.source_ref.city];if(!labels)throw regionError('address_requires_reselection',409);await this.import(op,'street',parent.id,labels,index.checkedAt);}
   else if(kind==='houses'){const data=await this.street(op,parent.source_ref.city,parent.source_ref.street);await this.import(op,'address',parent.id,Object.keys(data.houses),data.checkedAt);}
+  }catch(e){if(!this.unavailable(e))throw e;const old=(await this.bridge.query("select max((metadata->>'sourceCheckedAt')::bigint) checked from svitlo_vps.catalog where parent_id=$1 and kind=$2 and metadata->>'regionOperator'=$3 and metadata->>'sourceActive'='true'",[parent.id,kind==='streets'?'street':'address',op])).rows[0]?.checked;if(!old)throw e;return {state:'cached',code:e.code||'source_unavailable',checkedAt:old};}
  }
+ unavailable(e){return e?.status>=500||['forbidden','rate_limited','timeout'].includes(e?.code)||['EAI_AGAIN','ENOTFOUND','ECONNRESET','ETIMEDOUT'].includes(e?.cause?.code);}
  async street(op,city,street){return this.streetCache.load(['dtek-street-v1',op,city,street],async()=>projectStreet(await this.client(op).houses(city,street),this.now()));}
  async address(entity){if(!this.handles(entity.operator_id)||entity.kind!=='address')throw regionError('unsupported_operator',400);return this.street(entity.operator_id,entity.source_ref.city,entity.source_ref.street);}
- async resolve(entity){return resolveHouse(await this.address(entity),entity.source_ref.house);}
+ async resolve(entity){try{return resolveHouse(await this.address(entity),entity.source_ref.house);}catch(e){if(!this.unavailable(e))throw e;return {state:'unknown',complete:false,checkedAt:entity.metadata?.sourceCheckedAt||1,lines:[],provenance:{source:'dtek-address',sourceUnavailable:true,sourceState:e.code||'source_unavailable',sourceCheckedAt:entity.metadata?.sourceCheckedAt||null,attemptedAt:this.now()}};}}
  async cityStatus(){
   return this.statusCache.load(['yasno-kyiv-emergency-v1'],async()=>{
    const op='yasno-kyiv',ticket=await this.gate(op);let status=0,error=null,retry=0;

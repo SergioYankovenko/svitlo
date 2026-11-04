@@ -83,6 +83,12 @@ try{
   const snapshots=await request('/api/v1/snapshots',{...range,items:[{addressId:address}]});assert.equal(snapshots.status,200);assert.equal(snapshots.value.results[0].status,'snapshot');
  });
  await check('original profile identities, addresses, names and preferences are unchanged',async()=>{assert.equal(await digest(),before);});
+ await check('provider failure serves known catalog with old timestamp and never re-confirms an old single line',async()=>{
+  rt.regions.streetCache={load:async(_scope,load)=>load()};rt.regions.clients.set(op,{houses:async()=>{throw Object.assign(Error('forbidden'),{code:'forbidden',status:503});}});
+  await admin.query("update svitlo_vps.catalog set metadata=jsonb_set(metadata,'{sourceCheckedAt}',to_jsonb($2::bigint)) where id=$1",[address,now-180000]);
+  const cached=await rt.reader.catalog.search({kind:'houses',parentId:street,q:'36'});assert.equal(cached.coverage,'cached_subset');assert.equal(cached.sourceFresh,false);assert.equal(cached.sourceState,'forbidden');assert.equal(cached.items[0].id,address);
+  const resolved=await rt.reader.resolve({addressId:address});assert.equal(resolved.resolution.state,'unknown');assert.equal(resolved.resolution.complete,false);assert.equal(resolved.selection.lineId,null);assert.equal(resolved.resolution.provenance.sourceCheckedAt,now-180000);
+ });
  console.log(JSON.stringify({suite:'kyiv-regions',checks:checks.length,status:'pass',originalProfiles:originals.length,originalConfigurationDigest:before,mockUpstreamCalls:calls}));
 }finally{
  if(child){child.kill('SIGTERM');await new Promise(resolve=>child.once('exit',resolve));}

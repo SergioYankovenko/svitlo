@@ -20,7 +20,7 @@ export class Catalog {
  async search({kind,parentId=null,q='',cursor=null,limit=50}={}){
   const map={cities:'city',streets:'street',houses:'address'};if(!map[kind]||typeof q!=='string'||q.length>120||!Number.isInteger(limit)||limit<1||limit>50)throw apiError(400,'invalid_search');
   if(kind!=='cities'&&!uuid(parentId))throw apiError(400,'invalid_parent');
-  if(kind!=='cities'){const parent=await this.entity(parentId);if(parent.kind!==(kind==='streets'?'city':'street'))throw apiError(400,'invalid_parent');parentId=parent.id;await this.regions?.ensureSearch(parent,kind);}
+  let source=null;if(kind!=='cities'){const parent=await this.entity(parentId);if(parent.kind!==(kind==='streets'?'city':'street'))throw apiError(400,'invalid_parent');parentId=parent.id;source=await this.regions?.ensureSearch(parent,kind);}
   let after=null;if(cursor){try{if(typeof cursor!=='string'||cursor.length>1024)throw Error();after=JSON.parse(Buffer.from(cursor,'base64url'));if(after.kind!==kind||after.parentId!==parentId||after.q!==q||!uuid(after.id)||typeof after.label!=='string')throw Error();}catch{throw apiError(400,'invalid_cursor');}}
   const text='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
   const r=await this.db.query(`select e.*,case when e.kind='city' then svitlo_vps.catalog_city_state(e.id) end as route_state from svitlo_vps.catalog e where e.kind=$1 and e.parent_id is not distinct from $2::uuid
@@ -32,7 +32,7 @@ export class Catalog {
    order by e.label collate "C",e.id limit $6`,[map[kind],parentId,text,after?.label||null,after?.id||null,limit+1]);
   const page=r.rows.slice(0,limit),last=page.at(-1),more=r.rows.length>limit;
   const coverage=kind==='streets'?(await this.db.query('select svitlo_vps.catalog_city_state($1) state',[parentId])).rows[0].state:'imported_subset';
-  return {schemaVersion:1,items:page.map(e=>({...this.public(e),...(e.route_state?{routeState:e.route_state}:{})})),nextCursor:more?Buffer.from(JSON.stringify({kind,parentId,q,id:last.id,label:last.label})).toString('base64url'):null,complete:!more,coverage,emptyConfirmed:page.length===0&&coverage==='empty'};
+  return {schemaVersion:1,items:page.map(e=>({...this.public(e),...(e.route_state?{routeState:e.route_state}:{})})),nextCursor:more?Buffer.from(JSON.stringify({kind,parentId,q,id:last.id,label:last.label})).toString('base64url'):null,complete:!more,coverage:source?.state==='cached'?'cached_subset':coverage,emptyConfirmed:!source&&page.length===0&&coverage==='empty',...(source?.state==='cached'?{sourceState:source.code,sourceCheckedAt:source.checkedAt,sourceFresh:false}:{})};
  }
  async legacy(ref){if(!ref||['department','cityId','streetId','house'].some(k=>typeof ref[k]!=='string'||!ref[k]||ref[k].length>120))throw apiError(400,'invalid_legacy');
   const r=(await this.db.query("select entity_id from svitlo_vps.catalog_aliases where operator_id='ua-cherkasy' and kind='address' and provider_key=$1::jsonb::text",[JSON.stringify([ref.department,ref.cityId,ref.streetId,ref.house])])).rows[0];
@@ -50,7 +50,7 @@ export class Catalog {
   const c=await this.db.pool.connect();try{await c.query('begin');await c.query("select pg_advisory_xact_lock(hashtextextended('universal-lines:'||$1,0))",[addressId]);
    const prior=(await c.query('select state,complete,checked_at,evidence from svitlo_vps.address_resolutions where address_id=$1',[addressId])).rows[0];
    const stale=prior&&prior.checked_at>checkedAt;
-   if(stale){result={...result,state:prior.state,complete:prior.complete,provenance:prior.evidence,lines:[]};checkedAt=prior.checked_at;}
+   if(stale){const unavailable=result.provenance?.source==='dtek-address'&&result.provenance.sourceUnavailable===true;result={...result,state:unavailable?'unknown':prior.state,complete:!unavailable&&prior.complete,provenance:unavailable?result.provenance:prior.evidence,lines:[]};checkedAt=prior.checked_at;}
    if(!stale){
    if(result.complete)await c.query('update svitlo_vps.address_lines set active=false where address_id=$1',[addressId]);
    for(const line of result.lines){await c.query(`insert into svitlo_vps.address_lines(address_id,source_key,label,group_code,evidence)
