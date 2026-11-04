@@ -1,6 +1,6 @@
 import {subscribeWithTimeout} from './live-push.js';
 import {identity,ensureIdentity,request,universalRequest,sensorRequest,onIdentityChange} from './core/api.js';
-import {scheduleFor,contextFor,profileView,labels,officialSource} from './live-model.js';
+import {scheduleFor,contextFor,profileView,labels,officialSource,refreshDeadline} from './live-model.js';
 import {dayKey,clock,stamp} from './core/lib/time.js';
 import {sensorSignalView} from './core/lib/map-sensor.js';
 import {messageTitle} from './core/lib/notifications.js';
@@ -10,7 +10,7 @@ const safeRead=()=>{try {const raw=localStorage.getItem(KEY);if(!raw||raw.length
 const weatherType=code=>code===0?['☀️','Ясно']:code<3?['🌤️','Мінлива хмарність']:code===3?['☁️','Хмарно']:code<50?['🌫️','Туман']:code<70?['🌧️','Дощ']:code<80?['🌨️','Сніг']:code<95?['🌦️','Злива']:['⛈️','Гроза'];
 export async function createLive(){
   let old=safeRead(),owner=old?.owner||null,profiles=old?.profiles||[],weather=old?.weather||{},active=old?.active||null;
-  let epoch=0,dataRevision=0,pending=null,lastSync=0,ui=null,offline=false,pushSubscribed=false,vapid='',sensors=[],sensorFetched=0,sensorPending=null,pushBinding=null,pushRestore=null,pushRequest=0,pushPending=null,identityConfirmed=false;
+  let epoch=0,dataRevision=0,pending=null,lastSync=0,ui=null,offline=false,pushSubscribed=false,vapid='',sensors=[],sensorFetched=0,sensorPending=null,pushBinding=null,pushRestore=null,pushRequest=0,pushPending=null,identityConfirmed=false,syncFailures=0,retryAfter=0;
   const PUSH_CHOICE='svitlo.pwa.v2.push-choice';
   const pushChoice=()=>{try{return JSON.parse(localStorage.getItem(PUSH_CHOICE)||'null');}catch{return null;}};
   const savePushChoice=(enabled,subject=owner)=>{try{localStorage.setItem(PUSH_CHOICE,JSON.stringify({owner:subject,enabled}));}catch{}};
@@ -40,8 +40,8 @@ export async function createLive(){
       vapid=result.vapid||'';
       restorePush().catch(()=>{});
       if(result.weather&&id===active||result.weather&&!id)weather[active]=result.weather;
-      lastSync=Date.now();offline=false;persist();emit();
-    })().catch(error=>{offline=true;if(error.status===401)clear();emit();throw error;}).finally(()=>pending=null);
+      lastSync=Date.now();syncFailures=0;retryAfter=0;offline=false;persist();emit();
+    })().catch(error=>{offline=true;retryAfter=Date.now()+Math.min(900000,30000*2**Math.min(syncFailures++,5));if(error.status===401)clear();emit();throw error;}).finally(()=>pending=null);
     return pending;
   }
   async function search(kind,flow,q,signal){
@@ -126,7 +126,7 @@ export async function createLive(){
     openSource(preferred){const url=officialSource(current(),preferred);if(url)window.open(url,'_blank','noopener');},
     async diagnostic(packet,signal){const who=await session(true);const response=await fetch('/api/session',{credentials:'same-origin',cache:'no-store',signal});const body=await response.json();if(body.session?.user?.id!==who)throw Error('Сеанс змінився');const r=await fetch('/api/v1/diagnostic-reports',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Svitlo-CSRF':body.session.csrf_token,'X-Svitlo-Diagnostic-Consent':packet.reportId},body:JSON.stringify(packet),signal});if(!r.ok)throw Error('Не вдалося надіслати звіт');return r.json();},
     start(){sync().catch(()=>{});universalRequest('capabilities').then(v=>cap=v).catch(()=>{});refreshSensors().catch(()=>{});
-      const refresh=()=>{if(!document.hidden&&Date.now()-lastSync>=3600000)sync().catch(()=>{});if(!document.hidden&&Date.now()-sensorFetched>=60000)refreshSensors().catch(()=>{});};
+      const refresh=()=>{if(!document.hidden&&Date.now()>=retryAfter&&(!lastSync||Date.now()>=refreshDeadline(current(),lastSync)))sync().catch(()=>{});if(!document.hidden&&Date.now()-sensorFetched>=60000)refreshSensors().catch(()=>{});};
       setInterval(refresh,60000);document.addEventListener('visibilitychange',refresh);window.addEventListener('online',()=>sync().catch(()=>{}));
       // The notification already contains identity. Reading auth again here would recurse.
       onIdentityChange(({owner:next,changed})=>{if(changed&&next!==owner){clear();owner=next;}});

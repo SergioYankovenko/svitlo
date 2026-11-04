@@ -153,7 +153,7 @@
     policy.dateAllowed(
       date,
       window.SvitloClock.now(state).date,
-      schedule(date).publication,
+      schedule(date).publication === 'published' ? 'published' : 'unpublished',
     );
   const hasGraph = () =>
     schedule().publication === "published" && schedule().unknown === 0;
@@ -385,7 +385,7 @@
             }),
         state,
       );
-    return `${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div><div class="actions one schedule-feedback"><button class="action mismatch-action" disabled aria-disabled="true">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
+    return `${data.referenceOnly ? '<div class="schedule-note">Дані графіка уточнюються</div>' : ''}${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div><div class="actions one schedule-feedback"><button class="action mismatch-action" disabled aria-disabled="true">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
   }
   function scheduleCard(demo = false) {
     const date = window.SvitloClock.selected(state);

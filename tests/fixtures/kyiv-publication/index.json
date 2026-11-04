@@ -1,0 +1,44 @@
+{
+  "scope": "synthetic-wire-replay-of-sanitized-public-addresses",
+  "clock": "2026-11-04T17:30:00+02:00",
+  "clockMs": 1793806200000,
+  "rawProvenance": "../fixture-provenance.json",
+  "note": "Real public house/hour fields; fixed replay retrieval clock and explicit synthetic control statuses. Never imported into live profiles/history.",
+  "scenarios": [
+    {
+      "file": "deg25-emergency.json",
+      "house": "25",
+      "group": "GPV22.1",
+      "scenario": "emergency",
+      "synthetic": true
+    },
+    {
+      "file": "deg25-applies-control.json",
+      "house": "25",
+      "group": "GPV22.1",
+      "scenario": "applies-control",
+      "synthetic": true
+    },
+    {
+      "file": "deg25-missing-control.json",
+      "house": "25",
+      "group": "GPV22.1",
+      "scenario": "missing-control",
+      "synthetic": true
+    },
+    {
+      "file": "deg25a-emergency.json",
+      "house": "25А/к.1",
+      "group": "GPV14.1",
+      "scenario": "emergency",
+      "synthetic": true
+    },
+    {
+      "file": "mrii15b-emergency.json",
+      "house": "15Б",
+      "group": "GPV21.1",
+      "scenario": "emergency",
+      "synthetic": true
+    }
+  ]
+}
