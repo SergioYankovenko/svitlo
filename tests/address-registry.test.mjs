@@ -31,7 +31,7 @@ test("primary operator queue still wins over curated estimate during profile ref
 test("database catalog preserves literal house spaces, prevents incomplete activation duplicates and denies client writes",async()=>{
  const db=new PGlite();try{
   await db.exec("create role anon;create role authenticated;create role service_role bypassrls;");
-  await db.exec(await readFile(new URL("../../work/prod-address-rollout-20261026/schema.sql",import.meta.url),"utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/20261026145440_address_queue_catalog.sql",import.meta.url),"utf8"));
   const batch=(await db.query("insert into public.svitlo_address_queue_batches(import_key,department,expected_total,expected_numeric,expected_exclusions,expected_service,checksum_md5,reviewed_at) values ('test','18',2,2,0,0,repeat('0',32),now()) returning id")).rows[0].id;
   await db.query("insert into public.svitlo_address_queues(batch_id,department,city_id,street_id,house,city,street,status,queue) values ($1,'18','801','12073','9  г','місто','вулиця','numeric','4.2'),($1,'18','801','12073','9 г','місто','вулиця','numeric','3.2')",[batch]);
   assert.equal((await db.query("select public.svitlo_address_dictionary('house','12073') as items")).rows[0].items.length,0);
