@@ -22,7 +22,7 @@ export class Admission {
 export class HttpAdmission {
  constructor({now=()=>Date.now()}={}){
   this.normal=new Admission({now});
-  this.sessionReads=new Admission({now,rate:64,burst:128,concurrency:16});
+  this.sessionReads=new Admission({now,rate:128,burst:256,concurrency:16});
  }
  acquire(path,method){return (path==='/api/session'&&method==='GET'?this.sessionReads:this.normal).acquire();}
  budget(key,limit){return this.normal.budget(key,limit);}
