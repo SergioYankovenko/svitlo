@@ -7,6 +7,8 @@ import http from 'node:http';
 import {runtime} from '../runtime.js';
 import {ownerContext} from '../db.js';
 import {validUniversal} from '../../app/lib/universal-contract.js';
+import {projectYasno} from './yasno.js';
+import {projectStreet} from './policy.js';
 const database=process.env.PGDATABASE;
 if(!/^svitlo_kyiv_qa_\d+$/.test(database||''))throw Error('Disposable restored Kyiv QA database required');
 const admin=new pg.Client({host:'postgres',user:'svitlo_owner',database,password:(await readFile('/run/secrets/owner_password','utf8')).trim()});await admin.connect();
@@ -24,7 +26,8 @@ const request=(path,body)=>new Promise((resolve,reject)=>{const r=http.request({
 try{
  for(const id of actors)await admin.query('insert into auth.users(id) values($1)',[id]);
  for(const r of [worker,rt])for(const operator of [op,province])r.regions.clients.set(operator,{streets:async()=>{calls++;return operator===op?{'м. Київ':['вул.Хрещатик']}:{'м.Бровари':['вул.Київська'],'м.Ірпінь':['вул.Університетська']};},houses:async()=>{calls++;return fixtures[operator===op?'kyiv':'brovary'];}});
- rt.regions.cityStatus=async()=>({checkedAt:Date.now(),updatedAt:Date.now()-1000,groupUpdatedAt:{'GPV23.1':Date.now()-1000},groups:{'GPV23.1':{'2026-11-04':'EmergencyShutdowns','2026-11-05':'EmergencyShutdowns'}}});
+ let cityMode='EmergencyShutdowns',cityMismatch=false,cityIncomplete=false;
+ rt.regions.cityStatus=async()=>{const raw=JSON.parse(await readFile(new URL('./fixtures/yasno-applies-23.1.json',import.meta.url),'utf8'));raw['23.1'].updatedOn=new Date(Date.now()-1000).toISOString();raw['23.1'].today.status=cityMode;if(cityMismatch){raw['23.1'].today.slots[1].end=809;raw['23.1'].today.slots[2].start=809;}if(cityIncomplete)raw['23.1'].today.slots=[];return projectYasno(raw,Date.now());};
  let city,town,street,address,other,brovary;
  await check('private allocator cannot be assumed or read directly and API cannot seed cities',async()=>{
   await assert.rejects(()=>rt.p.query('set role svitlo_region_owner'),e=>e.code==='42501');
@@ -55,7 +58,7 @@ try{
  });
  await check('Kyiv emergency suspends applicability while keeping dated plan in provenance',async()=>{
   const value=await rt.reader.snapshot(address,range);assert(validUniversal(value));assert.equal(value.lines[0].categories.hourly.days[0].state,'suspended');
-  const decision=value.provenance[0].reconciliation.days['GPV23.1:2026-11-04'];assert.equal(decision.policy,'kyiv-sources-v2');assert.equal(decision.powerState,'unknown');assert(Array.isArray(decision.publishedIntervals));
+  const decision=value.provenance[0].reconciliation.days['GPV23.1:2026-11-04'];assert.equal(decision.policy,'kyiv-sources-v3');assert.equal(decision.powerState,'unknown');assert(Array.isArray(decision.publishedIntervals));
  });
  await check('explicit line saves one private profile, duplicate is stable and foreign owner cannot read it',async()=>{
   const result=await rt.reader.resolve({addressId:brovary}),lineId=result.resolution.lines[0].id;
@@ -83,6 +86,10 @@ try{
   const snapshots=await request('/api/v1/snapshots',{...range,items:[{addressId:address}]});assert.equal(snapshots.status,200);assert.equal(snapshots.value.results[0].status,'snapshot');
  });
  await check('original profile identities, addresses, names and preferences are unchanged',async()=>{assert.equal(await digest(),before);});
+ await check('source interval agreement is checked after explicit ScheduleApplies mode',async()=>{cityMode='ScheduleApplies';const value=await rt.reader.snapshot(address,{fromDate:'2026-11-04',toDate:'2026-11-04'});const day=value.provenance[0].reconciliation.days['GPV23.1:2026-11-04'];assert.equal(day.intervalComparison,'equal');assert.equal(day.state,'published');assert.equal(value.supportState,'available');});
+ await check('one-minute official interval disagreement persists as degraded with both versions',async()=>{cityMismatch=true;const value=await rt.reader.snapshot(address,{fromDate:'2026-11-03',toDate:'2026-11-04'});const day=value.provenance[0].reconciliation.days['GPV23.1:2026-11-04'];assert.equal(day.intervalComparison,'different');assert.equal(day.state,'unknown');assert(day.secondaryIntervals.length);assert.equal(value.supportState,'degraded');assert(value.lines[0].categories.hourly.days.find(d=>d.date==='2026-11-04').intervals.length);});
+ await check('incomplete secondary day never confirms primary interval applicability',async()=>{cityIncomplete=true;const value=await rt.reader.snapshot(address,{fromDate:'2026-11-02',toDate:'2026-11-04'});assert.equal(value.provenance[0].reconciliation.days['GPV23.1:2026-11-04'].reason,'secondary_intervals_unavailable');assert.equal(value.supportState,'degraded');});
+ await check('fresh reported emergency remains scoped and visible without a primary daily table',async()=>{cityMode='EmergencyShutdowns';const data=projectStreet(fixtures.kyiv,Date.now());data.fact.data={};const original=rt.regions.address.bind(rt.regions);rt.regions.address=async e=>e.id===address?data:original(e);const value=await rt.reader.snapshot(address,{fromDate:'2026-11-01',toDate:'2026-11-04'});assert.equal(value.provenance[0].reconciliation.days['GPV23.1:2026-11-04'].reason,'reported_emergency_without_primary_plan');const notice=value.notices.find(n=>n.active);assert.deepEqual(notice.lineIds,[value.lines[0].id]);assert.equal(notice.scope,'reported_group_day');rt.regions.address=original;});
  await check('provider failure serves known catalog with old timestamp and never re-confirms an old single line',async()=>{
   rt.regions.streetCache={load:async(_scope,load)=>load()};rt.regions.clients.set(op,{houses:async()=>{throw Object.assign(Error('forbidden'),{code:'forbidden',status:503});}});
   await admin.query("update svitlo_vps.catalog set metadata=jsonb_set(metadata,'{sourceCheckedAt}',to_jsonb($2::bigint)) where id=$1",[address,now-180000]);

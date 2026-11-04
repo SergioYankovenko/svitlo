@@ -56,18 +56,20 @@ export function dtekSnapshot(entity,resolution,range,data,cityStatus=null,now=Da
  const sourceUpdatedAt=localStamp(data.fact?.update),freshUntil=data.checkedAt+120000,all=dates(range.fromDate,range.toDate),factDays=new Map();
  if(object(data.fact?.data))for(const [stamp,groups] of Object.entries(data.fact.data)){if(!/^\d{9,11}$/.test(stamp)||!object(groups))continue;const at=Number(stamp)*1000;if(!Number.isFinite(at))continue;factDays.set(dayKey(at),groups);}
  const statusFresh=!!cityStatus&&cityStatus.checkedAt+120000>now&&cityStatus.checkedAt<=now+300000;
- const noticeDates=new Set(),decisions={},sourceUnavailable=sourceUpdatedAt===null||sourceUpdatedAt>now+300000||data.checkedAt>now+300000;
+ const noticeDates=new Map(),decisions={},sourceUnavailable=sourceUpdatedAt===null||sourceUpdatedAt>now+300000||data.checkedAt>now+300000;
  const lines=resolution.lines.map(line=>{
   const categories={};for(const kind of CATEGORIES)categories[kind]={checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil,days:all.map(date=>{
    if(kind==='hourly'){
     const hours=factDays.get(date)?.[line.key],parsed=hours?parseHours(hours,date):{state:'not_published',intervals:[]};
     const hidden=data.flags.showTableSchedule===false||data.flags.showTableFact===false;
-    const from=civil(date),until=civil(addDays(date,1)),addressEmergency=data.flags.showCurOutageParam!==false&&house.outages.some(o=>o.kind==='emergency'&&o.groups.includes(line.key)&&o.start!==null&&o.start<until&&(o.end===null||o.end>from));
-    if(config.city){const status=cityStatus?.groups?.[line.key]?.[date],publishedAt=cityStatus?.groupUpdatedAt?.[line.key]??cityStatus?.updatedAt??null;
-     const result=reconcileDay({date,primary:{...parsed,publishedAt:sourceUpdatedAt,checkedAt:data.checkedAt},secondary:cityStatus?{date:status===undefined?null:date,status,checkedAt:cityStatus.checkedAt,publishedAt}:null,addressEmergency,hidden,now});
-     decisions[line.key+':'+date]={state:result.state,...result.evidence};if(result.state==='suspended'&&result.reason==='emergency_report_newer_than_plan')noticeDates.add(date);
+    const from=civil(date),until=civil(addDays(date,1)),addressEmergency=data.flags.showCurOutageParam!==false&&house.outages.some(o=>o.kind==='emergency'&&o.groups.includes(line.key)&&o.start!==null&&(o.end===null||o.end>o.start)&&o.start<until&&(o.end===null||o.end>from));
+    if(config.city){const status=cityStatus?.groups?.[line.key]?.[date],publishedAt=cityStatus?.groupUpdatedAt&&Object.hasOwn(cityStatus.groupUpdatedAt,line.key)?cityStatus.groupUpdatedAt[line.key]:cityStatus?.updatedAt??null;
+     const detail=cityStatus?.daySchedules?.[line.key]?.[date];
+     const result=reconcileDay({date,primary:{...parsed,publishedAt:sourceUpdatedAt,checkedAt:data.checkedAt},secondary:cityStatus?{...detail,date:status===undefined?null:date,status,checkedAt:cityStatus.checkedAt,publishedAt}:null,addressEmergency,hidden,now});
+     decisions[line.key+':'+date]={state:result.state,...result.evidence};if(result.state==='suspended'&&result.evidence.scope==='reported_group_day'){if(!noticeDates.has(date))noticeDates.set(date,{lineIds:[],publishedAt});const notice=noticeDates.get(date);notice.lineIds.push(line.id);notice.publishedAt=Math.max(notice.publishedAt,publishedAt);}
      return {date,state:result.state,intervals:result.intervals};
     }
+    if(freshUntil<=now)return {date,state:'stale',intervals:parsed.intervals};
     if(hidden||addressEmergency)return {date,state:'suspended',intervals:[]};
     if(sourceUnavailable)return {date,state:'unknown',intervals:[]};
     return {date,state:freshUntil<=now?'stale':parsed.state,intervals:parsed.intervals};
@@ -78,9 +80,10 @@ export function dtekSnapshot(entity,resolution,range,data,cityStatus=null,now=Da
   })};
   return {id:line.id,label:line.label,groupCode:line.groupCode,supportedCategories:CATEGORIES,categories};
  });
- const supportState=freshUntil<=now||sourceUnavailable||house.external||config.city&&!statusFresh?'degraded':'available';
+ const conflictToday=Object.entries(decisions).some(([key,d])=>key.endsWith(':'+dayKey(now))&&['unknown','stale'].includes(d.state));
+ const supportState=freshUntil<=now||sourceUnavailable||house.external||!resolution.complete||config.city&&(!statusFresh||conflictToday)?'degraded':'available';
  return seal({schemaVersion:1,addressId:entity.id,operatorId:entity.operator_id,timeZone:'Europe/Kyiv',coverage:range,resolution:{state:resolution.state,complete:resolution.complete},lines,
-  notices:[...noticeDates].map(date=>({kind:'regional_emergency',active:date===dayKey(now),start:civil(date),end:civil(addDays(date,1)),sourceUpdatedAt:cityStatus.updatedAt,checkedAt:cityStatus.checkedAt,url:'https://static.yasno.ua/kyiv/outages/',reason:'official_sources_emergency_override'})),
+  notices:[...noticeDates].map(([date,notice])=>({kind:'regional_emergency',scope:'reported_group_day',lineIds:notice.lineIds,active:date===dayKey(now),start:civil(date),end:civil(addDays(date,1)),sourceUpdatedAt:notice.publishedAt,checkedAt:cityStatus.checkedAt,url:'https://static.yasno.ua/kyiv/outages/',reason:'official_sources_emergency_override'})),
   checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil:Math.min(freshUntil,cityStatus?cityStatus.checkedAt+120000:freshUntil),refreshAfter:now+60000,supportState,
   provenance:[{operatorId:entity.operator_id,adapter:'dtek-public-v1',url:`https://${config.host}/ua/shutdowns`,allocation:resolution.provenance,categoryCoverage:'daily_hourly_and_positive_current_address_events',cityEmergencyStatus:cityStatus?'yasno-official':null,...(config.city?{reconciliation:{version:RECONCILIATION_VERSION,days:decisions}}:{})}],synthetic:false});
 }
