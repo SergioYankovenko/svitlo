@@ -1,3 +1,4 @@
+import {subscribeWithTimeout} from './live-push.js';
 import {identity,ensureIdentity,request,universalRequest,sensorRequest,onIdentityChange} from './core/api.js';
 import {scheduleFor,contextFor,profileView,labels,officialSource} from './live-model.js';
 import {dayKey,clock,stamp} from './core/lib/time.js';
@@ -9,13 +10,13 @@ const safeRead=()=>{try {const raw=localStorage.getItem(KEY);if(!raw||raw.length
 const weatherType=code=>code===0?['☀️','Ясно']:code<3?['🌤️','Мінлива хмарність']:code===3?['☁️','Хмарно']:code<50?['🌫️','Туман']:code<70?['🌧️','Дощ']:code<80?['🌨️','Сніг']:code<95?['🌦️','Злива']:['⛈️','Гроза'];
 export async function createLive(){
   let old=safeRead(),owner=old?.owner||null,profiles=old?.profiles||[],weather=old?.weather||{},active=old?.active||null;
-  let epoch=0,dataRevision=0,pending=null,lastSync=0,ui=null,offline=false,pushSubscribed=false,vapid='',sensors=[],sensorFetched=0,sensorPending=null,pushBinding=null,pushRestore=null;
+  let epoch=0,dataRevision=0,pending=null,lastSync=0,ui=null,offline=false,pushSubscribed=false,vapid='',sensors=[],sensorFetched=0,sensorPending=null,pushBinding=null,pushRestore=null,pushRequest=0,pushPending=null;
   const preferenceJobs=new Map(),preferenceRevisions=new Map();
   let cap=null;const listeners=new Set();
   const emit=()=>listeners.forEach(f=>f());
   function persist(){try{const raw=JSON.stringify({version:1,owner,profiles,weather,active});if(owner&&raw.length<=MAX_CACHE)localStorage.setItem(KEY,raw);else localStorage.removeItem(KEY);}catch{/* Storage never blocks a fetched schedule. */}}
   const current=id=>profiles.find(p=>p.id===(id||active));
-  function clear(){epoch++;pushSubscribed=false;pushBinding=null;profiles=[];weather={};sensors=[];active=null;owner=null;try{localStorage.removeItem(KEY);}catch{}emit();}
+  function clear(){epoch++;pushRequest++;pushPending=null;pushSubscribed=false;pushBinding=null;profiles=[];weather={};sensors=[];active=null;owner=null;try{localStorage.removeItem(KEY);}catch{}emit();}
   async function session(explicit=false){
     const who=explicit?await ensureIdentity():await identity();
     if(who!==owner){epoch++;profiles=[];weather={};sensors=[];active=null;owner=who;persist();}
@@ -97,16 +98,20 @@ export async function createLive(){
       pushSubscribed=true;emit();
     })().finally(()=>pushRestore=null);return pushRestore;
   }
-  async function enablePush(){
+  function enablePush(){
+    if(pushPending)return pushPending;const g=++pushRequest;
+    const job=(async()=>{
     if(!vapid)throw Error('Сервер сповіщень ще не підключений');
     if(!('Notification' in globalThis)||!('serviceWorker' in navigator))throw Error('Цей браузер не підтримує push-сповіщення');
     if(await Notification.requestPermission()!=='granted')return;
     const registration=await Promise.race([navigator.serviceWorker.ready,new Promise((_,reject)=>setTimeout(()=>reject(Error('Не вдалося підключити сповіщення')),15000))]);
     let subscription=await registration.pushManager.getSubscription();
-    if(!subscription){const raw=atob(vapid.replaceAll('-','+').replaceAll('_','/'));subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(raw,c=>c.charCodeAt(0))});}
+    if(!subscription){const raw=atob(vapid.replaceAll('-','+').replaceAll('_','/'));subscription=await subscribeWithTimeout(registration.pushManager,{userVisibleOnly:true,applicationServerKey:Uint8Array.from(raw,c=>c.charCodeAt(0))},{onLate:sub=>g===pushRequest?restorePush():sub.unsubscribe()});}
+    if(g!==pushRequest){await subscription.unsubscribe();throw Error('Стан підключення змінився. Повторіть спробу.');}
     await mutate('subscribe',{id:active,subscription:subscription.toJSON()});pushBinding=[owner,active,subscription.endpoint].join('|');pushSubscribed=true;emit();
+    })().finally(()=>{if(pushPending===job)pushPending=null;});pushPending=job;return job;
   }
-  async function disablePush(){const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner)await mutate('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
+  async function disablePush(){pushRequest++;pushPending=null;const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner)await mutate('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
   const api={adopt,enroll,search,sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
     onChange:f=>{listeners.add(f);return()=>listeners.delete(f);},
     profile:current,profiles:()=>profiles,owner:()=>owner,sensors:()=>sensors,sensorFetched:()=>sensorFetched,signalView:sensorSignalView,refreshSensors,
