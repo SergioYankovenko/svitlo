@@ -12,7 +12,7 @@ export function refreshDeadline(profile,lastSync){
 // current-power certainty, countdowns, sensor observations or delivery policy.
 export function publishedReference(profile,date,now=Date.now()){
   const s=profile?.snapshot?.universal,line=selectedLine(s,profile?.snapshot?.selectedLineId);
-  if(!line||!s.resolution.complete||s.supportState!=='available')return null;
+  if(!line||!s.resolution.complete||!['available','degraded'].includes(s.supportState))return null;
   const category=line.categories.hourly,day=category?.days.find(d=>d.date===date),publication=day?.publication;
   if(category?.evidenceMode!=='daily_schedule'||!publication)return null;
   const from=civil(date),until=civil(addDays(date,1)),stamp=t=>Number.isFinite(t)&&t>=0;

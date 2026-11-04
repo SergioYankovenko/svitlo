@@ -48,6 +48,25 @@ test('fresh positive address events overlay reference hours with existing catego
  const exact=d.events.find(e=>e.kind==='unplanned');assert.equal(exact.start*60000+d.from,start);assert.equal(exact.end*60000+d.from,end);
  line.categories.unplanned.freshUntil=now-1;d=scheduleFor(profile(s),date,now);assert.notEqual(d.at(minute),'unplanned');
 });
+
+for(const state of ['conflict','unconfirmed'])test(`fresh published reference survives degraded ${state} without confirming effective power`,async()=>{
+ const s=JSON.parse(await readFile(new URL('deg25-emergency.json',root),'utf8'));
+ s.supportState='degraded';const day=s.lines[0].categories.hourly.days[0];
+ day.state='unknown';day.applicability.state=state;
+ const p=profile(s),before=JSON.stringify(p),d=scheduleFor(p,date,now),c=contextFor(p,date,now);
+ assert.equal(d.publication,'published');assert.equal(d.referenceAvailable,true);assert.equal(d.referenceOnly,true);
+ for(const e of day.publication.intervals)assert.equal(d.at(((e.start+e.end)/2-d.from)/60000),'hourly');
+ assert.equal(d.raw.known,false);assert.ok(d.unknown>0);assert.equal(c.valueMinutes,null);assert.equal(c.warning,false);
+ assert.equal(d.events.filter(e=>e.kind==='hourly').length,0);assert.equal(JSON.stringify(p),before);
+ for(const edit of [x=>x.freshUntil=now,x=>x.resolution.complete=false,x=>x.lines[0].categories.hourly.days[0].publication.freshUntil=now]){
+  const x=structuredClone(s);edit(x);assert.equal(scheduleFor(profile(x),date,now).referenceAvailable,false);
+ }
+});
+
+test('disabled and unsupported providers cannot expose a published reference even with fresh cached publication fields',async()=>{
+ const s=JSON.parse(await readFile(new URL('deg25-emergency.json',root),'utf8'));
+ for(const state of ['disabled','unsupported']){const x=structuredClone(s);x.supportState=state;assert.equal(scheduleFor(profile(x),date,now).referenceAvailable,false);}
+});
 test('visible refresh uses the source deadline with a bounded floor and a one-hour legacy default',()=>{
  assert.equal(refreshDeadline(null,now),now+3600000);
  assert.equal(refreshDeadline({snapshot:{universal:{refreshAfter:now+120000,freshUntil:now+180000}}},now),now+120000);
