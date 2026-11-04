@@ -2,6 +2,14 @@ import {dayState,countdown} from './core/lib/schedule.js';
 import {civil,addDays,dayKey,parts} from './core/lib/time.js';
 import {eventKind} from './core/lib/outage-types.js';
 export const labels={hourly:'Погодинне відключення',planned:'Планові роботи',unplanned:'Позапланове відключення',emergency:'Аварійне відключення'};
+export function officialSource(profile,preferred){
+  const sources=profile?.snapshot?.universal?.provenance||[];
+  const fallback={'ua-cherkasy':'https://www.cherkasyoblenergo.com/off','ua-kyiv-dtek':'https://www.dtek-kem.com.ua/ua/shutdowns','ua-kyiv-region-dtek':'https://www.dtek-krem.com.ua/ua/shutdowns'};
+  for(const value of [preferred,...sources.map(p=>p.url),fallback[profile?.address?.operatorId]]){
+    try{const url=new URL(value);if(url.protocol==='https:'&&!url.username&&!url.password)return url.href;}catch{}
+  }
+  return null;
+}
 export function scheduleFor(profile,date,now=Date.now()) {
   const from=civil(date),until=civil(addDays(date,1)),total=(until-from)/60000;
   const d=dayState(profile?.snapshot||{},date,now);

@@ -815,7 +815,7 @@
         if(name==='publication-pwa-allow'){state.switches.tomorrow=true;await live.preferences(state);}
         closeDialog(); render(); break;
       case "pwa-deny": await live.disablePush();live.adopt(state);closeDialog();render();break;
-      case "source": live.openSource(); break;
+      case "source": live.openSource(element?.dataset.sourceUrl); break;
       case "share":
         dialog(
           "Поділитись графіком",

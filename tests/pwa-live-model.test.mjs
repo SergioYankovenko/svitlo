@@ -10,7 +10,7 @@ import {MemoryDatabase} from '../server/memory.js';
 import {validateRequest} from '../vps/telemetry/validation.js';
 // The browser source uses the same reviewed core modules copied by the build.
 const text=(await readFile(new URL('../pwa/live-model.js',import.meta.url),'utf8')).replaceAll("'./core/",`'${new URL('../app/',import.meta.url).href}`);
-const {scheduleFor,contextFor,utcIntervals}=await import('data:text/javascript;base64,'+Buffer.from(text).toString('base64'));
+const {scheduleFor,contextFor,utcIntervals,officialSource}=await import('data:text/javascript;base64,'+Buffer.from(text).toString('base64'));
 function fixture(date='2026-11-04',events=[]){const now=civil(date,720),legacy={queue:'3.2',categories:Object.fromEntries(['hourly','planned','emergency'].map(k=>[k,{events:events.filter(e=>e.category===k),checkedAt:now,sourceAt:now}])),checkedAt:now,feedCheckedAt:now,failures:[],feedFailed:false,plans:[{date,queue:'3.2',events:events.filter(e=>e.category==='hourly'),publishedAt:now-1000}],emergencies:[]};
  const value=normalizeLegacy({id:'address-a',operator_id:'ua-cherkasy'},legacy,{state:'resolved',complete:true,lines:[{id:'line-a',label:'Основна',groupCode:'3.2'}],provenance:{source:'controlled-test'}},{fromDate:date,toDate:date},now);
  return {now,profile:{id:'profile-a',snapshot:universalEnvelope(value,'line-a')}};
@@ -39,3 +39,11 @@ test('server rename is owner scoped and preserves concurrent schedule and prefer
  const r=await service.handle('alice',{action:'rename',id,name:' Нове ім’я '});assert.equal(r.profile.name,'Нове ім’я');assert.equal(r.profile.snapshot.revision,'keep');assert.equal(r.profile.preferences.lead,15);
 });
 test('VPS boundary allows split notification flags but rejects untrusted fields and oversized names',()=>{const id='11111111-1111-4111-8111-111111111111';validateRequest('/api',{action:'preferences',id,preferences:{publication:true,change:false}});validateRequest('/api',{action:'rename',id,name:"Дім О'Браєна"});assert.throws(()=>validateRequest('/api',{action:'rename',id,name:'a'.repeat(61)}));assert.throws(()=>validateRequest('/api',{action:'rename',id,name:'a',owner:'other'}));});
+
+test('source action works for legacy cached Cherkasy provenance and rejects unsafe message URLs',()=>{
+ const p={address:{operatorId:'ua-cherkasy'},snapshot:{universal:{provenance:[{adapter:'cherkasy-v1'}]}}};
+ assert.equal(officialSource(p),'https://www.cherkasyoblenergo.com/off');
+ assert.equal(officialSource(p,'javascript:alert(1)'),'https://www.cherkasyoblenergo.com/off');
+ assert.equal(officialSource(p,'https://login:secret@example.invalid'),'https://www.cherkasyoblenergo.com/off');
+ assert.equal(officialSource(p,'https://www.cherkasyoblenergo.com/news/123'),'https://www.cherkasyoblenergo.com/news/123');
+});
