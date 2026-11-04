@@ -30,6 +30,7 @@ try{
   migrations.push(['1009_phone_sensor.sql',await readFile('vps/sql/phone-sensor.sql','utf8')]);
   migrations.push(['1010_kyiv_regions.sql',await readFile('vps/sql/kyiv-regions.sql','utf8')]);
   migrations.push(['1011_operations.sql',await readFile('vps/sql/operations.sql','utf8')]);
+  migrations.push(['1012_source_history.sql',await readFile('vps/sql/source-history.sql','utf8')]);
   for(const [name,sql] of migrations){
     const hash=createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex');
     const old=(await c.query('select sha256 from svitlo_vps.migrations where name=$1',[name])).rows[0];

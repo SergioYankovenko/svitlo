@@ -13,6 +13,7 @@ import {UniversalService} from './universal/service.js';
 import {MapAddresses} from './maps/service.js';
 import {Regions} from './regions/service.js';
 import {DepartmentSchedules} from './department-cache.js';
+import {SourceHistory} from './regions/source-history.js';
 
 // Accounts remain transient adapter inputs; they never enter the persistent address/profile/catalog.
 export class PrivateSource extends Source {
@@ -36,5 +37,6 @@ export async function runtime(role='api'){
   const regions=new Regions({db,bridge,secret}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions});
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
   const service=new UniversalService({...options,maps},reader);
-  return {p,bridge,db,source,service,legacy,reader,maps,regions,secret};
+  const sourceHistory=new SourceHistory({bridge,regions,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
+  return {p,bridge,db,source,service,legacy,reader,maps,regions,sourceHistory,secret};
 }

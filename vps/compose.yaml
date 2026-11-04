@@ -32,6 +32,9 @@ services:
     profiles: [second-slot]
   worker:
     <<: *runtime
+    environment:
+      <<: *environment
+      SOURCE_HISTORY_ENABLED: 'true'
     command: [node,--use-system-ca,vps/worker.mjs]
     secrets: [worker_password,session_secret]
     healthcheck: {disable: true}
