@@ -3,6 +3,7 @@ import {CATEGORIES} from '../../app/lib/universal-contract.js';
 import {seal,dates} from '../universal/normalize.js';
 import {REGIONS,regionError} from './dtek.js';
 import {reconcileDay,RECONCILIATION_VERSION} from './reconcile.js';
+export const DTEK_SNAPSHOT_VERSION='dtek-publication-v1';
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
 const group=x=>typeof x==='string'&&/^GPV[1-9]\d{0,2}\.[1-9]\d?$/.test(x);
 const text=x=>typeof x==='string'?x.slice(0,600).replace(/[\x00-\x1f]/g,' ').trim():'';
@@ -17,15 +18,15 @@ export function projectStreet(raw,checkedAt=Date.now()){
  const houses={};for(const [number,value] of Object.entries(raw.data)){
   if(!number||number.length>120||/[\x00-\x1f]/.test(number))throw regionError('invalid_house_number');
   const records=(Array.isArray(value)?value:[value]).filter(object);if(!records.length||records.length>32)throw regionError('invalid_house_record');
-  const groups=new Set(),outages=[];let partial=false,invalid=false,external=false;
+  const groups=new Set(),outages=[];let invalid=false,external=false;
   for(const record of records){const reason=text(record.sub_type),kind=outageKind(reason),rawGroups=record.sub_type_reason;
    if(!Array.isArray(rawGroups)||rawGroups.length===0||rawGroups.length>32||rawGroups.some(x=>!group(x)))invalid=true;
    const valid=(Array.isArray(rawGroups)?rawGroups:[]).filter(group);for(const id of valid)groups.add(id);
-   if(reason){outages.push({reason,kind,start:localStamp(record.start_date,'timeFirst'),end:localStamp(record.end_date,'timeFirst'),groups:valid});if(kind==='hourly')partial=true;}
+   if(reason)outages.push({reason,kind,start:localStamp(record.start_date,'timeFirst'),end:localStamp(record.end_date,'timeFirst'),groups:valid});
    external=external||!!record.cek;
   }
   if(groups.size>32)throw regionError('invalid_house_groups');
-  houses[number]={groups:[...groups].sort(),partial:partial||invalid,external,outages};
+  houses[number]={groups:[...groups].sort(),partial:invalid,external,outages};
  }
  const fact=object(raw.fact)?{data:raw.fact.data,update:text(raw.fact.update),today:raw.fact.today}:null;
  if(fact&&JSON.stringify(fact).length>500000)throw regionError('invalid_schedule_size');
@@ -58,21 +59,23 @@ export function dtekSnapshot(entity,resolution,range,data,cityStatus=null,now=Da
  const statusFresh=!!cityStatus&&cityStatus.checkedAt+120000>now&&cityStatus.checkedAt<=now+300000;
  const noticeDates=new Map(),decisions={},sourceUnavailable=sourceUpdatedAt===null||sourceUpdatedAt>now+300000||data.checkedAt>now+300000;
  const lines=resolution.lines.map(line=>{
-  const categories={};for(const kind of CATEGORIES)categories[kind]={checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil,days:all.map(date=>{
+  const categories={};for(const kind of CATEGORIES)categories[kind]={checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil,evidenceMode:kind==='hourly'?'daily_schedule':'positive_only',days:all.map(date=>{
    if(kind==='hourly'){
     const hours=factDays.get(date)?.[line.key],parsed=hours?parseHours(hours,date):{state:'not_published',intervals:[]};
+    const publication={state:sourceUnavailable?'unknown':parsed.state,intervals:parsed.intervals,checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil};
+    const pack=(state,intervals,applicability,reason)=>({date,state,intervals,publication,applicability:{state:applicability,reason}});
     const hidden=data.flags.showTableSchedule===false||data.flags.showTableFact===false;
     const from=civil(date),until=civil(addDays(date,1)),addressEmergency=data.flags.showCurOutageParam!==false&&house.outages.some(o=>o.kind==='emergency'&&o.groups.includes(line.key)&&o.start!==null&&(o.end===null||o.end>o.start)&&o.start<until&&(o.end===null||o.end>from));
     if(config.city){const status=cityStatus?.groups?.[line.key]?.[date],publishedAt=cityStatus?.groupUpdatedAt&&Object.hasOwn(cityStatus.groupUpdatedAt,line.key)?cityStatus.groupUpdatedAt[line.key]:cityStatus?.updatedAt??null;
      const detail=cityStatus?.daySchedules?.[line.key]?.[date];
      const result=reconcileDay({date,primary:{...parsed,publishedAt:sourceUpdatedAt,checkedAt:data.checkedAt},secondary:cityStatus?{...detail,date:status===undefined?null:date,status,checkedAt:cityStatus.checkedAt,publishedAt}:null,addressEmergency,hidden,now});
      decisions[line.key+':'+date]={state:result.state,...result.evidence};if(result.state==='suspended'&&result.evidence.scope==='reported_group_day'){if(!noticeDates.has(date))noticeDates.set(date,{lineIds:[],publishedAt});const notice=noticeDates.get(date);notice.lineIds.push(line.id);notice.publishedAt=Math.max(notice.publishedAt,publishedAt);}
-     return {date,state:result.state,intervals:result.intervals};
+     return pack(result.state,result.intervals,result.evidence.applicability||(result.state==='published'?'reported':result.state==='suspended'?'suspended':'unconfirmed'),result.reason);
     }
-    if(freshUntil<=now)return {date,state:'stale',intervals:parsed.intervals};
-    if(hidden||addressEmergency)return {date,state:'suspended',intervals:[]};
-    if(sourceUnavailable)return {date,state:'unknown',intervals:[]};
-    return {date,state:freshUntil<=now?'stale':parsed.state,intervals:parsed.intervals};
+    if(freshUntil<=now)return pack('stale',parsed.intervals,'unconfirmed','primary_fetch_expired');
+    if(hidden||addressEmergency)return pack('suspended',[],'suspended',addressEmergency?'address_emergency':'primary_hides_daily_schedule');
+    if(sourceUnavailable)return pack('unknown',[],'unconfirmed','invalid_primary_clock');
+    return pack(parsed.state,parsed.intervals,parsed.state==='published'?'reported':'unconfirmed',parsed.state==='published'?'primary_daily_schedule':parsed.reason||'no_primary_schedule_for_date');
    }
    const from=civil(date),to=civil(addDays(date,1)),events=(data.flags.showCurOutageParam===false?[]:house.outages).filter(o=>o.kind===kind&&o.groups.includes(line.key)&&o.start!==null&&(o.end===null||o.end>o.start)&&o.start<to&&(o.end===null||o.end>from)).map(o=>({start:o.start,end:o.end}));
    // Current-address events are positive evidence only; an empty current reply is not a full-day zero.

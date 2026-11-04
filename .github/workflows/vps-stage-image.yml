@@ -1,7 +1,7 @@
 name: Build private VPS artifact
 on:
   push:
-    branches: [codex/architecture-hardening-20261104, codex/kyiv-regions-20261104, codex/pwa-cache-20261104, codex/paired-source-history-20261104, codex/pwa-live-v2-20261104]
+    branches: [codex/architecture-hardening-20261104, codex/kyiv-regions-20261104, codex/pwa-cache-20261104, codex/paired-source-history-20261104, codex/pwa-live-v2-20261104, codex/kyiv-address-display-20261104]
 permissions:
   contents: read
 concurrency:
