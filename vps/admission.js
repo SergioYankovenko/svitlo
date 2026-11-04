@@ -19,3 +19,11 @@ export class Admission {
   this.quotas.set(key,{count:1,until:t+3600000});return true;
  }
 }
+export class HttpAdmission {
+ constructor({now=()=>Date.now()}={}){
+  this.normal=new Admission({now});
+  this.sessionReads=new Admission({now,rate:64,burst:128,concurrency:16});
+ }
+ acquire(path,method){return (path==='/api/session'&&method==='GET'?this.sessionReads:this.normal).acquire();}
+ budget(key,limit){return this.normal.budget(key,limit);}
+}
