@@ -1,7 +1,7 @@
 name: Build private VPS artifact
 on:
   push:
-    branches: [codex/architecture-hardening-20261104, codex/kyiv-regions-20261104, codex/pwa-cache-20261104, codex/pwa-live-v2-20261104]
+    branches: [codex/architecture-hardening-20261104, codex/kyiv-regions-20261104, codex/pwa-cache-20261104, codex/paired-source-history-20261104, codex/pwa-live-v2-20261104]
 permissions:
   contents: read
 concurrency:
@@ -11,6 +11,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: svitlo_owner
+          POSTGRES_PASSWORD: isolated-history-ci
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U svitlo_owner" --health-interval 5s --health-timeout 5s --health-retries 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
@@ -20,6 +28,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm test
       - run: node --test vps/*.test.mjs vps/sensors/*.test.mjs vps/maps/*.test.mjs vps/regions/*.test.mjs vps/universal/*.test.mjs vps/telemetry/*.test.mjs
+      - run: node vps/regions/source-history-ci.mjs
       - name: Build once outside VPS; no server credentials or deployment
         run: |
           mkdir -p artifact
