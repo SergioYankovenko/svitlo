@@ -1,5 +1,7 @@
 ARG NODE_IMAGE=node@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c
 FROM ${NODE_IMAGE}
+ARG SOURCE_COMMIT=development
+LABEL org.opencontainers.image.revision=${SOURCE_COMMIT}
 ENV NODE_ENV=production TZ=UTC
 WORKDIR /srv/svitlo
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*

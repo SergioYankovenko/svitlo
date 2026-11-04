@@ -1,0 +1,36 @@
+name: Build private VPS artifact
+on:
+  push:
+    branches: [codex/architecture-hardening-20261104]
+permissions:
+  contents: read
+concurrency:
+  group: vps-stage-image-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: node --test vps/*.test.mjs vps/sensors/*.test.mjs vps/maps/*.test.mjs vps/regions/*.test.mjs vps/universal/*.test.mjs vps/telemetry/*.test.mjs
+      - name: Build once outside VPS; no server credentials or deployment
+        run: |
+          mkdir -p artifact
+          docker build --build-arg SOURCE_COMMIT="$GITHUB_SHA" -f vps/Dockerfile -t svitlo-stage-ci:artifact .
+          docker save svitlo-stage-ci:artifact | gzip > artifact/image.tar.gz
+          git archive HEAD | gzip > artifact/source.tar.gz
+          export IMAGE_ID=$(docker image inspect svitlo-stage-ci:artifact --format '{{.Id}}')
+          node vps/ops/manifest.mjs artifact
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: vps-stage-${{ github.sha }}
+          path: artifact/
+          retention-days: 1
+          compression-level: 0
