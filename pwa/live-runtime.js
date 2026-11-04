@@ -11,12 +11,15 @@ const weatherType=code=>code===0?['☀️','Ясно']:code<3?['🌤️','Мін
 export async function createLive(){
   let old=safeRead(),owner=old?.owner||null,profiles=old?.profiles||[],weather=old?.weather||{},active=old?.active||null;
   let epoch=0,dataRevision=0,pending=null,lastSync=0,ui=null,offline=false,pushSubscribed=false,vapid='',sensors=[],sensorFetched=0,sensorPending=null,pushBinding=null,pushRestore=null,pushRequest=0,pushPending=null;
+  const PUSH_CHOICE='svitlo.pwa.v2.push-choice';
+  const pushChoice=()=>{try{return JSON.parse(localStorage.getItem(PUSH_CHOICE)||'null');}catch{return null;}};
+  const savePushChoice=(enabled,subject=owner)=>{try{localStorage.setItem(PUSH_CHOICE,JSON.stringify({owner:subject,enabled}));}catch{}};
   const preferenceJobs=new Map(),preferenceRevisions=new Map();
   let cap=null;const listeners=new Set();
   const emit=()=>listeners.forEach(f=>f());
   function persist(){try{const raw=JSON.stringify({version:1,owner,profiles,weather,active});if(owner&&raw.length<=MAX_CACHE)localStorage.setItem(KEY,raw);else localStorage.removeItem(KEY);}catch{/* Storage never blocks a fetched schedule. */}}
   const current=id=>profiles.find(p=>p.id===(id||active));
-  function clear(){epoch++;pushRequest++;pushPending=null;pushSubscribed=false;pushBinding=null;profiles=[];weather={};sensors=[];active=null;owner=null;try{localStorage.removeItem(KEY);}catch{}emit();}
+  function clear(){savePushChoice(false,null);epoch++;pushRequest++;pushPending=null;pushSubscribed=false;pushBinding=null;profiles=[];weather={};sensors=[];active=null;owner=null;try{localStorage.removeItem(KEY);}catch{}emit();}
   async function session(explicit=false){
     const who=explicit?await ensureIdentity():await identity();
     if(who!==owner){epoch++;profiles=[];weather={};sensors=[];active=null;owner=who;persist();}
@@ -90,7 +93,7 @@ export async function createLive(){
   function messagesHTML(e){const p=current(),messages=p?.messages||[];return messages.map(m=>`<article class="card outlined notification-card schedule-message"><div class="notification-meta">Оновлено · ${e(m.publishedAt?stamp(m.publishedAt):'')}</div><div class="notification-title">${e(messageTitle(m)||m.title||'')}</div><div class="notification-body">${e(m.scope==='region'?'В області':p.snapshot?.queue?'Черга '+p.snapshot.queue:m.body||'')}</div><div class="actions"><button class="action" data-action="view-schedule">Переглянути графік</button><button class="action" data-action="source" data-source-url="${e(m.url||'')}">Джерело</button></div></article>`).join('');}
   async function refreshSensors(){if(sensorPending)return sensorPending;if(!owner)return[];const who=owner,g=epoch;return sensorPending=sensorRequest('list',{}, {owner:who}).then(r=>{if(g===epoch){sensors=r.sensors||[];sensorFetched=Date.now();emit();}return sensors;}).finally(()=>sensorPending=null);}
   async function restorePush(){
-    if(pushRestore)return pushRestore;if(!owner||!vapid||globalThis.Notification?.permission!=='granted'||!navigator.serviceWorker)return;
+    if(pushRestore)return pushRestore;const choice=pushChoice();if(choice?.owner!==owner||choice?.enabled!==true)return;if(!owner||!vapid||globalThis.Notification?.permission!=='granted'||!navigator.serviceWorker)return;
     pushRestore=(async()=>{const generation=epoch,who=owner,id=active,registration=await navigator.serviceWorker.getRegistration();if(!registration?.active)return;const sub=await registration.pushManager.getSubscription();if(!sub)return;
       const bytes=sub.options?.applicationServerKey,actual=bytes?btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll('+','-').replaceAll('/','_').replaceAll('=',''):null;
       if(actual&&actual!==vapid){await sub.unsubscribe();pushSubscribed=false;return;}
@@ -106,12 +109,14 @@ export async function createLive(){
     if(await Notification.requestPermission()!=='granted')return;
     const registration=await Promise.race([navigator.serviceWorker.ready,new Promise((_,reject)=>setTimeout(()=>reject(Error('Не вдалося підключити сповіщення')),15000))]);
     let subscription=await registration.pushManager.getSubscription();
+    if(subscription&&pushChoice()?.owner!==owner){await subscription.unsubscribe();subscription=null;}
+    savePushChoice(true);
     if(!subscription){const raw=atob(vapid.replaceAll('-','+').replaceAll('_','/'));subscription=await subscribeWithTimeout(registration.pushManager,{userVisibleOnly:true,applicationServerKey:Uint8Array.from(raw,c=>c.charCodeAt(0))},{onLate:sub=>g===pushRequest?restorePush():sub.unsubscribe()});}
     if(g!==pushRequest){await subscription.unsubscribe();throw Error('Стан підключення змінився. Повторіть спробу.');}
     await mutate('subscribe',{id:active,subscription:subscription.toJSON()});pushBinding=[owner,active,subscription.endpoint].join('|');pushSubscribed=true;emit();
     })().finally(()=>{if(pushPending===job)pushPending=null;});pushPending=job;return job;
   }
-  async function disablePush(){pushRequest++;pushPending=null;const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner)await mutate('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
+  async function disablePush(){savePushChoice(false);pushRequest++;pushPending=null;const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner)await mutate('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
   const api={adopt,enroll,search,sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
     onChange:f=>{listeners.add(f);return()=>listeners.delete(f);},
     profile:current,profiles:()=>profiles,owner:()=>owner,sensors:()=>sensors,sensorFetched:()=>sensorFetched,signalView:sensorSignalView,refreshSensors,
