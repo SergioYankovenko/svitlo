@@ -10,7 +10,7 @@ import {SourceError} from '../server/source-errors.js';
 import {SensorAccess,sensorCapabilities} from './sensors/service.js';
 import {SensorIngest,ingestCapabilities} from './sensors/ingest.js';
 import {PhoneSensors,phoneCapabilities} from './sensors/phone.js';
-import {Admission,clientKey} from './admission.js';
+import {HttpAdmission,clientKey} from './admission.js';
 const rt=await runtime(),sessionPool=pool('session',2),sessions=new Sessions(sessionPool,rt.secret);
 const telemetry=new Telemetry(rt.bridge,rt.secret);
 const sensorSecret=(await readFile('/run/secrets/sensor_access_secret','utf8')).trim();
@@ -22,7 +22,8 @@ const sensorIngest=new SensorIngest(rt.bridge);
 const root=resolve('dist/app'),origin=process.env.STAGE_ORIGIN||'http://localhost:18765';
 const release=process.env.RELEASE_ID||'development';
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2','.ttf':'font/ttf','.ico':'image/x-icon','.txt':'text/plain; charset=utf-8'};
-const admission=new Admission();
+// Session metadata has a separate bounded pool; mutations/devices keep 32/s.
+const admission=new HttpAdmission();
 const budget=(key,limit)=>admission.budget(key,limit);
 function json(res,status,data,reason){if(res.telemetryMeta)telemetry.reject({...res.telemetryMeta,status,reason});if(status===429&&!res.hasHeader('Retry-After'))res.setHeader('Retry-After','60');res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});res.end(JSON.stringify(data));}
 async function body(req,limit=16384,legacyLimit=0){let size=0,parts=[];for await(const c of req){size+=c.length;if(size<=limit)parts.push(c);}if(size>limit)throw problem(413,'payload_too_large','size');let value;try{value=JSON.parse(Buffer.concat(parts).toString());}catch{if(legacyLimit&&size>legacyLimit)throw problem(413,'payload_too_large','size');throw problem(400,'invalid_json');}if(legacyLimit&&value?.schemaVersion!==3&&size>legacyLimit)throw problem(413,'payload_too_large','size');if(!value||typeof value!=='object'||Array.isArray(value))throw problem(400,'invalid_json');return value;}
@@ -42,7 +43,7 @@ const server=http.createServer(async(req,res)=>{
       return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:rt.delivery,productionReady:false});
     }
     const client=clientKey(req,rt.secret);
-    if(path.startsWith('/api')||path==='/diagnostic-reports')leave=admission.acquire();
+    if(path.startsWith('/api')||path==='/diagnostic-reports')leave=admission.acquire(path,req.method);
     if(path==='/api/v1/sensor-events'||path==='/api/v1/sensor-devices/register'||path==='/api/v1/sensor-devices/control'){
       const trace=telemetry.requestIds.issue();res.telemetryMeta={path:routeTag(path),correlationId:trace.id};res.setHeader('X-Svitlo-Request-ID',trace.token);
       if(url.search)throw problem(400,'sensor_query_not_allowed');
