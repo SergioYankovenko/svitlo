@@ -111,6 +111,19 @@ try{
   const cached=await rt.reader.catalog.search({kind:'houses',parentId:street,q:'36'});assert.equal(cached.coverage,'cached_subset');assert.equal(cached.sourceFresh,false);assert.equal(cached.sourceState,'forbidden');assert.equal(cached.items[0].id,address);
   const resolved=await rt.reader.resolve({addressId:address});assert.equal(resolved.resolution.state,'unknown');assert.equal(resolved.resolution.complete,false);assert.equal(resolved.selection.lineId,null);assert.equal(resolved.resolution.provenance.sourceCheckedAt,now-180000);
  });
+ await check('reported Degtyarivska and Mrii addresses retain published reference plans and valid source group mapping',async()=>{
+  const samples=Object.fromEntries(await Promise.all(['kyiv-dehtiarivska-20261104','kyiv-mrii-20261104'].map(async name=>[name,JSON.parse(await readFile(new URL('./fixtures/'+name+'.json',import.meta.url),'utf8'))])));
+  await rt.regions.import(op,'street',city,['вул.Хрещатик','вул. Дегтярівська','вул. Мрії'],Date.now()+2000);
+  rt.regions.clients.set(op,{houses:async(_city,s)=>{calls++;return samples[s==='вул. Мрії'?'kyiv-mrii-20261104':'kyiv-dehtiarivska-20261104'];}});
+  const groups=['GPV22.1','GPV14.1','GPV21.1'];rt.regions.cityStatus=async()=>({checkedAt:Date.now(),groupUpdatedAt:Object.fromEntries(groups.map(g=>[g,Date.now()-1000])),groups:Object.fromEntries(groups.map(g=>[g,{'2026-11-04':'EmergencyShutdowns'}]))});
+  for(const [streetName,house,group] of [['вул. Дегтярівська','25','22.1'],['вул. Дегтярівська','25А/к.1','14.1'],['вул. Мрії','15Б','21.1']]){
+   const parent=(await admin.query("select id from svitlo_vps.catalog where parent_id=$1 and kind='street' and source_ref->>'street'=$2",[city,streetName])).rows[0].id;
+   const entity=(await find('houses',parent,house)).find(e=>e.house===house||e.label===house);assert(entity);
+   const resolved=await rt.reader.resolve({addressId:entity.id});assert.equal(resolved.resolution.complete,true);assert.equal(resolved.resolution.lines[0].groupCode,group);assert(resolved.selection.lineId);
+   const value=await rt.reader.snapshot(entity.id,{fromDate:'2026-11-04',toDate:'2026-11-04'}),day=value.lines[0].categories.hourly.days[0];assert(validUniversal(value));assert.equal(day.publication.state,'published');assert(day.publication.intervals.length);assert.equal(day.state,'suspended');assert.deepEqual(day.intervals,[]);assert.equal(day.applicability.state,'suspended');assert.equal(value.lines[0].categories.planned.evidenceMode,'positive_only');
+  }
+  assert.equal(await digest(),before);
+ });
  console.log(JSON.stringify({suite:'kyiv-regions',checks:checks.length,status:'pass',originalProfiles:originals.length,originalConfigurationDigest:before,mockUpstreamCalls:calls}));
 }finally{
  if(child){child.kill('SIGTERM');await new Promise(resolve=>child.once('exit',resolve));}

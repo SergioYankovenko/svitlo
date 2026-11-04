@@ -1,5 +1,5 @@
 import {DtekClient,boundedBody,regionError} from './dtek.js';
-import {projectStreet,localStamp,parseHours} from './policy.js';
+import {projectStreet,localStamp,parseHours,DTEK_SNAPSHOT_VERSION} from './policy.js';
 import {projectYasno} from './yasno.js';
 import {reconcileDay,RECONCILIATION_VERSION} from './reconcile.js';
 import {dayKey,addDays} from '../../app/lib/time.js';
@@ -30,7 +30,7 @@ export function historyPayload(target,raw,checkedAt){
  // Retain original dated hour labels for replay, plus the projected public reference
  // house. Unrelated street houses and arbitrary top-level response fields are omitted.
  const fact=parsed.fact;
- return {version:HISTORY_VERSION,source:target.source,reference:{city:target.city,street:target.street,house:target.house},
+ return {version:HISTORY_VERSION,source:target.source,projectionVersion:DTEK_SNAPSHOT_VERSION,reference:{city:target.city,street:target.street,house:target.house},
   parsed:{fact,flags:parsed.flags,house:house||null}};
 }
 

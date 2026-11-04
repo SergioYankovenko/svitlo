@@ -1,0 +1,95 @@
+{
+  "result": true,
+  "data": {
+    "25": [
+      {
+        "sub_type": "",
+        "sub_type_reason": [
+          "GPV22.1"
+        ],
+        "start_date": "",
+        "end_date": "",
+        "type": "",
+        "cek": null,
+        "voluntarily": null
+      }
+    ],
+    "25А/к.1": [
+      {
+        "sub_type": "",
+        "sub_type_reason": [
+          "GPV14.1"
+        ],
+        "start_date": "",
+        "end_date": "",
+        "type": "",
+        "cek": null,
+        "voluntarily": null
+      }
+    ]
+  },
+  "fact": {
+    "data": {
+      "1793743200": {
+        "GPV14.1": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "no",
+          "12": "no",
+          "13": "no",
+          "14": "no",
+          "15": "no",
+          "16": "no",
+          "17": "yes",
+          "18": "yes",
+          "19": "yes",
+          "20": "no",
+          "21": "no",
+          "22": "no",
+          "23": "no",
+          "24": "no"
+        },
+        "GPV22.1": {
+          "1": "yes",
+          "2": "yes",
+          "3": "yes",
+          "4": "yes",
+          "5": "yes",
+          "6": "yes",
+          "7": "yes",
+          "8": "yes",
+          "9": "yes",
+          "10": "yes",
+          "11": "no",
+          "12": "no",
+          "13": "first",
+          "14": "yes",
+          "15": "yes",
+          "16": "second",
+          "17": "no",
+          "18": "no",
+          "19": "no",
+          "20": "no",
+          "21": "no",
+          "22": "no",
+          "23": "no",
+          "24": "yes"
+        }
+      }
+    },
+    "update": "04.11.2026 13:41",
+    "today": 1793743200
+  },
+  "showTableSchedule": true,
+  "showTableFact": true,
+  "showTablePlan": false,
+  "showCurOutageParam": true
+}
