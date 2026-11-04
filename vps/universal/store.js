@@ -7,10 +7,10 @@ export class Catalog {
  async entity(id){if(!uuid(id))throw apiError(400,'invalid_id','Некоректний ідентифікатор');
   const seen=new Set();for(let n=0;n<8;n++){
    if(seen.has(id))throw apiError(503,'alias_cycle');seen.add(id);
-   const r=(await this.db.query(`select e.*,s.label as street,s.metadata as street_metadata,c.label as city,c.id as city_id from svitlo_vps.catalog e
+   const r=(await this.db.query(`select e.*,s.label as street,s.metadata as street_metadata,c.label as city,c.id as city_id,c.metadata as city_metadata from svitlo_vps.catalog e
     left join svitlo_vps.catalog s on s.id=e.parent_id left join svitlo_vps.catalog c on c.id=s.parent_id where e.id=$1`,[id])).rows[0];
    if(!r)throw apiError(404,'address_not_found','Адресу не знайдено');
-   if(r.metadata?.regionOperator&&r.metadata.sourceActive===false)throw apiError(409,'address_requires_reselection','Адресу більше не підтверджує джерело. Повторіть пошук');
+   if(r.metadata?.regionOperator&&(r.metadata.sourceActive===false||r.kind!=='city'&&r.street_metadata?.sourceActive===false||r.kind==='address'&&r.city_metadata?.sourceActive===false))throw apiError(409,'address_requires_reselection','Адресу більше не підтверджує джерело. Повторіть пошук');
    if(!r.redirect_to){if(!(await this.db.query('select svitlo_vps.catalog_allowed($1) allowed',[r.id])).rows[0].allowed){if(r.operator_id==='map-only')throw apiError(404,'address_not_found','Адресу не знайдено');throw apiError(409,'address_requires_reselection','Потрібно повторно обрати вулицю: цей запис є службовим');}return r;}id=r.redirect_to;
   }throw apiError(503,'alias_depth');
  }

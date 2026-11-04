@@ -33,7 +33,7 @@ backup=$(cat /var/lib/svitlo-stage/latest-backup)
 mounts=(--mount type=bind,src=/etc/svitlo/secrets/postgres-owner-password,dst=/run/secrets/owner_password,readonly)
 for name in api worker session;do mounts+=(--mount "type=bind,src=/etc/svitlo/stage-secrets/$name-password,dst=/run/secrets/${name}_password,readonly");done
 for name in session sensor-access phone;do alias=${name//-/_};mounts+=(--mount "type=bind,src=/etc/svitlo/stage-secrets/$name-secret,dst=/run/secrets/${alias}_secret,readonly");done
-for suite in phone history regions;do
+for suite in phone history map regions;do
  qa="svitlo_${suite}_qa_$(date +%s)"
  if test "$suite" = regions;then qa="svitlo_kyiv_qa_$(date +%s)";fi
  docker exec svitlo-postgres-1 createdb -U svitlo_owner "$qa"
@@ -48,7 +48,8 @@ for suite in phone history regions;do
   else test "$existing" = "$hash";fi
  fi
  if test "$suite" = phone;then docker exec svitlo-postgres-1 psql -X -q -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" -c 'truncate svitlo_sensors.phone_ranges';fi
- case "$suite" in phone) script=vps/sensors/phone-integration.mjs;;history) script=vps/sensors/history-integration.mjs;;regions) script=vps/regions/integration.mjs;;esac
+ if test "$suite" = regions;then docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c 'truncate public.svitlo_source_cache';fi
+ case "$suite" in phone) script=vps/sensors/phone-integration.mjs;;history) script=vps/sensors/history-integration.mjs;;map) script=vps/maps/integration.mjs;;regions) script=vps/regions/integration.mjs;;esac
  docker run --rm --network svitlo_backend --user 0 -e PGDATABASE="$qa" "${mounts[@]}" --entrypoint node "$image" "$script"
  docker exec svitlo-postgres-1 dropdb -U svitlo_owner "$qa"
  trap - EXIT

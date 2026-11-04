@@ -1,0 +1,16 @@
+{
+  "23.1": {
+    "today": {
+      "slots": [
+        {"start":0,"end":600,"type":"NotPlanned"},
+        {"start":600,"end":810,"type":"Definite"},
+        {"start":810,"end":1020,"type":"NotPlanned"},
+        {"start":1020,"end":1440,"type":"Definite"}
+      ],
+      "date":"2026-11-04T00:00:00+02:00",
+      "status":"ScheduleApplies"
+    },
+    "tomorrow":{"slots":[],"date":"2026-11-05T00:00:00+02:00","status":"WaitingForSchedule"},
+    "updatedOn":"2026-11-04T10:04:42+00:00"
+  }
+}

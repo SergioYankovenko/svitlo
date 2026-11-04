@@ -1,10 +1,10 @@
-import {createHash,createHmac,timingSafeEqual} from 'node:crypto';
+import {createHmac,timingSafeEqual} from 'node:crypto';
 import {isIP} from 'node:net';
 import {problem} from './telemetry/validation.js';
 export const proxyProof=secret=>createHmac('sha256',secret).update('edge-client-v1').digest('hex');
 export function clientKey(req,secret){
  const proof=req.headers['x-svitlo-proxy-proof'],ip=req.headers['x-svitlo-client-ip'],expected=proxyProof(secret);
- const trusted=typeof proof==='string'&&proof.length===64&&timingSafeEqual(Buffer.from(proof),Buffer.from(expected))&&typeof ip==='string'&&isIP(ip);
+ const trusted=typeof proof==='string'&&/^[a-f0-9]{64}$/.test(proof)&&timingSafeEqual(Buffer.from(proof),Buffer.from(expected))&&typeof ip==='string'&&isIP(ip);
  return createHmac('sha256',secret).update('client:'+ (trusted?ip:req.socket.remoteAddress||'unknown')).digest('hex');
 }
 export class Admission {

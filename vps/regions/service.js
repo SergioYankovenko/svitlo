@@ -1,6 +1,7 @@
 import {SharedCategories} from '../../server/shared-categories.js';
 import {DtekClient,REGIONS,regionError,boundedBody} from './dtek.js';
 import {projectStreet,resolveHouse,dtekSnapshot} from './policy.js';
+import {projectYasno} from './yasno.js';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 export class Regions {
  constructor({db,bridge,secret,fetcher=fetch,now=Date.now}){
@@ -25,13 +26,10 @@ export class Regions {
  async address(entity){if(!this.handles(entity.operator_id)||entity.kind!=='address')throw regionError('unsupported_operator',400);return this.street(entity.operator_id,entity.source_ref.city,entity.source_ref.street);}
  async resolve(entity){try{return resolveHouse(await this.address(entity),entity.source_ref.house);}catch(e){if(!this.unavailable(e))throw e;return {state:'unknown',complete:false,checkedAt:entity.metadata?.sourceCheckedAt||1,lines:[],provenance:{source:'dtek-address',sourceUnavailable:true,sourceState:e.code||'source_unavailable',sourceCheckedAt:entity.metadata?.sourceCheckedAt||null,attemptedAt:this.now()}};}}
  async cityStatus(){
-  return this.statusCache.load(['yasno-kyiv-emergency-v1'],async()=>{
+  return this.statusCache.load(['yasno-kyiv-plan-v2'],async()=>{
    const op='yasno-kyiv',ticket=await this.gate(op);let status=0,error=null,retry=0;
    try{const r=await this.fetcher('https://app.yasno.ua/api/blackout-service/public/shutdowns/regions/25/dsos/902/planned-outages',{method:'GET',redirect:'manual',signal:AbortSignal.timeout(8000),headers:{accept:'application/json','user-agent':'Svitlo-private-staging/1.0'}});status=r.status;retry=Math.min(900000,Math.max(0,Number(r.headers.get('retry-after'))*1000||0));if(!r.ok){await r.body?.cancel();throw regionError(status===403?'forbidden':status===429?'rate_limited':'source_unavailable');}
-    const data=JSON.parse(await boundedBody(r,500000)),groups={},groupUpdatedAt={};let updatedAt=null;
-    if(!data||Array.isArray(data)||typeof data!=='object'||Object.keys(data).length>300)throw regionError('invalid_status_schema');
-    for(const [key,value] of Object.entries(data)){if(!/^[1-9]\d{0,2}\.[1-9]\d?$/.test(key))continue;const days={};for(const slot of ['today','tomorrow']){const d=value?.[slot];if(typeof d?.date!=='string'||!/^\d{4}-\d\d-\d\dT/.test(d.date)||typeof d.status!=='string'||d.status.length>80)continue;days[d.date.slice(0,10)]=d.status;}groups['GPV'+key]=days;const stamp=Date.parse(value?.updatedOn);groupUpdatedAt['GPV'+key]=Number.isFinite(stamp)?stamp:null;if(Number.isFinite(stamp))updatedAt=updatedAt===null?stamp:Math.min(stamp,updatedAt);}
-    if(!Object.keys(groups).length)throw regionError('invalid_status_schema');return {checkedAt:this.now(),updatedAt,groupUpdatedAt,groups};
+    return projectYasno(JSON.parse(await boundedBody(r,500000)),this.now());
    }catch(e){error=e.code||'source_unavailable';throw e;}finally{await this.finish(op,ticket,{status,error,retry}).catch(()=>{});}
   });
  }
