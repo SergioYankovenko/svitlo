@@ -84,8 +84,8 @@ declare result jsonb;begin
  select coalesce(jsonb_agg(jsonb_build_object('slot',c.slot,'startedAt',c.started_at,'finishedAt',c.finished_at,'cycleState',c.state,'analysisError',c.analysis_error,
   'observations',(select jsonb_agg(jsonb_build_object('source',o.source,'startedAt',o.started_at,'checkedAt',o.checked_at,'state',o.state,'httpStatus',o.http_status,'requestCount',o.request_count,'errorCode',o.error_code,'payloadHash',o.payload_hash) order by o.source) from svitlo_source_history.observations o where o.slot=c.slot),
   'comparison',(select d from jsonb_array_elements(c.comparisons)d where d->>'group'=group_key and d->>'date'=plan_day::text limit 1)) order by c.slot),'[]') into result
- from svitlo_source_history.cycles c where c.slot>=extract(epoch from (first_day::timestamp at time zone 'Europe/Kyiv'))*1000
-  and c.slot<extract(epoch from ((last_day+1)::timestamp at time zone 'Europe/Kyiv'))*1000;
+ from svitlo_source_history.cycles c where c.slot>=(extract(epoch from (first_day::timestamp at time zone 'Europe/Kyiv'))*1000)::bigint
+  and c.slot<(extract(epoch from ((last_day+1)::timestamp at time zone 'Europe/Kyiv'))*1000)::bigint;
  return result;
 end $$;
 alter function svitlo_source_history.claim() owner to svitlo_region_owner;
