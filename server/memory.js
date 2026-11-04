@@ -51,6 +51,10 @@ export class MemoryDatabase {
     if (!p || p.owner!==owner) return null;
     p.preferences=mergePreferences(p.preferences,preferences);return structuredClone(p);
   }
+  async renameProfile(owner,id,name) {
+    const p=this.p.get(id);if(!p||p.owner!==owner)return null;
+    p.name=name;return structuredClone(p);
+  }
   async releaseProfile() {}
   async jobsClaim() {
     if(this.jobClaimed)return {granted:false};

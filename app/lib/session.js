@@ -66,6 +66,10 @@ export class SessionController {
     try{return await job;}finally{if(this.pending===job)this.pending=null;}
   }
   async identity(){return (await this.read())?.user.id||null;}
+  async invalidate(){
+    this.version++;this.pending=null;
+    const c=await this.instance();c.auth.invalidateSession?.();
+  }
   async ensure(){
     const existing=await this.read();if(existing)return existing;
     if(this.signing)return this.signing;

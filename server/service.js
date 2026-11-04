@@ -46,8 +46,8 @@ export function validSubscription(s) {
   );
 }
 export class Service {
-  constructor({ db, source, push, now = () => Date.now(), vapid = "", jobBudgetMs = 45000 }) {
-    Object.assign(this, { db, source, push, now, vapid, jobBudgetMs });
+  constructor({ db, source, push, now = () => Date.now(), vapid = "", jobBudgetMs = 45000, defaultPreferences=DEFAULT_PREFS }) {
+    Object.assign(this, { db, source, push, now, vapid, jobBudgetMs, defaultPreferences });
     this.validSubscription=validSubscription; this.publicProfile=publicProfile; this.sync=new SyncService(this);
   }
   async resolveAddress(input) {
@@ -341,7 +341,7 @@ export class Service {
           name: String(body.name || "")
             .trim()
             .slice(0, 60),
-          preferences: DEFAULT_PREFS,
+          preferences: {...this.defaultPreferences},
           snapshot: {},
           messages: [],
           last_checked: 0,
@@ -373,6 +373,13 @@ export class Service {
         const p = await owned();
         await this.db.deleteProfile(owner, p.id);
         return { ok: true };
+      }
+      case "rename": {
+        const p = await owned();
+        const name=String(body.name||'').trim().slice(0,60);
+        const changed=await this.db.renameProfile(owner,p.id,name);
+        if(!changed)throw new ApiError(404,"Адресу не знайдено");
+        return {profile:publicProfile(changed)};
       }
       case "preferences": {
         const p = await owned();

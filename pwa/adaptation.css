@@ -1,0 +1,494 @@
+/* Approved series128–149: local fitting, never a global font-scale reset. */
+.phone .home-header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+}
+.phone .home-header .header-brand-block {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.phone .home-header .header-copy {
+  min-width: 0;
+}
+.phone .home-header .app-title {
+  white-space: nowrap;
+}
+.phone .home-header .header-status {
+  flex: 0 1 43%;
+  max-width: 190px;
+  min-width: 0;
+  text-align: right;
+}
+.header-status-label {
+  display: block;
+  line-height: 1.35;
+}
+.phone .queue-line {
+  line-height: 1.3;
+  /*180: let the existing fitSingle measure overflow before truncating. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phone .compact-address .address-trigger > div {
+  flex: 1;
+  min-width: 0;
+}
+.phone .compact-address .address-primary,
+.phone .compact-address .address-subtitle {
+  white-space: nowrap;
+  text-wrap: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phone .summary-grid,
+.phone.large-text .summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.phone .summary-card {
+  min-width: 0;
+  padding: var(--summary-padding, 16px);
+}
+.summary-heading {
+  min-width: 0;
+  font-size: var(--summary-heading-size, calc(13px * var(--scale)));
+}
+.summary-heading > span:last-child {
+  min-width: 0;
+  white-space: nowrap;
+}
+.summary-icon {
+  flex: none;
+  width: var(--summary-icon-size, 28px);
+  height: var(--summary-icon-size, 28px);
+}
+.phone .summary-value,
+.phone.large-text .summary-value {
+  font-size: var(--summary-value-size, calc(44px * var(--scale)));
+  white-space: nowrap;
+}
+.phone .summary-caption {
+  font-size: var(--summary-caption-size, calc(12px * var(--scale)));
+  line-height: 1.35;
+}
+.phone .weather-top > div:last-child {
+  min-width: 0;
+}
+.phone .weather-city {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phone .notification-body {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phone .emergency-copy p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
+/* Two time endpoints are quieter; the single start time and glyph stay unchanged.
+   A clock-change annotation alone does not activate the interval size. */
+.phone .hour-times:has(> span + span:not(.clock-change)) {
+  font-size: .9em;
+}
+.phone .settings-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 8px;
+  align-items: center;
+}
+.phone .settings-title h2 {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.phone .settings-title .bell {
+  width: 48px;
+  flex: none;
+}
+.phone .switch-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 12px;
+}
+.phone .switch-row > span {
+  min-width: 0;
+}
+.phone .switch-row input {
+  justify-self: center;
+  flex: none;
+}
+.phone .reminder-row,
+.phone.large-text .reminder-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  flex-wrap: nowrap;
+}
+.phone .reminder-caption {
+  grid-column: 1/-1;
+  min-width: 0;
+}
+.phone .reminder-value,
+.phone.large-text .reminder-value {
+  margin: 0;
+  min-width: 72px;
+  white-space: nowrap;
+}
+.phone .mascot-speech .mascot-question {
+  display: inline;
+  margin: 0;
+  font-weight: 700;
+  color: var(--accent);
+}
+.phone .mascot-speech .mascot-intro {
+  text-wrap: wrap;
+}
+.phone.large-text .onboard-result-context,
+.phone.large-text .onboard-result small {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phone .onboard-preview-tile {
+  isolation: isolate;
+  background: var(--bg);
+}
+.phone .onboard-preview-tile:before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 0;
+  background: var(--hourly);
+  opacity: 0.65;
+  z-index: -1;
+}
+/* Keep compact loading characters visible even with font scaling + IME. */
+.keyboard-open .phone.large-text .lookup-portrait {
+  display: block;
+  width: 64px;
+  height: 76px;
+  flex: 0 0 64px;
+  overflow: visible;
+}
+.keyboard-open .phone.large-text .lookup-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.phone .lookup-message .lookup-copy {
+  min-width: 0;
+  flex: 1;
+}
+.fullbody-pending .lookup-portrait {
+  display: none !important;
+}
+/* One paragraph: natural wrapping, no artificial break before the question. */
+.phone .schedule-empty-speech p {
+  margin: 0;
+}
+.phone .schedule-empty-speech strong {
+  display: inline;
+  margin: 0;
+}
+/* Full coverage tint follows the demo's actual height at any grid/font size. */
+.phone .welcome-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0;
+  min-height: 0;
+  align-items: start;
+}
+.phone .welcome-demo {
+  position: relative;
+  inset: auto;
+  grid-area: 1/1;
+  z-index: 0;
+  filter: blur(2px);
+}
+.phone .welcome-tint {
+  inset: 0;
+  grid-area: 1/1;
+  z-index: 1;
+  border-radius: 22px;
+}
+.phone .welcome-content {
+  grid-area: 1/1;
+  z-index: 2;
+  align-self: start;
+  margin-top: clamp(130px, 28cqw, 250px);
+  padding: 0 10px 24px;
+}
+.phone .welcome-conversation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 116px;
+  align-items: end;
+  padding: 0;
+  gap: 8px;
+  min-height: 190px;
+}
+.phone .welcome-content .mascot-speech {
+  margin: 0 0 30px;
+}
+.phone .welcome-content .mascot-speech:after {
+  top: 50%;
+  right: -7px;
+  bottom: auto;
+  left: auto;
+  transform: rotate(45deg);
+}
+.phone .welcome-figure {
+  position: relative;
+  inset: auto;
+  width: 116px;
+  height: 200px;
+  overflow: visible;
+}
+.phone .welcome-content .welcome-mascot {
+  position: absolute;
+  left: -37px;
+  bottom: -8px;
+  width: 190px;
+  height: 210px;
+  max-width: none;
+  object-fit: contain;
+}
+.phone.large-text .welcome-content .mascot-speech h1 {
+  font-size: calc(16px * var(--scale));
+}
+/* Privacy is a single grounded character scene, not a dialog inside a card. */
+.privacy-backdrop {
+  backdrop-filter: blur(3px);
+}
+.phone:has(.privacy-dialog) .welcome-content {
+  visibility: hidden;
+}
+.phone .dialog.privacy-dialog {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 12px;
+  overflow: visible;
+  max-width: 520px;
+}
+.phone .privacy-dialog .dialog-body {
+  overflow: visible;
+  padding: 0;
+  flex: none;
+}
+.privacy-conversation {
+  display: grid;
+  grid-template-columns: 156px minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+.privacy-mascot {
+  grid-column: 1;
+  grid-row: 1;
+  display: block;
+  width: 156px;
+  height: 250px;
+  object-fit: contain;
+  object-position: bottom;
+  margin-bottom: 0;
+}
+.privacy-speech {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  align-self: center;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--track);
+  border-radius: 18px;
+  padding: 14px;
+  line-height: 1.4;
+}
+.privacy-speech:before {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  left: -6px;
+  top: 60%;
+  transform: rotate(45deg);
+  background: var(--surface);
+  border-left: 1px solid var(--track);
+  border-bottom: 1px solid var(--track);
+}
+.privacy-dialog .dialog-footer {
+  margin-top: 0;
+  padding-top: 0;
+}
+.privacy-dialog .dialog-action {
+  width: 100%;
+  text-align: center;
+  background: var(--accent);
+  color: var(--bg);
+}
+.tour-offer {
+  --offer-figure-width: clamp(104px, 28vw, 116px);
+  --offer-figure-height: calc(var(--offer-figure-width) * 1.2);
+  position: absolute;
+  right: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--offer-figure-width);
+  align-items: end;
+  gap: 8px;
+  width: min(352px, calc(100% - 24px));
+  color: var(--ink);
+  pointer-events: none;
+}
+.tour-offer > img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: var(--offer-figure-width);
+  height: var(--offer-figure-height);
+  object-fit: contain;
+}
+.tour-offer::before {
+  --focus-bottom-cut: calc(50% - var(--offer-figure-height) / 2);
+  content: "";
+  position: absolute;
+  left: calc(100% - var(--offer-figure-width) / 2);
+  bottom: calc(var(--offer-figure-height) / 2);
+  width: calc(100% + 20px);
+  aspect-ratio: 1;
+  transform: translate(-50%, 50%);
+  clip-path: inset(0 0 var(--focus-bottom-cut) 0);
+  z-index: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 12%, transparent);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  -webkit-mask-image: radial-gradient(circle closest-side at center, #000 66%, #0000 100%), linear-gradient(to top, #0000 var(--focus-bottom-cut), #000 calc(var(--focus-bottom-cut) + 16px));
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(circle closest-side at center, #000 66%, #0000 100%), linear-gradient(to top, #0000 var(--focus-bottom-cut), #000 calc(var(--focus-bottom-cut) + 16px));
+  mask-composite: intersect;
+  pointer-events: none;
+}
+.tour-offer-bubble {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--track);
+  border-radius: 16px;
+  box-shadow: 0 3px 12px #0002;
+  pointer-events: auto;
+}
+.tour-offer-bubble::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  bottom: 32px;
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid var(--track);
+  border-right: 1px solid var(--track);
+  background: var(--surface);
+  transform: rotate(45deg);
+}
+.tour-offer-bubble p {
+  margin: 0;
+  font-size: min(calc(14px * var(--scale)), 24px);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.tour-offer .tour-actions {
+  gap: 6px;
+  padding: 8px 0 0;
+}
+.phone .tour-offer .action {
+  min-height: 44px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  font-size: min(calc(13px * var(--scale)), 20px);
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+.mismatch-action {
+  width: 100%;
+}
+.phone .schedule-card .actions.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+.phone .schedule-card .schedule-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+.phone .schedule-feedback .mismatch-action {
+  flex: 1;
+  align-self: stretch;
+  width: 100%;
+  max-width: none;
+}
+.phone {
+  container-type: inline-size;
+}
+.phone.large-text .privacy-conversation {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.phone.large-text .privacy-speech {
+  grid-column: 1;
+  grid-row: 1;
+}
+.phone.large-text .privacy-mascot {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: end;
+  height: 240px;
+  width: 160px;
+}
+.phone.large-text .privacy-speech:before {
+  left: auto;
+  right: 70px;
+  top: auto;
+  bottom: -6px;
+  transform: rotate(-45deg);
+}
+.phone .privacy-dialog {
+  max-height: calc(100% - 24px);
+  overflow: auto;
+}
+@container (max-width:350px) {
+  .phone .welcome-conversation {
+    grid-template-columns: minmax(0, 1fr) 96px;
+  }
+  .phone .welcome-figure {
+    width: 96px;
+    height: 180px;
+  }
+  .phone .welcome-content .welcome-mascot {
+    width: 170px;
+    height: 190px;
+  }
+  .privacy-conversation {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+  .privacy-mascot {
+    width: 120px;
+    height: 200px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-offer {
+    scroll-behavior: auto;
+  }
+}

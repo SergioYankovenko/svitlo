@@ -1,0 +1,91 @@
+/* UI227–234: sensor hub only; native tokens, viewport-sized plot, no fixed chart pixels. */
+.sensor-overview-dialog .dialog-context {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400}
+.sensor-hub-overview {height:min(640px,calc(100% - 12px))}
+.sensor-hub-overview .dialog-head {display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;padding:16px 20px 12px}
+.sensor-hub-overview .dialog-title {font-size:clamp(18px,calc(18px * var(--scale)),24px);align-self:start;margin:0;line-height:1.3}
+.sensor-hub-overview .dialog-context {grid-column:1/-1;margin:0;font-size:clamp(14px,calc(14px * var(--scale)),22px)}
+.sensor-hub-overview .divider {grid-column:1/-1;width:100%;margin:10px 0 0}
+.sensor-hub-status {grid-column:2;grid-row:1;display:flex;align-items:flex-end;flex-direction:column;min-width:0;margin:0;font-size:clamp(13px,calc(13px * var(--scale)),18px);line-height:1.3;text-align:right}
+.sensor-hub-status strong {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sensor-hub-status.on {color:var(--accent)}
+.sensor-hub-status.off {color:var(--sensor-current-off)}
+.sensor-hub-status>span {max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:clamp(12px,calc(12px * var(--scale)),16px);color:var(--muted)}
+.sensor-hub-overview .dialog-body {display:flex;flex-direction:column;gap:8px;flex:1;overflow:visible;min-height:0}
+.sensor-day-nav {display:grid;position:relative;isolation:isolate;grid-template-columns:repeat(var(--sensor-days,3),minmax(0,1fr));gap:4px;padding:4px;background:var(--bg);border-radius:12px;flex:none;margin:0}
+.sensor-day-nav button {min-height:48px;border:1px solid transparent;border-radius:10px;color:var(--muted);background:transparent;font:inherit;font-size:clamp(14px,calc(14px * var(--scale)),18px);padding:6px 2px}
+.sensor-day-nav button {position:relative;z-index:1}
+.sensor-day-nav button[aria-pressed=true] {color:var(--accent)}
+.sensor-day-pill {position:absolute;border:1px solid var(--accent);border-radius:10px;background:var(--input-bg);pointer-events:none;box-sizing:border-box}
+.sensor-day-stage {position:relative;flex:1;min-height:0;overflow:hidden}
+.sensor-day-pane {display:flex;flex-direction:column;gap:8px;height:100%;min-height:0}
+.sensor-day-outgoing {position:absolute;inset:0;pointer-events:none}
+.sensor-hub-overview .sensor-hub-date {font-size:clamp(12px,calc(12px * var(--scale)),16px);color:var(--muted);margin:0;flex:none}
+.sensor-charts {display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+.sensor-chart {display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;margin:0;padding:10px 12px;background:var(--bg);border:1px solid var(--track);border-radius:16px;min-width:0}
+.sensor-chart-empty {justify-content:center}
+.sensor-chart figcaption {display:flex;flex-wrap:wrap;gap:2px 6px;justify-content:space-between;align-items:baseline;flex:none}
+.sensor-chart figcaption strong {font-size:clamp(14px,calc(14px * var(--scale)),20px);line-height:1.25}
+.sensor-chart figcaption>span {font-size:clamp(11px,calc(11px * var(--scale)),16px);color:var(--muted)}
+.sensor-chart-area {display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:minmax(20px,1fr) auto;column-gap:8px;row-gap:4px;min-width:0;min-height:0;flex:1}
+.sensor-y-axis {grid-row:1;display:flex;flex-direction:column;justify-content:space-between;padding:5% 0;color:var(--muted);font-size:clamp(11px,calc(11px * var(--scale)),16px)}
+.sensor-chart-viewport {grid-column:2;grid-row:1;position:relative;min-width:0;min-height:20px;touch-action:none;border-radius:4px;outline-offset:3px}
+.sensor-chart-viewport:focus-visible {outline:2px solid var(--accent)}
+.sensor-chart-viewport svg {position:absolute;inset:0;display:block;width:100%;height:100%;overflow:hidden}
+.sensor-chart-grid {stroke:var(--track);stroke-width:1;fill:none;vector-effect:non-scaling-stroke}
+.sensor-gap-stroke {stroke:var(--muted);opacity:.18;stroke-width:3}
+.sensor-series {fill:none;stroke-width:3;stroke-linecap:butt;stroke-linejoin:round}
+.sensor-series.on {stroke:var(--accent)}
+.sensor-series.actual.off {stroke:var(--sensor-current-off)}
+.sensor-series.prediction.off {stroke:var(--hourly)}
+.sensor-series.prediction {stroke-dasharray:6 4}
+.sensor-x-axis {grid-column:2;grid-row:2;display:flex;justify-content:space-between;color:var(--muted);font-size:clamp(11px,calc(11px * var(--scale)),16px);white-space:nowrap}
+.sensor-hub-overview .dialog-body .sensor-chart-note {font-size:clamp(12px,calc(12px * var(--scale)),16px);line-height:1.3;color:var(--muted);margin:0;flex:none}
+.sensor-hub-demo {font-size:calc(12px * var(--scale));color:var(--muted);line-height:1.4;margin:12px 0 4px}
+.sensor-settings-rows .switch-row {gap:12px;min-height:56px}
+.sensor-settings-rows .switch-row>span {min-width:0;overflow-wrap:anywhere}
+.sensor-overview-dialog .sensor-hub-footer {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sensor-overview-dialog .sensor-hub-footer .dialog-action {width:100%;min-width:0;margin:0;padding:10px 8px;text-align:center;justify-content:center;font-size:clamp(14px,calc(14px * var(--scale)),22px);overflow-wrap:normal}
+.sensor-overview-dialog:not(.sensor-hub-overview) .sensor-hub-footer .dialog-action:last-child {grid-column:1/-1}
+.sensor-hub-overview .sensor-hub-footer {padding-top:10px}
+.sensor-hub-overview[data-short=true] .dialog-head {padding:10px 14px 8px}
+.sensor-hub-overview[data-short=true] .dialog-title {font-size:18px}
+.sensor-hub-overview[data-short=true] .dialog-context {font-size:14px}
+.sensor-hub-overview[data-short=true] .sensor-hub-status {font-size:13px}
+.sensor-hub-overview[data-short=true] .sensor-hub-status>span {font-size:12px;white-space:nowrap}
+.sensor-hub-overview[data-short=true] .divider {margin-top:6px}
+.sensor-hub-overview[data-short=true] .dialog-body {padding:0 14px;gap:4px}
+.sensor-hub-overview[data-short=true] .sensor-day-nav {padding:2px}
+.sensor-hub-overview[data-short=true] .sensor-day-nav button {font-size:14px;padding:2px}
+.sensor-hub-overview[data-short=true] .sensor-hub-date {font-size:12px}
+.sensor-hub-overview[data-short=true] .sensor-hub-footer {padding:8px 14px 12px}
+.sensor-hub-overview[data-short=true][data-wide=true] .sensor-charts {flex-direction:row}
+.sensor-hub-overview[data-short=true] .sensor-chart {padding:8px;gap:4px}
+.sensor-hub-overview[data-short=true] .sensor-chart figcaption strong {font-size:14px}
+.sensor-hub-overview[data-short=true] .sensor-chart figcaption>span {font-size:11px}
+.sensor-hub-overview[data-short=true] .sensor-y-axis,.sensor-hub-overview[data-short=true] .sensor-x-axis {font-size:11px}
+.sensor-hub-overview[data-short=true] .sensor-chart-note {font-size:12px}
+.sensor-sr-only {position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.phone[data-theme=light] .sensor-series.prediction.off {stroke:#8b6416}
+/* Direct list shortcuts preserve the full accessible address and independent hit owners. */
+.phone .sensor-binding-row {padding:8px;gap:4px}
+.phone .sensor-binding-info {display:block;flex:1;min-width:0;min-height:48px;padding:4px;border:0;background:transparent;color:var(--ink);font:inherit;text-align:left}
+.sensor-binding-info strong,.sensor-binding-info small {display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.phone .sensor-binding-row .sensor-binding-actions {display:flex;gap:4px;flex:none;overflow:visible}
+.sensor-icon-action {display:grid;place-items:center;width:48px;height:48px;flex:none;padding:0;border:0;border-radius:12px;background:transparent;color:var(--accent)}
+.sensor-icon-action svg {width:24px;height:24px;stroke-width:2.5}
+.sensor-icon-action:active {background:var(--input-bg)}
+.sensor-icon-action:focus-visible {outline:2px solid var(--accent);outline-offset:-3px}
+.phone .sensor-options-header .sensor-chevron {display:grid;place-items:center;flex:none;width:48px;height:48px;min-width:48px;padding:0;margin:0}
+.phone.narrow-large .sensor-day-nav button {font-size:16px}
+@media(max-width:360px) {.sensor-day-nav button{font-size:16px}}
+/* UI234: list text only; wizard/review addresses keep their own layout. */
+.phone .address-list-row .address-row {min-width:0}
+.phone .address-list-row .address-row span {display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(prefers-reduced-motion:reduce) {.sensor-overview-dialog *{scroll-behavior:auto}}
+/* UI241: a small action with a full hit area; long transition titles stay readable. */
+.sensor-hour-dialog .dialog-head {display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.sensor-hour-dialog .dialog-title {flex:1 1 0;min-width:0;margin:0;font-size:clamp(16px,calc(16px * var(--scale)),22px)}
+.sensor-hour-dialog .divider {flex-basis:100%;width:100%;margin:8px 0 0}
+.sensor-hour-more {flex:none;min-height:48px;padding:10px 12px;border:1px solid var(--track);border-radius:12px;background:var(--bg);color:var(--accent);font:inherit;font-size:clamp(13px,calc(13px * var(--scale)),18px);text-align:center}
+.sensor-hour-more:focus-visible {outline:2px solid var(--accent)}
+.sensor-help-dialog h3 {font-size:clamp(17px,calc(17px * var(--scale)),24px);margin:12px 0}

@@ -14,8 +14,9 @@ x-runtime: &runtime
   environment: &environment
     PGDATABASE: svitlo_staging
     RELEASE_ID: ${RELEASE_ID}
+    SVITLO_PILOT_PUSH: ${SVITLO_PILOT_PUSH:-disabled}
     STAGE_ORIGIN: http://localhost:18765
-  secrets: &api-secrets [api_password,session_password,session_secret,sensor_access_secret,phone_secret]
+  secrets: &api-secrets [api_password,session_password,session_secret,sensor_access_secret,phone_secret,pilot_vapid]
   stop_grace_period: 135s
   healthcheck:
     test: [CMD,node,-e,"require('node:http').get({host:'127.0.0.1',port:8080,path:'/readyz',headers:{Host:'localhost:18765'}},r=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))}).on('error',()=>process.exit(1)).setTimeout(4000,function(){this.destroy()})"]
@@ -33,7 +34,7 @@ services:
   worker:
     <<: *runtime
     command: [node,--use-system-ca,vps/worker.mjs]
-    secrets: [worker_password,session_secret]
+    secrets: [worker_password,session_secret,pilot_vapid]
     healthcheck: {disable: true}
     mem_limit: 256m
     cpus: 0.5
@@ -48,7 +49,7 @@ services:
     <<: *runtime
     profiles: [scheduled]
     command: [node,--use-system-ca,vps/registry.mjs]
-    secrets: [worker_password,session_secret]
+    secrets: [worker_password,session_secret,pilot_vapid]
     restart: "no"
     mem_limit: 512m
     cpus: 0.75
@@ -64,3 +65,5 @@ secrets:
   owner_password: {file: /etc/svitlo/secrets/postgres-owner-password}
   sensor_access_secret: {file: /etc/svitlo/stage-secrets/sensor-access-secret}
   phone_secret: {file: /etc/svitlo/stage-secrets/phone-secret}
+
+  pilot_vapid: {file: /etc/svitlo/stage-secrets/pilot-vapid.json}

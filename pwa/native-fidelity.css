@@ -1,0 +1,84 @@
+/* Android 1.6.0 / 25 primitives. Intentional new onboarding layouts remain in onboarding.css. */
+@font-face{font-family:'Svitlo Roboto';src:url('assets/fonts/Roboto-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Svitlo Roboto';src:url('assets/fonts/Roboto-Medium.ttf') format('truetype');font-weight:500 900;font-style:normal;font-display:swap}
+.phone{font-family:'Svitlo Roboto',Roboto,'Noto Color Emoji','Segoe UI Emoji',sans-serif;font-synthesis:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.phone .page-scroll{padding:14px 18px 22px}
+.phone:not(.in-onboarding) .app-head{min-height:0;margin-bottom:24px}
+.phone .app-title{font-size:calc(22px * var(--scale));font-weight:500}
+.phone .queue-line{font-size:calc(14px * var(--scale));font-weight:500;margin-top:2px}
+.phone .header-status{font-size:calc(13px * var(--scale));font-weight:500}
+.phone .header-status strong{font-weight:500;margin-top:2px}
+.phone .action{font-size:calc(15px * var(--scale));padding:10px 12px;font-weight:400}
+.phone .address-card .action,.phone .onboard-finish .action{font-size:calc(14px * var(--scale));padding:10px 8px}
+.phone .home-bottom .action{font-size:calc(15px * var(--scale))}
+.phone .actions:not(.one) .action{font-size:calc(14px * var(--scale));padding-left:8px;padding-right:8px;white-space:nowrap}
+.phone .address-card .action{border-radius:14px}
+.phone .schedule-card .actions .action{font-size:calc(15px * var(--scale));padding-left:12px;padding-right:12px;white-space:normal}
+.phone.large-text .schedule-card .actions{grid-template-columns:1fr 1fr}
+.phone .bottom-nav{padding:6px 6px max(6px,env(safe-area-inset-bottom));gap:4px}
+.phone .bottom-nav button{font-size:calc(15px * var(--scale));font-weight:400;padding:8px 3px;white-space:nowrap;line-height:1.2}
+.phone .hour-tile{min-height:calc(52px * var(--scale));padding:0}
+.phone .power-glyph{width:calc(14px * min(var(--scale),2));height:calc(14px * min(var(--scale),2));overflow:visible;line-height:1}
+.phone .choice .power-glyph{width:24px;height:24px}
+.phone .legend-sample .power-glyph{width:12px;height:12px}
+.phone .full-legend .legend-sample .power-glyph{width:18px;height:18px}
+.phone .summary-icon .summary-glyph{width:28px;height:28px}
+.phone .share-glyph{width:1.2em;height:1.2em}
+.phone .chevron{width:32px;height:32px}
+.phone .choice-row{position:relative;padding:0;margin-top:10px;border-bottom:0}
+.phone .choice-row+.choice-row{margin-top:31px}
+.phone .choice-row+.choice-row:before{content:'';position:absolute;left:0;right:0;top:-21px;height:1px;background:var(--track)}
+.phone .choice-row:last-child{padding-bottom:0}
+.phone.large-text .choice-row{gap:8px}
+.phone .choice-group{gap:5px;padding:4px}
+.phone .choice{font-weight:500;padding:0;gap:0}
+.phone .theme-choice{position:relative;height:64px}
+.phone .theme-choice .large-symbol{position:absolute;width:24px;height:24px;left:50%;top:calc(50% - 11px);transform:translate(-50%,-50%)}
+.phone .native-theme-label{position:absolute;left:0;right:0;top:calc(50% + 13px);transform:translateY(-50%);line-height:1.2;text-align:center}
+.phone .settings-title{min-height:48px;margin-bottom:0;gap:4px}
+.phone .settings-title h2{min-width:0;overflow-wrap:anywhere}
+.phone .bell{height:48px;width:48px;min-height:48px;min-width:48px;padding:0;display:flex;align-items:center;justify-content:flex-start}
+.phone .bell .bell-glyph{width:28px;height:28px}
+.phone .bell.blocked{color:var(--muted)}
+.phone .switch-row{min-height:48px;padding:6px 0}
+.phone .switch-row>span{min-width:0;overflow-wrap:anywhere}
+.phone .switch-row input{width:36px;height:14px;margin:0 2px;background:#63746c}
+.phone .switch-row input:before{width:20px;height:20px;top:-3px;left:0}
+.phone .switch-row input:checked{background:#1c5241}
+.phone[data-theme=light] .switch-row input{background:#bdbdbd}
+.phone[data-theme=light] .switch-row input:checked{background:#8bb5aa}
+.phone .switch-row input:checked:before{transform:translateX(16px)}
+.phone .field{font-family:inherit;line-height:1.25;caret-color:var(--accent);box-shadow:none}
+.phone .field:focus-visible{outline:none;border-color:var(--input-border)}
+.phone .field::placeholder{opacity:1}
+.phone .field::-webkit-search-decoration{display:none}
+.phone .field::-webkit-search-cancel-button{display:none}
+.phone .dialog-head{padding:20px 20px 16px}
+.phone .dialog-body{padding-left:20px;padding-right:20px}
+.phone .dialog-footer{padding:8px 20px 20px}
+.phone .dialog-context{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phone .dialog-action,.phone.large-text .dialog-action{font-size:calc(15px * var(--scale));overflow:hidden}
+.phone .picker-row strong{font-size:calc(18px * var(--scale))}
+.phone .schedule-message .notification-title{font-size:calc(20px * var(--scale));margin-top:8px}
+.phone .schedule-message .notification-body{margin-top:4px}
+.phone .schedule-message .notification-meta{margin-bottom:0}
+.phone.large-text .schedule-message .notification-meta,.phone.large-text .schedule-message .notification-title,.phone.large-text .schedule-message .notification-body{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phone .full-legend h2{font-size:calc(18px * var(--scale))}
+.phone .onboard-result strong{font-weight:400}
+.phone .weather-top{grid-template-columns:1fr 1.3fr;gap:0;margin-top:0}
+.phone .weather-strip{margin-top:12px}
+.phone .weather-hour{flex:0 0 calc(80px * var(--scale));padding:10px 12px;gap:0;border-radius:16px}
+.phone .weather-hour .weather-symbol{font-size:calc(25px * var(--scale))}
+.phone .weather-glyph{font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",emoji;font-weight:400;font-style:normal}
+.phone .attribution{min-height:36px;display:flex;align-items:center;flex-wrap:wrap;font-size:calc(11px * var(--scale))}
+.phone.large-text .weather-top{grid-template-columns:1fr 1.3fr}
+.phone .summary-caption{margin-top:4px}
+.phone.large-text .summary-value{font-size:calc(44px * var(--scale))}
+.phone .legend{font-size:calc(14px * var(--scale));margin-top:12px;padding-top:12px}
+.phone .legend-item{min-height:30px}
+.phone .legend .legend-sample{width:var(--legend-side,20px);height:var(--legend-side,20px)}
+.phone .legend .legend-sample .power-glyph{width:60%;height:60%}
+.phone .full-legend-row:last-child .legend-sample{position:relative}
+.phone .full-legend-row:last-child .power-glyph{position:absolute;left:50%;top:25%;width:12px;height:12px;transform:translate(-50%,-50%)}
+.phone .weather-top>div{min-width:0;overflow-wrap:anywhere}
+.phone .hour-tile .power-glyph.off,.phone .legend-sample.off .power-glyph{color:var(--outage-icon)}

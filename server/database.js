@@ -133,6 +133,10 @@ export class Database {
     await this.result(this.c.rpc("svitlo_preferences_patch",{subject:owner,profile_id:id,patch:preferences}));
     return this.profile(owner,id);
   }
+  async renameProfile(owner,id,name) {
+    await this.result(this.c.from('svitlo_profiles').update({name}).eq('owner',owner).eq('id',id));
+    return this.profile(owner,id);
+  }
   async releaseProfile(p) {
     await this.result(this.c.from("svitlo_profiles").update({lease_until:0}).eq("id",p.id).eq("owner",p.owner)
       .eq("snapshot_revision",p.snapshot_revision).eq("lease_until",p.lease_until));

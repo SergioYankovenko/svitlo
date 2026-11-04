@@ -9,6 +9,7 @@ COPY package.json package-lock.json ./
 COPY vps/maps/vendor ./vps/maps/vendor
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY app ./app
+COPY pwa ./pwa
 COPY server ./server
 COPY supabase/migrations ./supabase/migrations
 COPY vps ./vps

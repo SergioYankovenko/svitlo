@@ -1,0 +1,75 @@
+/* UI235 r3: two shared text baselines, rather than independent two-line blocks. */
+.phone .sensor-hub-overview .dialog-head {grid-template-columns:minmax(0,1fr) minmax(0,43%);grid-template-areas:"title state" "address signal" "rule rule";align-items:baseline;gap:3px 10px}
+.sensor-hub-overview .dialog-title {grid-area:title;min-width:0;align-self:baseline}
+.phone .sensor-hub-overview .dialog-context {grid-area:address;min-width:0;max-width:100%;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(13px,calc(13px * var(--scale)),18px);overflow-wrap:normal}
+.phone .sensor-hub-overview .sensor-hub-status {display:contents}
+.sensor-hub-overview .sensor-hub-status strong {grid-area:state;text-align:right;align-self:baseline;font-size:clamp(13px,calc(13px * var(--scale)),18px)}
+.sensor-hub-overview .sensor-hub-status>span {grid-area:signal;text-align:right;align-self:baseline}
+.phone .sensor-hub-overview .dialog-head .divider {grid-area:rule;margin-top:9px}
+/* UI243/244/250: independent 48px targets, compact unframed glyphs, no empty accordion. */
+.sensor-list-title {flex:1;min-width:0}
+.sensor-list-title strong {font-size:calc(18px * min(var(--scale),1.3));font-weight:500}
+.sensor-list-title small {display:block;margin-top:4px;color:var(--muted)}
+.phone .sensor-binding-row .sensor-binding-actions {gap:0}
+.phone .sensor-binding-row {padding-inline-end:0}
+.phone .sensor-icon-action svg {width:22px;height:22px;stroke-width:1.8}
+/* UI254: access glyph shares the header add-control axis; keep the compact pair. */
+.sensor-binding-actions .sensor-icon-action:first-child svg {transform:translateX(10px)}
+.sensor-binding-actions .sensor-icon-action:last-child svg {transform:none}
+/* UI245: examples remain examples; actual totals use only the selected measured day. */
+.sensor-help-dialog section {margin-bottom:14px}
+.sensor-help-dialog h3 {font-size:clamp(15px,calc(15px * var(--scale)),22px);margin:0 0 10px;font-weight:500}
+.sensor-help-totals {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sensor-help-totals>div {min-width:0;padding:10px 6px;border-radius:10px;background:var(--bg)}
+.sensor-help-totals small,.sensor-help-totals strong {display:block}
+.sensor-help-totals small {color:var(--muted);font-size:clamp(11px,calc(11px * var(--scale)),16px)}
+.sensor-help-totals strong {font-size:clamp(15px,calc(15px * var(--scale)),22px);font-weight:500;overflow-wrap:anywhere}
+.sensor-help-example {display:flex;gap:12px;align-items:center;margin:10px 0}
+.sensor-help-example>div {min-width:0}
+.sensor-help-example strong,.sensor-help-example small {display:block;font-size:clamp(13px,calc(13px * var(--scale)),19px)}
+.sensor-help-example small {color:var(--muted);font-size:clamp(12px,calc(12px * var(--scale)),18px);margin-top:2px}
+.sensor-help-sample {width:44px;height:26px;flex:none;border-radius:6px;background:var(--bg);border:1px solid var(--track)}
+.sensor-help-sample.plan {background:linear-gradient(to bottom,var(--bg) 50%,var(--hourly) 50%)}
+.sensor-help-sample.actual {height:12px;border:0;border-radius:0;background:linear-gradient(to right,var(--accent) 50%,var(--sensor-current-off) 50%)}
+.sensor-help-sample.prediction {height:0;border:0;border-top:3px dashed var(--hourly);border-radius:0}
+.sensor-help-sample.unknown {background:repeating-linear-gradient(135deg,var(--bg) 0 3px,var(--track) 3px 5px)}
+.sensor-help-current {width:70px;height:44px;border:2px dashed var(--sensor-current-uncertain);border-radius:11px;position:relative;background:var(--bg)}
+.sensor-help-current:before {content:"";position:absolute;inset:-2px;bottom:50%;border:2px solid var(--sensor-current-on);border-bottom:0;border-radius:11px 11px 0 0}
+.sensor-help-current span {position:absolute;right:7px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--sensor-current-on)}
+.phone .sensor-help-dialog .sensor-help-caption,.phone .sensor-help-dialog .sensor-help-boundary {font-size:clamp(12px,calc(12px * var(--scale)),18px);margin:8px 0 12px}
+.sensor-help-demo {display:block;color:var(--muted);font-size:12px;padding-bottom:10px}
+.sensor-help-folds details {border-top:1px solid var(--track);padding:10px 0}
+.sensor-help-folds summary {cursor:pointer;min-height:48px;align-content:center;font-size:clamp(15px,calc(15px * var(--scale)),21px);font-weight:500;line-height:1.3}
+.sensor-help-folds summary:focus-visible {outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.sensor-help-example .sensor-help-current {flex:none}
+.sensor-summary-choice {border:0;margin:0 0 12px;padding:0;min-width:0}
+.sensor-summary-choice legend {font-size:clamp(16px,calc(16px * var(--scale)),23px);font-weight:500;margin:0 0 12px}
+.sensor-summary-choice [role=group] {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;background:var(--bg);border-radius:12px;padding:4px}
+.sensor-summary-choice button {min-height:48px;border:1px solid transparent;border-radius:10px;padding:8px 4px;color:var(--muted);font:inherit;font-size:clamp(13px,calc(13px * var(--scale)),19px);text-align:center;background:transparent}
+.sensor-summary-choice button[aria-pressed=true] {border-color:var(--accent);background:var(--input-bg);color:var(--accent)}
+.sensor-summary-choice p {font-size:clamp(12px,calc(12px * var(--scale)),18px);color:var(--muted);margin:10px 0}
+/* UI246: live camera only while this dialog is foreground; manual input is an alternative mode. */
+.sensor-connect-dialog .dialog-context {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;overflow-wrap:normal;font-size:clamp(13px,calc(13px * var(--scale)),18px)}
+.sensor-connect-dialog .dialog-title {font-size:clamp(17px,calc(17px * var(--scale)),23px)}
+.sensor-connect-dialog .paired {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sensor-connect-dialog .paired button {justify-content:center;text-align:center;font-size:clamp(13px,calc(13px * var(--scale)),20px);white-space:normal}
+.sensor-camera {height:clamp(120px,28dvh,220px);position:relative;background:var(--bg);border-radius:14px;overflow:hidden}
+.sensor-camera video {width:100%;height:100%;object-fit:cover}
+.sensor-scan-frame {position:absolute;inset:12% 24%;border:2px solid var(--accent);border-radius:10px;pointer-events:none}
+.sensor-scanner [hidden] {display:none!important}
+.sensor-scanner-tools {display:flex;gap:6px;margin:8px 0}
+.sensor-scanner-tools button {font-size:clamp(12px,calc(12px * var(--scale)),18px);padding:6px;justify-content:center;text-align:center}
+.sensor-scanner [data-scan-message] {font-size:clamp(13px,calc(13px * var(--scale)),20px);margin:10px 0}
+.sensor-scanner small {display:block;padding:4px 0 10px;font-size:12px}
+.sensor-connect-dialog[data-scan-state=manual] .sensor-scanner-tools,.sensor-connect-dialog[data-scan-state=ready] [data-scan-enter] {display:none}
+.sensor-scanner label {display:block;margin:0 0 6px}
+/* UI247/248: real extended lower torso is occluded by the following form. Both fade layers use the same anchor. */
+body:not(.keyboard-open) .phone .onboard-address-flow:not(.fullbody-pending) .welcome-mascot-extended {grid-template-columns:minmax(0,1fr)164px}
+body:not(.keyboard-open) .phone .onboard-address-flow:not(.fullbody-pending) .welcome-mascot-extended .onboard-mascot {width:164px;height:205px;margin-bottom:-73px;object-fit:contain;object-position:center bottom}
+body:not(.keyboard-open) .phone.large-text .onboard-address-flow:not(.fullbody-pending) .welcome-mascot-extended {grid-template-columns:minmax(0,1fr)}
+.onboard-greeting .onboard-mascot {transition:none}
+.sensor-day-nav {touch-action:pan-y}
+.sensor-hub-overview .dialog-body {touch-action:pan-y}
+.sensor-chart-viewport {touch-action:none}
+@media(max-height:500px) {.sensor-camera{height:100px}.sensor-scanner-tools{margin:2px 0}}
+

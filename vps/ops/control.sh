@@ -19,7 +19,7 @@ compose=(docker compose --env-file vps/release.env -f vps/compose.yaml)
 "${compose[@]}" up -d "api-$slot"
 port=18766;test "$slot" = a || port=18767
 for i in $(seq 1 30);do if curl -fsS --max-time 5 -H 'Host: localhost:18765' "http://127.0.0.1:$port/readyz" >/dev/null;then break;fi;sleep 1;done
-python3 "$expected/vps/ops/switch.py" "$target" "$slot" "$expected"
+python3 "$target/vps/ops/switch.py" "$target" "$slot" "$expected"
 if ! "${compose[@]}" up -d worker;then
  cd "$expected"
  oldcompose=(docker compose --env-file vps/release.env -f vps/compose.yaml)

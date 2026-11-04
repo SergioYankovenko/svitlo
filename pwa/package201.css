@@ -1,0 +1,31 @@
+/*190/191/194–200: scoped additions; approved native tokens remain authoritative. */
+.phone.tour-graph-step .schedule-feedback { display:none; }
+.hour-comparison { min-width:0; }
+.hour-time-area { position:relative; padding-top:calc(23px * var(--scale)); }
+.hour-combined-band { display:grid; gap:2px; border-radius:9px; overflow:hidden; background:var(--bg); }
+.hour-track { position:relative; height:calc(28px * var(--scale)); min-height:28px; display:flex; background:var(--track); }
+.hour-track-part { flex:none; height:100%; }
+.hour-track-part.on { background:var(--accent); }
+.hour-track-part.off { background:var(--emergency); }
+.hour-track-part.unknown,.hour-track-part.future,.hour-track-part.disabled { background:repeating-linear-gradient(135deg,var(--track) 0 4px,var(--surface) 4px 6px); }
+.hour-track-label { position:absolute; left:7px; top:50%; transform:translateY(-50%); color:var(--ink); background:color-mix(in srgb,var(--bg) 92%,transparent); border-radius:4px; padding:1px 5px; font-size:calc(12px * var(--scale)); line-height:1.2; white-space:nowrap; }
+.hour-now { position:absolute; left:var(--hour-now); top:0; z-index:2; width:1px; height:calc(79px * var(--scale)); background:var(--ink); pointer-events:none; }
+.hour-now span { position:absolute; top:0; left:0; transform:translateX(-50%); font-size:calc(12px * var(--scale)); background:var(--surface); padding:0 3px; white-space:nowrap; }
+.hour-now.edge-start span { transform:none; }
+.hour-now.edge-end span { transform:translateX(-100%); }
+.hour-axis { display:flex; justify-content:space-between; margin-top:6px; color:var(--muted); font-size:calc(12px * var(--scale)); }
+.hour-facts { display:grid; gap:12px; margin-top:22px; }
+.hour-fact-row { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:5px 10px; font-size:calc(13px * var(--scale)); }
+.hour-fact-range { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.hour-fact-state { display:flex; gap:6px; align-items:center; }
+.hour-fact-state.on { color:var(--accent); }
+.hour-fact-state.off { color:var(--emergency); }
+.hour-fact-state.unknown,.hour-fact-state.future,.hour-fact-state.disabled { color:var(--muted); }
+.hour-fact-state .glyph { width:18px; height:18px; flex:none; }
+.phone .hour-fact-state.off .power-glyph { color:inherit; }
+.sensor-hour-dialog .dialog-title { font-size:calc(15px * var(--scale)); }
+.phone.large-text .hour-fact-row { display:grid; }
+.sensor-notice .notification-meta { display:flex; flex-wrap:wrap; gap:4px 8px; }
+.sensor-notice .notification-title { white-space:normal; overflow-wrap:anywhere; }
+.sensor-notice-context { color:var(--muted); font-size:calc(13px * var(--scale)); overflow-wrap:anywhere; }
+.onboard-result .street-district { white-space:normal; overflow:visible; text-overflow:clip; }

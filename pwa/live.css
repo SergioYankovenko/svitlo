@@ -1,0 +1,3 @@
+/* No component overrides. UI254 owns product geometry, typography and motion. */
+body.live-pwa{margin:0}
+.live-pwa .sensor-qr{display:block;max-width:100%;width:256px;height:auto;margin:16px auto;background:white}

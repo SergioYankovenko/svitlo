@@ -21,7 +21,7 @@ const sensors=new SensorAccess({bridge:rt.bridge,db:rt.db,secret:sensorSecret,ph
 const sensorIngest=new SensorIngest(rt.bridge);
 const root=resolve('dist/app'),origin=process.env.STAGE_ORIGIN||'http://localhost:18765';
 const release=process.env.RELEASE_ID||'development';
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2','.ico':'image/x-icon'};
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2','.ttf':'font/ttf','.ico':'image/x-icon','.txt':'text/plain; charset=utf-8'};
 const admission=new Admission();
 const budget=(key,limit)=>admission.budget(key,limit);
 function json(res,status,data,reason){if(res.telemetryMeta)telemetry.reject({...res.telemetryMeta,status,reason});if(status===429&&!res.hasHeader('Retry-After'))res.setHeader('Retry-After','60');res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});res.end(JSON.stringify(data));}
@@ -38,7 +38,8 @@ const server=http.createServer(async(req,res)=>{
     if(path==='/readyz'){
       const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1011_operations.sql') and exists(select 1 from svitlo_vps.migrations where name='1010_kyiv_regions.sql') and exists(select 1 from svitlo_vps.migrations where name='1008_map_addresses.sql') and exists(select 1 from svitlo_vps.migrations where name='1007_sensor_history.sql') and exists(select 1 from pg_proc where pronamespace='svitlo_sensors'::regnamespace and proname='phone_ingest') as universal_ready from svitlo_vps.release_state where id");
       if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled'||!r.rows[0].universal_ready)throw Error('Schema or delivery mode mismatch');
-      return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:'disabled',productionReady:false});
+      if(rt.delivery==='pilot-enabled'&&!(await rt.p.query("select pilot_push_enabled and exists(select 1 from svitlo_vps.migrations where name='1012_pilot_push.sql') ok from svitlo_vps.release_state where id")).rows[0]?.ok)throw Error('Pilot push readiness mismatch');
+      return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:rt.delivery,productionReady:false});
     }
     const client=clientKey(req,rt.secret);
     if(path.startsWith('/api')||path==='/diagnostic-reports')leave=admission.acquire();
@@ -72,7 +73,7 @@ const server=http.createServer(async(req,res)=>{
         }
         return json(res,405,{error:'Method not allowed'});
       }
-      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.reader.capabilities(),sensorAccess:sensorCapabilities,sensorIngest:ingestCapabilities,phoneSensors:phoneCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
+      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.reader.capabilities(),push:rt.delivery==='pilot-enabled',sensorAccess:{...sensorCapabilities,notifications:rt.delivery==='pilot-enabled'},sensorIngest:ingestCapabilities,phoneSensors:phoneCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
       if(publicReader&&req.method==='POST'){
         if(path.endsWith('/capabilities'))return json(res,405,{error:'Method not allowed'});
         const data=await body(req);validateRequest(path,data);rt.reader.checkVersion(data);
@@ -107,7 +108,7 @@ const server=http.createServer(async(req,res)=>{
         return json(res,200,{items,operator:'ua-cherkasy',scope:'christynivka-branch-18'});
       });
       if(path!=='/api')return json(res,404,{error:'Unknown API route'});
-      if(data.action==='subscribe')return json(res,409,{error:'Доставка сповіщень вимкнена в тестовій версії'});
+      if(data.action==='subscribe'&&rt.delivery!=='pilot-enabled')return json(res,409,{error:'Доставка сповіщень вимкнена в тестовій версії'});
       const result=await ownerContext.run(s.owner,async()=>{const value=await rt.service.handle(s.owner,data);if(data.action==='erase')await telemetry.forget();return value;});
       return json(res,200,result);
     }
@@ -125,5 +126,5 @@ const server=http.createServer(async(req,res)=>{
   }finally{leave();if(res.telemetryMeta)console.log(JSON.stringify({event:'request',route:routeTag(path),status:res.statusCode,ms:Date.now()-start}));}
 });
 server.requestTimeout=125000;server.headersTimeout=15000;server.maxConnections=100;
-server.listen(8080,'0.0.0.0',()=>console.log(JSON.stringify({event:'listening',release,delivery:'disabled'})));
+server.listen(8080,'0.0.0.0',()=>console.log(JSON.stringify({event:'listening',release,delivery:rt.delivery})));
 for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{server.close(async()=>{await Promise.race([telemetry.sink.flush(),new Promise(r=>setTimeout(r,2000))]);await Promise.all([rt.p.end(),sessionPool.end()]);process.exit(0);});setTimeout(()=>process.exit(1),130000).unref();});

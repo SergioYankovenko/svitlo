@@ -12,7 +12,7 @@ import hashlib,json,sys
 from pathlib import Path
 p=Path(sys.argv[1]);m=json.loads((p/'manifest.json').read_text())
 for n,k in [('image.tar.gz','imageSha256'),('source.tar.gz','sourceSha256')]:assert hashlib.sha256((p/n).read_bytes()).hexdigest()==m[k]
-assert m['builtOutsideVps'] and m['delivery']=='disabled'
+assert m['builtOutsideVps'] and m['delivery']=='pilot-enabled'
 PY
 gzip -dc "$upload/image.tar.gz" | docker load >/dev/null
 if test -d "$target";then
@@ -26,14 +26,14 @@ image=$(python3 -c "import json;print(json.load(open('$target/manifest.json'))['
 test "$(docker image inspect -f '{{.Id}}' "$image")" = "$image"
 commit=$(python3 -c "import json;print(json.load(open('$target/manifest.json'))['sourceCommit'])")
 test "$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" = "$commit"
-printf 'STAGE_IMAGE=%s\nRELEASE_ID=%s\n' "$image" "$release" > "$target/vps/release.env"
+printf 'STAGE_IMAGE=%s\nRELEASE_ID=%s\nSVITLO_PILOT_PUSH=enabled\n' "$image" "$release" > "$target/vps/release.env"
 cd "$target"
 /usr/local/sbin/svitlo-stage-backup
 backup=$(cat /var/lib/svitlo-stage/latest-backup)
 mounts=(--mount type=bind,src=/etc/svitlo/secrets/postgres-owner-password,dst=/run/secrets/owner_password,readonly)
 for name in api worker session;do mounts+=(--mount "type=bind,src=/etc/svitlo/stage-secrets/$name-password,dst=/run/secrets/${name}_password,readonly");done
 for name in session sensor-access phone;do alias=${name//-/_};mounts+=(--mount "type=bind,src=/etc/svitlo/stage-secrets/$name-secret,dst=/run/secrets/${alias}_secret,readonly");done
-for suite in phone history map regions;do
+for suite in phone history map regions pwa;do
  qa="svitlo_${suite}_qa_$(date +%s)"
  if test "$suite" = regions;then qa="svitlo_kyiv_qa_$(date +%s)";fi
  docker exec svitlo-postgres-1 createdb -U svitlo_owner "$qa"
@@ -47,9 +47,15 @@ for suite in phone history map regions;do
    docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('1011_operations.sql','$hash')"
   else test "$existing" = "$hash";fi
  fi
+ existing=$(docker exec svitlo-postgres-1 psql -X -U svitlo_owner -d "$qa" -Atc "select sha256 from svitlo_vps.migrations where name='1012_pilot_push.sql'")
+ hash=$(sed 's/\r$//' vps/sql/pilot-push.sql | sha256sum | cut -d' ' -f1)
+ if test -z "$existing";then
+  docker exec -i svitlo-postgres-1 psql -X -q -1 -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" < vps/sql/pilot-push.sql
+  docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('1012_pilot_push.sql','$hash')"
+ else test "$existing" = "$hash";fi
  if test "$suite" = phone;then docker exec svitlo-postgres-1 psql -X -q -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" -c 'truncate svitlo_sensors.phone_ranges';fi
  if test "$suite" = regions;then docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c 'truncate public.svitlo_source_cache';fi
- case "$suite" in phone) script=vps/sensors/phone-integration.mjs;;history) script=vps/sensors/history-integration.mjs;;map) script=vps/maps/integration.mjs;;regions) script=vps/regions/integration.mjs;;esac
+ case "$suite" in phone) script=vps/sensors/phone-integration.mjs;;history) script=vps/sensors/history-integration.mjs;;map) script=vps/maps/integration.mjs;;regions) script=vps/regions/integration.mjs;;pwa) script=vps/department-integration.mjs;;esac
  docker run --rm --network svitlo_backend --user 0 -e PGDATABASE="$qa" "${mounts[@]}" --entrypoint node "$image" "$script"
  docker exec svitlo-postgres-1 dropdb -U svitlo_owner "$qa"
  trap - EXIT

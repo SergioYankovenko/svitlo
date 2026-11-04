@@ -1,0 +1,66 @@
+#onboarding-header-host{display:none}
+.phone.in-onboarding #onboarding-header-host{display:block;flex:none;padding:14px 18px 6px;background:var(--bg)}
+.phone.in-onboarding #onboarding-header-host .onboarding-header{margin-bottom:0}
+:root{
+  --prototype-safe-top:max(env(safe-area-inset-top,0px),env(safe-area-max-inset-top,0px));
+  --prototype-safe-right:max(env(safe-area-inset-right,0px),env(safe-area-max-inset-right,0px));
+  --prototype-safe-bottom:max(env(safe-area-inset-bottom,0px),env(safe-area-max-inset-bottom,0px));
+  --prototype-safe-left:max(env(safe-area-inset-left,0px),env(safe-area-max-inset-left,0px));
+  --prototype-shell-top:max(var(--prototype-safe-top),var(--prototype-held-top,0px));
+}
+@media(max-width:760px), (max-width:1000px) and (max-height:500px){
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{position:fixed;inset:0;width:100%}
+  .preview-only .workspace{display:block;height:var(--prototype-visible-height,100dvh);min-height:var(--prototype-visible-height,100dvh)}
+  /* Insets belong to the non-scrolling shell. A scrolled field must never paint under system bars. */
+  .preview-only .preview-stage{position:fixed;top:var(--prototype-visible-top,0px);left:0;right:0;height:var(--prototype-visible-height,100dvh);min-height:0;padding:var(--prototype-shell-top) var(--prototype-safe-right) var(--prototype-safe-bottom) var(--prototype-safe-left);overflow:hidden;background:var(--prototype-system-background,#14251E)}
+  .preview-only .phone{width:100%!important;max-width:100%;height:100%;max-height:100%;min-height:0;border:0;border-radius:0}
+  .lab-toggle{display:none!important}
+  .preview-only .phone .page-scroll{padding-top:14px;scroll-padding:12px}
+  .preview-only .phone .bottom-nav{padding-bottom:6px}
+  .keyboard-open.preview-only .preview-stage{padding-bottom:0}
+  .keyboard-open .onboard-greeting{display:none}
+  .keyboard-open.keyboard-welcome .onboard-address-flow{position:relative}
+  .keyboard-open.keyboard-welcome .phone .onboard-greeting{display:grid;grid-template-columns:minmax(0,1fr)88px;gap:8px;min-height:96px;padding-bottom:10px}
+  .keyboard-open.keyboard-welcome .phone .onboard-greeting .mascot-speech{margin:0 0 6px}
+  .keyboard-open.keyboard-welcome .phone .onboard-greeting .onboard-mascot{width:104px;height:104px;right:-4px;bottom:-12px}
+  .keyboard-open.keyboard-welcome-compact .phone .onboard-greeting{position:absolute;z-index:3;top:var(--welcome-portrait-top,18px);left:var(--welcome-portrait-left,18px);display:block;width:52px;height:56px;min-height:0;padding:0}
+  .keyboard-open.keyboard-welcome-compact .phone .onboard-greeting .onboard-mascot{inset:0;width:100%;height:100%;object-fit:contain}
+  .keyboard-open.keyboard-welcome-compact .phone .onboard-greeting .mascot-speech{position:absolute;width:1px;height:1px;padding:0;margin:0;border:0;overflow:hidden;clip-path:inset(50%)}
+  .keyboard-open.keyboard-welcome-compact .phone .onboard-greeting .mascot-speech:after{display:none}
+  .keyboard-open.keyboard-welcome-compact .phone #onboard-city{width:calc(100% - 64px);margin-left:64px}
+  .keyboard-open .onboarding-header{min-height:32px;margin-bottom:8px}
+  .keyboard-open .phone.in-onboarding #onboarding-header-host{padding-top:10px;padding-bottom:0}
+  .keyboard-open .phone.narrow-large .onboarding-header{grid-template-columns:minmax(0,1fr) auto!important;gap:8px;align-items:center}
+  .keyboard-open .phone.narrow-large .onboard-step{text-align:right;max-width:140px}
+  .keyboard-open .phone.in-onboarding .page-scroll{overflow-anchor:none}
+  .keyboard-open .phone.in-onboarding .page-scroll{padding-top:10px;padding-bottom:12px;scroll-padding:12px}
+  .keyboard-open .onboard-search-group{animation:none}
+  .keyboard-open .phone .onboard-results{max-height:var(--picker-space,240px)}
+  .keyboard-open .phone.large-text .onboard-card{padding-top:12px;padding-bottom:12px}
+  .keyboard-open .phone.large-text .onboard-fields{gap:8px}
+  .keyboard-open .phone.large-text .onboard-address-summary{padding-top:6px;padding-bottom:6px}
+  .keyboard-open .phone.large-text .onboard-address-summary strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-wrap:nowrap}
+  .keyboard-open .phone.large-text .onboard-address-summary small{display:none}
+  .keyboard-open .phone.large-text .onboard-search-group>.onboard-label{display:none}
+  .keyboard-open .phone .onboard-card.keyboard-small .onboard-address-summary{display:none}
+  .keyboard-open .phone .onboard-card.keyboard-small .onboard-search-group>.onboard-label{display:none}
+  .keyboard-open .phone .onboard-card.keyboard-small .onboard-primary{margin-top:0}
+  .mobile-tools-open .lab{display:block!important;position:fixed;inset:auto;top:calc(var(--prototype-visible-top,0px) + var(--prototype-shell-top) + 12px);right:calc(var(--prototype-safe-right) + 12px);left:calc(var(--prototype-safe-left) + 12px);height:calc(var(--prototype-visible-height,100dvh) - var(--prototype-shell-top) - var(--prototype-safe-bottom) - 24px);max-height:calc(var(--prototype-visible-height,100dvh) - var(--prototype-shell-top) - var(--prototype-safe-bottom) - 24px);padding:20px;z-index:71;border:1px solid var(--lab-line);border-radius:22px;background:var(--lab-bg);overflow:auto;box-shadow:none}
+  .mobile-tools-open .lab-close{display:block;float:right;min-width:44px;min-height:44px;font-size:26px;border:0;background:transparent;color:var(--lab-ink);margin:-10px -10px 0 4px}
+  .mobile-tools-open .lab-brand{margin-bottom:20px}
+  .mobile-tools-open .lab-foot{display:none}
+}
+/* In a very short landscape viewport, use its width to keep both the input and choices visible. */
+@media(min-width:500px) and (max-width:1000px) and (max-height:300px){
+  .keyboard-open .phone .onboard-search-group{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:start}
+  .keyboard-open .phone .onboard-search-group>.onboard-label{display:none}
+  .keyboard-open .phone .onboard-search-group>.field{margin-bottom:0}
+  .keyboard-open .phone .onboard-search-group>.onboard-results{min-width:0}
+  .keyboard-open .phone .onboard-card:has(.onboard-name){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:12px;align-items:start}
+  .keyboard-open .phone .onboard-card:has(.onboard-name) .onboard-address-summary{display:none}
+  .keyboard-open .phone .onboard-card:has(.onboard-name) .onboard-fields{min-width:0}
+  .keyboard-open .phone .onboard-card:has(.onboard-name) .onboard-primary{grid-column:2;grid-row:1;margin-top:0}
+  .keyboard-open .phone #onboard-submit-status{grid-column:1/-1}
+  .keyboard-open .phone #onboard-submit-status:empty{display:none}
+}

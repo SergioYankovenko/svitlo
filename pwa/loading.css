@@ -1,0 +1,42 @@
+.lookup-state{padding:12px 0;min-width:0}
+.lookup-pending{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.lookup-in-speech{padding:0}
+.lookup-in-speech .lookup-retry{margin-top:0}
+.lookup-speech .lookup-message strong{font-size:calc(18px * var(--scale));color:var(--accent);line-height:1.3}
+.lookup-speech .lookup-message p{font-size:calc(13px * var(--scale));line-height:1.35;margin-top:4px}
+.lookup-message{display:flex;align-items:center;gap:8px;min-width:0;color:var(--ink)}
+.lookup-message>div{min-width:0;flex:1}
+.lookup-message strong{display:block;font-size:calc(15px * var(--scale));font-weight:500;line-height:1.3;overflow-wrap:anywhere}
+.lookup-message p{font-size:calc(13px * var(--scale));line-height:1.4;color:var(--muted);margin:3px 0 0;overflow-wrap:anywhere}
+.onboard-greeting .onboard-mascot{transition:bottom 240ms ease-out}
+.onboard-greeting.mascot-is-searching .onboard-mascot,.onboard-greeting.mascot-no-results .onboard-mascot{bottom:0}
+.lookup-portrait{position:relative;display:none;width:64px;height:72px;flex:none;overflow:hidden}
+.lookup-portrait img{display:block;width:100%;height:100%;max-width:100%;margin:0;object-fit:contain}
+.lookup-portrait img.mascot-next{position:absolute;inset:0;opacity:0}
+.lookup-ending{white-space:nowrap}
+.lookup-dots{display:inline-flex;gap:4px;width:23px;height:8px;margin:0 0 0 4px;align-items:center;vertical-align:baseline}
+.lookup-dots i{height:5px;width:5px;border-radius:50%;background:var(--accent);animation:lookup-dot 1.4s ease-in-out infinite}
+.lookup-dots i:nth-child(2){animation-delay:.2s}.lookup-dots i:nth-child(3){animation-delay:.4s}
+.lookup-retry{display:block;width:100%;min-height:48px;margin-top:12px;background:var(--bg);color:var(--accent);text-align:center;white-space:normal;overflow-wrap:anywhere;font-size:calc(15px * var(--scale))}
+.keyboard-open .lookup-portrait{display:block}
+.phone.large-text .lookup-message{align-items:flex-start}
+
+.keyboard-open .phone.large-text .lookup-empty .lookup-portrait{display:block;width:52px;height:56px}
+@keyframes lookup-dot{0%,70%,100%{opacity:.35}35%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.lookup-dots i{animation:none;opacity:1}}
+
+/* The empty reply is a compact speech bubble; it remains one live message. */
+.lookup-mini-speech{position:relative;padding:9px 11px;border:1px solid var(--input-border);border-radius:12px;background:var(--bg);min-width:0}
+.lookup-mini-speech::before{content:"";position:absolute;left:-6px;top:18px;width:9px;height:9px;background:var(--bg);border-left:1px solid var(--input-border);border-bottom:1px solid var(--input-border);transform:rotate(45deg)}
+.lookup-in-speech .lookup-mini-speech{padding:0;border:0;background:none}.lookup-in-speech .lookup-mini-speech::before{display:none}
+.mascot-sprite{display:block;overflow:hidden;pointer-events:none}
+.mascot-canvas{position:absolute;left:0;top:50%;width:100%;aspect-ratio:1;transform:translateY(-50%);overflow:hidden}
+.mascot-sprite .sprite-sheet,.lookup-portrait .mascot-sprite .sprite-sheet{position:absolute;display:block;width:400%;height:200%;max-width:none;margin:0;object-fit:fill;pointer-events:none}
+.lookup-portrait .lookup-mascot{position:relative;display:block;width:100%;height:100%;max-width:100%;object-fit:contain}
+.lookup-portrait .lookup-mascot.mascot-next{position:absolute;inset:0;opacity:0}
+.is-submitting .onboard-card{min-height:96px}.review-edit{margin-bottom:10px}
+.privacy-explanation{display:flex;align-items:center;gap:12px}.privacy-explanation img{flex:none;object-fit:contain}.privacy-explanation p{margin:0}
+
+/* UX-13: the large speech host already supplies its own bubble and tail. */
+.lookup-speech .lookup-mini-speech{border:0;background:transparent;padding:0;border-radius:0}
+.lookup-speech .lookup-mini-speech::before{display:none}

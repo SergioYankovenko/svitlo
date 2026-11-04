@@ -1,0 +1,281 @@
+/* Shared interaction components. Rules are owned here, not by release-number patches. */
+.first-address-review > .onboard-fields:has(.confirmed-inline-host:empty) {
+  display: none;
+}
+.first-review-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.first-review-actions .action {
+  margin: 0;
+  width: 100%;
+  min-height: 48px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.first-review-actions .review-edit {
+  border: 1px solid var(--track);
+}
+.error-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+.error-actions .action {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 48px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+.report-problem {
+  width: 100%;
+  color: var(--accent);
+  background: var(--bg);
+  min-height: 48px;
+}
+.fullbody-pending .onboard-greeting,
+.phone.large-text .fullbody-pending .onboard-greeting {
+  display: grid;
+  grid-template-areas: "speech" "portrait";
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+  min-height: 0;
+  padding: 12px 0;
+  gap: 16px;
+}
+.fullbody-pending .mascot-speech {
+  grid-area: speech;
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
+.fullbody-pending .mascot-speech:after {
+  right: calc(50% - 6px);
+  bottom: -7px;
+  transform: rotate(135deg);
+}
+.fullbody-pending .onboard-mascot,
+.phone.large-text .fullbody-pending .onboard-mascot {
+  grid-area: portrait;
+  position: relative;
+  inset: auto;
+  transform: none;
+  width: clamp(180px, 65vw, 260px);
+  height: auto;
+  aspect-ratio: 1;
+  max-width: 100%;
+  object-fit: contain;
+}
+.fullbody-pending .onboard-mascot.mascot-next {
+  grid-area: portrait;
+  position: relative;
+  inset: auto;
+  transform: none;
+  height: auto;
+}
+.fullbody-pending > .lookup-state {
+  padding: 0;
+}
+.fullbody-pending .lookup-portrait {
+  display: none !important;
+}
+.keyboard-open .fullbody-pending .onboard-greeting {
+  display: grid;
+}
+.lookup-mini-speech .lookup-dots {
+  margin-top: 0;
+}
+.lookup-speech .lookup-portrait {
+  display: none;
+}
+.diagnostic-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: monospace;
+  font-size: calc(11px * var(--scale));
+  line-height: 1.4;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 12px;
+  color: var(--muted);
+}
+.diagnostic-note {
+  font-size: calc(12px * var(--scale));
+  line-height: 1.4;
+  color: var(--muted);
+}
+.lab-fields input[type="date"]:focus-visible {
+  outline: 2px solid var(--accent, #c1d99a);
+  outline-offset: 2px;
+}
+.bottom-nav {
+  position: relative;
+  isolation: isolate;
+}
+.bottom-nav .nav-pill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: var(--accent);
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform, width;
+}
+.bottom-nav button {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  transition: color 220ms ease;
+}
+.bottom-nav button[aria-current="page"] {
+  background: transparent !important;
+}
+.day-pager {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+  isolation: isolate;
+  overflow-anchor: none;
+}
+.day-pane {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  will-change: transform;
+}
+.day-pane.day-neighbor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.day-pager.is-moving .day-pane {
+  pointer-events: none;
+}
+.day-pager .hour-grid {
+  animation: none !important;
+}
+.day-pager:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.address-list-rows {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bottom-nav button {
+    transition: none;
+  }
+  .bottom-nav .nav-pill,
+  .day-pane {
+    will-change: auto;
+  }
+}
+
+/* Shared dialogue/action primitives for privacy and BE-04. */
+.dialog-footer.paired {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+.dialog-footer.centered {
+  display: flex;
+}
+.dialog-footer.paired .dialog-action,
+.dialog-footer.centered .dialog-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  min-height: 48px;
+  margin: 0;
+  width: 100%;
+  line-height: 1.3;
+}
+.dialog-footer.paired .dialog-action:not(.cancel) {
+  background: var(--accent);
+  color: var(--bg);
+}
+.character-dialog {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+.character-dialog img {
+  flex: 0 0 90px;
+  width: 90px;
+  height: 120px;
+  object-fit: contain;
+}
+.character-speech {
+  position: relative;
+  border: 1px solid var(--track);
+  border-radius: 16px;
+  background: var(--bg);
+  padding: 14px;
+  line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.character-speech:before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 40%;
+  width: 10px;
+  height: 10px;
+  background: var(--bg);
+  border-left: 1px solid var(--track);
+  border-bottom: 1px solid var(--track);
+  transform: rotate(45deg);
+}
+.large-text .character-dialog {
+  align-items: flex-start;
+  flex-direction: column;
+}
+.large-text .character-speech:before {
+  display: none;
+}
+.schedule-core {
+  min-width: 0;
+}
+.week {
+  overflow: hidden;
+}
+.week button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.week .day-indicator {
+  transition: none;
+  pointer-events: none;
+  will-change: transform;
+}
+.day-pane .legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: start;
+}
+.day-pane .legend-item {
+  white-space: nowrap;
+  min-width: 0;
+  width: max-content;
+  flex: none;
+}

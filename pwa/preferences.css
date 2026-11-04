@@ -1,0 +1,14 @@
+/* New onboarding composition, using the existing native tile/icon primitives. */
+.confirmed-inline-host,.confirmed-speech-host{min-width:0;max-width:100%}
+.confirmed-inline-host:empty,.confirmed-speech-host:empty{display:none}
+.mascot-speech .onboard-confirmation-address{background:none;border:0;padding:4px 0;margin:4px 0 6px;gap:4px;animation:none}
+.mascot-speech .onboard-confirmation-address strong{display:block;color:var(--ink);font-size:calc(15px * var(--scale));line-height:1.3;text-wrap:balance}
+.mascot-speech .onboard-confirmation-address small{display:none}
+.phone .onboard-time-choices .choice{min-height:0;padding:8px;gap:8px;justify-content:flex-start}
+.phone .onboard-preview-tile{width:100%;min-height:calc(78px * min(var(--scale),1.6));font-size:calc(19px * min(var(--scale),1.6));color:var(--ink);background:var(--bg);border:2px solid var(--accent);border-radius:13px;flex:none}
+.phone .onboard-preview-tile .hour-label{gap:8px}
+.phone .onboard-preview-tile .power-glyph{width:calc(20px * min(var(--scale),1.6));height:calc(20px * min(var(--scale),1.6))}
+.phone .onboard-time-choices small{line-height:1.3;font-size:calc(13px * var(--scale));padding:0 4px 4px}
+/* Browser simulation only: retain both full-size actions when landscape has little height. */
+@media(min-width:500px) and (max-height:420px){.phone .dialog-footer.permission-footer{flex-direction:row}.phone .permission-footer .dialog-action{flex:1 1 auto}}
+@media(max-height:280px){.phone .dialog:has(.permission-footer){display:block;overflow-y:auto}.phone .dialog:has(.permission-footer) .dialog-body{overflow:visible}}

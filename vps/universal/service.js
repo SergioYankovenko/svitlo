@@ -2,6 +2,10 @@ import {Service,publicProfile,DEFAULT_PREFS,ApiError} from '../../server/service
 import {randomUUID} from 'node:crypto';
 import {universalEnvelope,selectedLine} from '../../app/lib/universal-contract.js';
 import {seal} from './normalize.js';
+import {mergeHistory} from '../../app/lib/parsers.js';
+import {messageTitle,preferences} from '../../app/lib/notifications.js';
+import {dayKey} from '../../app/lib/time.js';
+import {universalMessages} from './messages.js';
 import {mapOnlySnapshot} from '../maps/service.js';
 export function repairSnapshot(old,now){
  const value=old?.universal;
@@ -32,15 +36,17 @@ export class UniversalService extends Service {
    if(result.status==='missing')throw new ApiError(404,'Адресу не знайдено');return result.profile;
   }
   let lineId=profile.address.lineId;if(!lineId&&s.resolution.complete&&s.lines.length===1)lineId=s.lines[0].id;
-  const snapshot=universalEnvelope(s,lineId),candidate={...profile,snapshot,last_checked:now,next_check:Math.max(now+60000,s.refreshAfter),messages:profile.messages||[]};
+  const snapshot=universalEnvelope(s,lineId),updates=universalMessages(snapshot,profile.snapshot,now,profile.messages||[]),candidate={...profile,snapshot,last_checked:now,next_check:Math.max(now+60000,s.refreshAfter),messages:mergeHistory(profile.messages||[],updates,now)};
   const result=await this.db.commitProfile(candidate,profile.snapshot_revision||0);
-  if(result.status==='missing')throw new ApiError(404,'Адресу не знайдено');return result.profile;
+  if(result.status==='missing')throw new ApiError(404,'Адресу не знайдено');
+  if(result.status!=='conflict'&&profile.last_checked){const known=new Set((profile.messages||[]).map(m=>m.id)),prefs=preferences(result.profile.preferences);for(const m of updates){const channel=m.kind==='schedule'?m.revisionType:'address_emergency';if(!known.has(m.id)&&m.scope!=='region'&&m.date>=dayKey(now)&&prefs[m.kind==='schedule'?channel:'emergency'])await this.enqueue(result.profile,m.id,messageTitle(m),m.date,channel);}}
+  return result.profile;
  }
  async handle(owner,body){
   if(body.action==='save'&&body.address?.mapCandidateToken){
    if(!owner)throw new ApiError(401,'Потрібне підключення');if(body.confirmed!==true)throw new ApiError(400,'Підтвердьте адресу');
    if(!await this.db.rate(owner,40,60000))throw new ApiError(429,'Забагато запитів');
-   const created=await this.maps.save(owner,body.address.mapCandidateToken,body.name,DEFAULT_PREFS);
+   const created=await this.maps.save(owner,body.address.mapCandidateToken,body.name,this.defaultPreferences);
    if(created.status==='limit')throw new ApiError(409,'Можна зберегти до 10 адрес');
    const p=await this.refresh(created.profile);return {profile:publicProfile(p),created:created.created};
   }
@@ -49,7 +55,7 @@ export class UniversalService extends Service {
    if(!owner)throw new ApiError(401,'Потрібне підключення');if(body.confirmed!==true)throw new ApiError(400,'Підтвердьте адресу');
    if(!await this.db.rate(owner,40,60000))throw new ApiError(429,'Забагато запитів');
    const address=await this.canonicalAddress({addressId:body.address.canonicalAddressId,lineId:body.address.lineId});
-   const created=await this.db.result(this.db.c.rpc('svitlo_profile_create_universal',{subject:owner,profile_id:randomUUID(),address_data:address,display_name:typeof body.name==='string'?body.name:'',preference_data:DEFAULT_PREFS}));
+   const created=await this.db.result(this.db.c.rpc('svitlo_profile_create_universal',{subject:owner,profile_id:randomUUID(),address_data:address,display_name:typeof body.name==='string'?body.name:'',preference_data:this.defaultPreferences}));
    if(created.status==='limit')throw new ApiError(409,'Можна зберегти до 10 адрес');
    const p=await this.refresh(created.profile);return {profile:publicProfile(p),created:created.created};
   }

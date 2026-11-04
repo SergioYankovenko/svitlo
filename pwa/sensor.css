@@ -1,0 +1,319 @@
+/*168: one visual weight for factual contours and the current-hour key. */
+.phone {
+  --schedule-outline-width: 1.5px;
+  --sensor-current-on: #d7ff91;
+  --sensor-current-off: #ff9688;
+  --sensor-current-keyline: #0b2018;
+  --sensor-current-stroke: 2px;
+  --sensor-current-track: #0b2018;
+  --sensor-history-off: #8fa296;
+  --sensor-current-uncertain: #8fa296;
+}
+.phone[data-theme="light"] {
+  --sensor-current-on: #205c32;
+  --sensor-current-off: #9b352c;
+  --sensor-current-keyline: #ffffff;
+  --sensor-history-off: #536a5e;
+}
+.phone .hour-tile.current.sensor-current {
+  outline: none;
+}
+.phone .hour-tile.current.sensor-current::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 200%;
+  height: 200%;
+  box-sizing: border-box;
+  /*175: opaque backing occupies the entire contour band, including dash
+    gaps. An inner keyline alone lets the plan fill show through those gaps. */
+  border: calc(var(--sensor-current-stroke) * 2) solid var(--sensor-current-track);
+  box-shadow: inset 0 0 0 2px var(--sensor-current-track);
+  border-radius: 26px;
+  transform: scale(.5);
+  transform-origin: 0 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.phone .hour-tile.current.sensor-current::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 200%;
+  height: 200%;
+  box-sizing: border-box;
+  border: calc(var(--sensor-current-stroke) * 2) dashed var(--sensor-current-uncertain);
+  border-radius: 26px;
+  transform: scale(.5);
+  transform-origin: 0 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.phone .hour-tile.current.sensor-current .hour-label { z-index: 3; }
+.phone .hour-tile.current.sensor-current .sensor-tile-details { z-index: 4; }
+.phone .legend-sample.now.sensor-current {
+  border-width: var(--sensor-current-stroke);
+  border-color: var(--sensor-current-uncertain);
+  border-style: dashed;
+  box-shadow: inset 0 0 0 1px var(--sensor-current-track);
+  background: var(--sensor-current-track);
+}
+.sensor-summary {
+  margin: 0 0 14px;
+}
+.sensor-summary strong,
+.sensor-summary small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.sensor-summary strong {
+  margin: 4px 0;
+}
+.sensor-summary small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+.address-primary-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.address-primary-row .address-primary {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.sensor-indicator {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.sensor-indicator[data-tone="on"] { color: var(--sensor-current-on); }
+.sensor-indicator[data-tone="off"] { color: var(--sensor-current-off); }
+.sensor-indicator[data-tone="warning"] { color: var(--warning); }
+.sensor-indicator .sensor-glyph {
+  width: 20px;
+  height: 20px;
+}
+.sensor-indicator-mark {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.sensor-indicator[data-tone="on"] .sensor-indicator-mark,
+.sensor-indicator[data-tone="off"] .sensor-indicator-mark {
+  width: 6px;
+  height: 6px;
+  right: 0;
+  bottom: 0;
+  border: 0;
+  background: currentColor;
+}
+.sensor-demo {
+  color: var(--muted);
+  font-size: calc(11px * var(--scale));
+}
+.sensor-layers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.sensor-layers > label {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  gap: 8px;
+}
+.sensor-layers input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+.sensor-menu-actions {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+.phone .sensor-details-dialog .dialog-action {
+  flex: none;
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  justify-content: center;
+  text-align: center;
+}
+.sensor-legend {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: calc(11px * var(--scale));
+  line-height: 1.4;
+}
+.sensor-legend > span {
+  display: block;
+}
+.sensor-overlay {
+  --sensor-contour-radius: 8px;
+  position: absolute;
+  inset: 5px;
+  z-index: 1;
+  border-radius: 8px;
+  pointer-events: none;
+}
+.sensor-overlay.current-combined {
+  --sensor-contour-radius: 13px;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 2;
+}
+/*171: the persistent gray base belongs to the current tile, including HH:00
+  without measurements. Its exact factual pieces share this path above it. */
+.sensor-trace {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(var(--sensor-top) 0 var(--sensor-bottom) 0);
+  pointer-events: none;
+}
+.sensor-trace::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: var(--schedule-outline-width) solid var(--accent);
+  border-radius: var(--sensor-contour-radius);
+}
+.sensor-trace.actual.off::before {
+  border-color: var(--sensor-history-off);
+  border-style: dashed;
+}
+.sensor-trace.actual.over-color::before {
+  border-color: #14251e;
+}
+.phone[data-theme="dark"] .sensor-trace.actual.over-color::before,
+.phone .sensor-overlay.current-combined .sensor-trace.actual::before {
+  /*169/170: preserve fractional paint for dark-on-color compensation and the
+    shared current-hour path. Scale only the contour back into its bounds. */
+  inset: 0 auto auto 0;
+  width: 200%;
+  height: 200%;
+  box-sizing: border-box;
+  border-width: calc(var(--schedule-outline-width) * 2);
+  border-radius: calc(var(--sensor-contour-radius) * 2);
+  transform: scale(.5);
+  transform-origin: 0 0;
+}
+.phone .sensor-overlay.current-combined .sensor-trace.actual::before {
+  /*172: bright fact has a contrasting inner keyline even over yellow/coral.
+    Only paint changes; the same outer path and exact minute clips remain. */
+  border-width: calc(var(--sensor-current-stroke) * 2);
+  border-color: var(--sensor-current-on);
+  box-shadow: inset 0 0 0 2px var(--sensor-current-keyline);
+}
+.phone .sensor-overlay.current-combined .sensor-trace.actual.off::before {
+  /*206: measured off is coral dashed; the separate gray base means unknown/future. */
+  border-width: calc(var(--sensor-current-stroke) * 2);
+  border-color: var(--sensor-current-off);
+  border-style: dashed;
+  box-shadow: inset 0 0 0 2px var(--sensor-current-keyline);
+}
+.sensor-current-dot {
+  --sensor-dot-on: var(--sensor-current-on);
+  --sensor-dot-off: var(--sensor-current-off);
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sensor-dot-on);
+  pointer-events: none;
+}
+.sensor-current-dot[data-plan="hourly"],
+.sensor-current-dot[data-plan="emergency"] {
+  /*178: darker state colors against the actual warm plan fill under the dot. */
+  --sensor-dot-on: #164528;
+  --sensor-dot-off: #702222;
+}
+.sensor-current-dot.off {
+  background: var(--sensor-dot-off);
+}
+.hour-tile:has(.sensor-current-dot) .hour-label:has(.hour-times > span + span) {
+  /* Leave the inset corner clear on compact two-line time tiles. */
+  transform: translateX(-8px);
+}
+.hour-tile:has(.sensor-current-dot) .hour-label:not(:has(.hour-times > span + span)) {
+  /*176: reserve clear space below the inset dot in single-time mode too. */
+  transform: translateY(3px);
+}
+.sensor-trace.prediction::before {
+  inset: 3px;
+  border: 1px dotted var(--muted);
+  border-radius: 5px;
+}
+.sensor-trace.prediction.over-color::before {
+  border-color: #14251e;
+}
+.sensor-short-mark {
+  position: absolute;
+  right: 3px;
+  top: clamp(4px, var(--sensor-position), calc(100% - 6px));
+  width: 4px;
+  height: var(--schedule-outline-width);
+  background: var(--accent);
+  pointer-events: none;
+}
+.sensor-short-mark.off { background: var(--ink); }
+.sensor-short-mark.over-color { background: #14251e; }
+.sensor-short-mark.prediction { width: 2px; height: 1px; background: var(--muted); }
+.sensor-overlay.current-combined .sensor-short-mark.actual {
+  right: 0;
+  background: var(--sensor-current-on);
+}
+.sensor-overlay.current-combined .sensor-short-mark.actual.off {
+  display: none;
+}
+.hour-tile:has(.sensor-overlay) .hour-label {
+  z-index: 2;
+  pointer-events: none;
+}
+.sensor-tile-details {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  z-index: 3;
+}
+.sensor-tile-details:focus-visible {
+  outline-offset: -3px;
+}
+.sensor-lab-controls {
+  border: 1px solid var(--track);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.sensor-lab-controls legend {
+  color: var(--accent);
+}

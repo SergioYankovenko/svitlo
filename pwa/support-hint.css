@@ -1,0 +1,15 @@
+/*221: spotlight and mascot are passive; only the bubble's dismiss button handles input. */
+#support-root { position:absolute;inset:0;z-index:44;overflow:hidden;isolation:isolate;pointer-events:none; }
+#support-root[hidden] { display:none; }
+.support-highlight { position:absolute;border:2px solid var(--accent);box-shadow:0 0 0 9999px #0009;z-index:0;pointer-events:none; }
+.phone .support-hint { --support-figure-size:clamp(120px,36vw,164px);position:absolute;left:12px;right:12px;display:grid;grid-template-columns:minmax(0,1fr) var(--support-figure-size);align-items:end;gap:10px;color:var(--ink);background:none;border:0;border-radius:0;padding:0;pointer-events:none;z-index:2; }
+.support-bubble { position:relative;min-width:0;padding:12px;background:var(--surface);border:1px solid var(--track);border-radius:18px;box-shadow:0 3px 12px #0002;pointer-events:auto; }
+.support-bubble::after { content:"";position:absolute;right:-6px;top:calc(var(--support-tail-top,36px) - 5px);width:10px;height:10px;background:var(--surface);border-top:1px solid var(--track);border-right:1px solid var(--track);transform:rotate(45deg); }
+.phone .support-hint p { margin:0;font-size:min(calc(14px * var(--scale)),18px);line-height:1.35;overflow-wrap:anywhere; }
+.phone .support-hint .action { width:100%;min-height:44px;margin-top:10px;padding:8px 4px;font-size:min(calc(13px * var(--scale)),17px);text-align:center; }
+.support-figure { position:relative;isolation:isolate;width:var(--support-figure-size);height:var(--support-figure-size);pointer-events:none; }
+.support-shade { position:absolute;inset:0;background:#0009;z-index:0;pointer-events:none; }
+.support-blur { position:absolute;z-index:1;border-radius:50%;background:color-mix(in srgb,var(--surface) 12%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);-webkit-mask-image:radial-gradient(circle closest-side,#000 45%,#0000 100%);mask-image:radial-gradient(circle closest-side,#000 45%,#0000 100%);pointer-events:none; }
+.phone .support-hint img { display:block;width:100%;height:100%;object-fit:contain; }
+@media (max-height:420px) { .phone .support-hint { --support-figure-size:112px; } .support-bubble { padding:10px; } }
+@media (prefers-reduced-transparency:reduce) { .support-blur { -webkit-backdrop-filter:none;backdrop-filter:none;background:color-mix(in srgb,var(--surface) 85%,transparent); } }

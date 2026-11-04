@@ -19,7 +19,8 @@ def switch(target,slot,expected):
  port={'a':'18766','b':'18767'}[slot];wanted=Path(target).name
  if ready(port).get('release')!=wanted:raise RuntimeError('Candidate readiness mismatch')
  if ready('18765').get('release')!=Path(expected).name:raise RuntimeError('Live proxy does not match release state')
- manifest=json.loads((Path(target)/'manifest.json').read_text());assert manifest['delivery']=='disabled'
+ manifest=json.loads((Path(target)/'manifest.json').read_text());assert manifest['delivery'] in ('disabled','pilot-enabled')
+ if ready(port).get('delivery')!=manifest['delivery']:raise RuntimeError('Candidate delivery contract mismatch')
  journal={'status':'prepared','previousRelease':oldrelease,'previousSlot':oldslot,'previousProxy':oldconf,'previousManifest':oldmanifest,'target':target,'slot':slot}
  atomic(BASE/'switch-journal.json',json.dumps(journal))
  try:
