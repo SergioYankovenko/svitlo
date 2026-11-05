@@ -73,6 +73,12 @@ for suite in phone history map regions pwa sources subscriptions geography;do
   docker exec -i svitlo-postgres-1 psql -X -q -1 -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" < vps/sql/settlement-directory.sql
   docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('1015_settlement_directory.sql','$hash')"
  else test "$existing" = "$hash";fi
+ existing=$(docker exec svitlo-postgres-1 psql -X -U svitlo_owner -d "$qa" -Atc "select sha256 from svitlo_vps.migrations where name='1018_expired_phone_qr.sql'")
+ hash=$(sed 's/\r$//' vps/sql/expired-phone-qr.sql | sha256sum | cut -d' ' -f1)
+ if test -z "$existing";then
+  docker exec -i svitlo-postgres-1 psql -X -q -1 -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" < vps/sql/expired-phone-qr.sql
+  docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('1018_expired_phone_qr.sql','$hash')"
+ else test "$existing" = "$hash";fi
  docker run --rm --network svitlo_backend --user 0 -e PGDATABASE="$qa" "${mounts[@]}" --entrypoint node "$image" vps/geography/prepare-qa.mjs
  existing=$(docker exec svitlo-postgres-1 psql -X -U svitlo_owner -d "$qa" -Atc "select sha256 from svitlo_vps.migrations where name='1016_phone_qr_rotation.sql'")
  hash=$(sed 's/\r$//' vps/sql/phone-qr-rotation.sql | sha256sum | cut -d' ' -f1)

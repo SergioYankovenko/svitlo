@@ -15,10 +15,11 @@ for(const entry of index.scenarios)test(`published/reference contract: ${entry.f
   const pub=s.lines[0].categories.hourly.days[0].publication;
   assert.deepEqual(publishedReference(p,date,now).events.map(({start,end})=>({start,end})),pub.intervals);
   assert.ok(pub.intervals.length>0);
-  for(const e of pub.intervals)assert.equal(d.at((e.start+e.end)/2/60000-d.from/60000),'hourly');
+  for(const e of pub.intervals)assert.equal(d.at((e.start+e.end)/2/60000-d.from/60000),entry.scenario==='emergency'?'unknown':'hourly');
  }
  if(entry.scenario==='emergency'){
-  assert.equal(d.referenceOnly,true);assert.equal(d.raw.known,false);assert.equal(c.valueMinutes,null);assert.notEqual(c.kind,'emergency');
+  assert.equal(d.suspended,true);assert.equal(d.referenceOnly,false);assert.equal(d.raw.known,false);assert.equal(c.valueMinutes,null);assert.notEqual(c.kind,'emergency');
+  assert.equal(c.label,'Аварійний режим у черзі');assert.equal(d.planSummary,null);
   assert.equal(d.events.filter(e=>e.kind==='hourly').length,0);
   assert.ok(d.unknown>0);assert.notEqual(d.clear,d.total);assert.equal(c.warning,false);
  }
@@ -66,6 +67,22 @@ for(const state of ['conflict','unconfirmed'])test(`fresh published reference su
 test('disabled and unsupported providers cannot expose a published reference even with fresh cached publication fields',async()=>{
  const s=JSON.parse(await readFile(new URL('deg25-emergency.json',root),'utf8'));
  for(const state of ['disabled','unsupported']){const x=structuredClone(s);x.supportState=state;assert.equal(scheduleFor(profile(x),date,now).referenceAvailable,false);}
+});
+
+test('suspended publication never invents emergency hours and preserves only exact positive address intervals',async()=>{
+ const s=JSON.parse(await readFile(new URL('deg25-emergency.json',root),'utf8')),line=s.lines[0];
+ const start=Date.parse(date+'T12:01:00+02:00'),end=Date.parse(date+'T13:02:00+02:00');
+ line.categories.emergency.days[0].intervals=[{start,end}];const before=JSON.stringify(s),p=profile(s),d=scheduleFor(p,date,now);
+ assert.equal(d.at((start-d.from)/60000+10),'emergency');assert.equal(d.at((start-d.from)/60000-5),'unknown');
+ assert.equal(d.out,61);assert.equal(d.planSummary,null);assert.equal(plannedCountdown(p,date,now),null);assert.equal(JSON.stringify(s),before);
+ line.categories.emergency.days[0].intervals=[{start,end:null}];
+ const open=scheduleFor(profile(s),date,now);assert.equal(open.at((start-d.from)/60000+5),'emergency');assert.equal(contextFor(profile(s),date,now).valueMinutes,null);
+});
+
+test('a stale emergency regime is not announced as fresh and cannot revive its suspended plan',async()=>{
+ const s=JSON.parse(await readFile(new URL('deg25-emergency.json',root),'utf8'));s.freshUntil=now-1;
+ const p=profile(s),d=scheduleFor(p,date,now);assert.equal(d.planSummary,null);assert.equal(d.at(720),'unknown');
+ assert.notEqual(contextFor(p,date,now).label,'Аварійний режим у черзі');
 });
 test('visible refresh uses the source deadline with a bounded floor and a one-hour legacy default',()=>{
  assert.equal(refreshDeadline(null,now),now+3600000);

@@ -74,3 +74,12 @@ test('unrelated camera QR keeps scanning and exposes manual entry, without accep
  assert.equal(accepted,0);assert.equal(root.dataset.scanState,'invalid');assert.equal(nodes['[data-scan-enter]'].hidden,false);assert.equal(timers.size,1);assert.equal(stopped,0);scanner.dispose();assert.equal(stopped,1);
 });
 
+test('manual proof can be corrected after a server refusal, but not while a commit is pending',async()=>{
+ const {scanner,root,nodes}=setup(),accepted=[];const handle=scanner.mount(root,{onCode:x=>accepted.push(x)});await flush();
+ nodes['[data-scan-enter]'].dispatchEvent(new Event('click'));
+ const input=nodes['#sensor-code'];input.value=valid;input.dispatchEvent(new Event('input'));await flush();
+ handle.setBusy(true);const updated=valid.replace('a'.repeat(43),'b'.repeat(43));input.value=updated;input.dispatchEvent(new Event('input'));await flush();assert.equal(accepted.length,1);
+ handle.setBusy(false);handle.rejected();assert.equal(nodes['[data-scan-enter]'].hidden,false);
+ input.dispatchEvent(new Event('input'));await flush();assert.deepEqual(accepted,[valid,updated]);scanner.dispose();
+});
+

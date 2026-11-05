@@ -239,20 +239,40 @@ window.SvitloLiveSensors={create(ctx){
       const root = document.querySelector(".sensor-connect-dialog");
       const context=root.querySelector(".dialog-context");
       if(context){context.title=label;context.id="sensor-connect-address";root.setAttribute("aria-describedby",context.id);}
-      window.SvitloSensorScanner.mount(root,{onCode(code){
+      root.dataset.connectionState='scanning';
+      root.querySelector('.dialog-head').insertAdjacentHTML('afterbegin','<span class="sensor-connection-icon" role="img" aria-label="Код ще не зчитано"></span>');
+      const error=document.createElement('p');error.className='sensor-connect-error';error.hidden=true;error.setAttribute('role','alert');
+      root.querySelector('.sensor-scanner').append(error);
+      const scanner=window.SvitloSensorScanner.mount(root,{onDispose(){
+        if(pendingBinding?.root===root)pendingBinding=null;
+      },onState(state){
+        if(state==='ready'||!root.isConnected||pendingBinding?.busy)return;
+        if(pendingBinding?.root===root)pendingBinding=null;
+        root.dataset.connectionState='scanning';connectFooter(root,false);
+        root.querySelector('.sensor-connection-icon').setAttribute('aria-label','Код ще не зчитано');
+      },onCode(code){
         if (!root.isConnected || managedAddressId !== target) return;
         if (ctx.address()?.id !== target || bindingError(target)) {
           ctx.close(); ctx.toast("Активна адреса змінилася. Підключи датчик ще раз."); return;
         }
-        confirmConnection(code);
+        confirmConnection(code,root,scanner);
       }});
     }
-    function confirmConnection(code) {
+    function connectFooter(root,ready,busy=false) {
+      const footer=root.querySelector('.dialog-footer'),focused=footer.contains?.(document.activeElement)?document.activeElement?.dataset?.action:null;
+      footer.innerHTML=(ready?button(busy?'Підключаю…':'Підтвердити','confirm','sensor-connect-primary',busy?'disabled aria-disabled="true"':''):'')+
+        ctx.button('Скасувати','close','cancel');
+      footer.classList.toggle('sensor-connect-paired',ready);
+      if(focused){const controls=[...footer.querySelectorAll('button')];(controls.find(el=>el.dataset.action===focused&&!el.disabled)||controls.find(el=>!el.disabled))?.focus({preventScroll:true});}
+    }
+    function confirmConnection(code,root,scanner) {
       const sensorId=JSON.parse(code).sensorId;
       if (ctx.address()?.id !== managedAddressId || bindingError(managedAddressId)) return;
-      pendingBinding = {addressId:managedAddressId,sensorId,qr:JSON.parse(code),requestId:crypto.randomUUID()};
-      ctx.dialog("Підтвердити точку",`<p>${e(managedAddress().city)}, ${e(managedAddress().street)}</p><p>Мережа до резервного живлення · фаза 1.</p>`,
-        ctx.button("Скасувати","close","cancel")+button("Підключити","confirm"),"",{footerClass:"paired"});
+      pendingBinding = {addressId:managedAddressId,sensorId,qr:JSON.parse(code),requestId:crypto.randomUUID(),root,scanner,busy:false};
+      root.dataset.connectionState='ready';
+      root.querySelector('.sensor-connection-icon').setAttribute('aria-label','Код зчитано, очікується підтвердження');
+      root.querySelector('.sensor-connect-error').hidden=true;
+      connectFooter(root,true);
     }
     function optionsHTML() {
       if (!true) return "";
@@ -273,11 +293,25 @@ window.SvitloLiveSensors={create(ctx){
       case 'list':listExpanded=bindings().length?!listExpanded:false;ctx.render();break;
       case 'connect':connect();break;
       case 'confirm':{
-        if(!pendingBinding)break;const b=pendingBinding;
+        if(!pendingBinding||pendingBinding.busy)break;const b=pendingBinding;
+        if(!b.root.isConnected){pendingBinding=null;break;}
         if(ctx.address()?.id!==b.addressId||bindingError(b.addressId)){pendingBinding=null;ctx.close();ctx.toast('Активна адреса змінилася. Підключи датчик ще раз.');break;}
-        await live.sensor('connect_qr',{requestId:b.requestId,qr:b.qr,profileId:b.addressId});pendingBinding=null;
-        await live.sync('manual');await live.refreshSensors();ctx.close();ctx.render();
-        ctx.dialog('Очікую перший сигнал','<p>Датчик підключено. До підтвердження стан залишається невідомим.</p>',ctx.button('Зрозуміло','close'));break;
+        b.busy=true;b.scanner?.setBusy(true);b.root.dataset.connectionState='connecting';connectFooter(b.root,true,true);
+        b.root.querySelector('.sensor-connect-error').hidden=true;
+        try{
+          await live.sensor('connect_qr',{requestId:b.requestId,qr:b.qr,profileId:b.addressId});
+          if(pendingBinding===b)pendingBinding=null;
+          await Promise.allSettled([live.sync('manual'),live.refreshSensors()]);
+          if(b.root.isConnected){ctx.close();ctx.render();ctx.toast('Датчик підключено. Очікую перший сигнал.');}
+        }catch(error){
+          if(b.root.isConnected&&pendingBinding===b){
+            b.root.dataset.connectionState='error';
+            b.root.querySelector('.sensor-connection-icon').setAttribute('aria-label','Підключення не підтверджено');
+            const message=b.root.querySelector('.sensor-connect-error');message.textContent=error.message;message.hidden=false;
+            b.scanner?.rejected();connectFooter(b.root,true);
+          }
+        }finally{b.busy=false;b.scanner?.setBusy(false);}
+        break;
       }
       case 'details':hourContext=null;if(el?.dataset.address)managedAddressId=el.dataset.address;hubViewport=null;await details();break;
       case 'overview':await details();break;

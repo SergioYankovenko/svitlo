@@ -38,28 +38,29 @@ window.SvitloSensorScanner = (() => {
   }
   const stopTracks=stream=>stream?.getTracks().forEach(track=>track.stop());
   function dispose(){active?.();active=null;}
-  function mount(root,{onCode=()=>{}}={}) {
+  function mount(root,{onCode=()=>{},onState=()=>{},onDispose=()=>{}}={}) {
     dispose();if(!root)return;
     const abort=new AbortController(),signal=abort.signal,
       video=root.querySelector('video'),message=root.querySelector('[data-scan-message]'),
       input=root.querySelector('#sensor-code'),manual=root.querySelector('[data-scan-manual]'),
       enter=root.querySelector('[data-scan-enter]'),camera=root.querySelector('[data-scan-camera]'),
       frame=root.querySelector('[data-scan-corners]'),unavailable=root.querySelector('[data-camera-unavailable]');
-    let stream=null,timer=null,epoch=0,code=null,disposed=false;
-    const present=(text,state)=>{message.textContent=text;root.dataset.scanState=state;};
+    let stream=null,timer=null,epoch=0,code=null,disposed=false,busy=false;
+    const present=(text,state)=>{message.textContent=text;root.dataset.scanState=state;onState(state);};
     function stop(){epoch++;clearTimeout(timer);timer=null;stopTracks(stream);stream=null;video.srcObject=null;}
     function noCamera(){
       stop();video.hidden=true;frame.setAttribute('hidden','');unavailable.hidden=false;enter.hidden=false;
       present('Камера недоступна','unavailable');
     }
     function accept(raw,fromCamera){
+      if(busy)return false;
       const parsed=parse(raw);
       if(!parsed){
         if(fromCamera){enter.hidden=false;present('Цей QR не підходить. Наведи камеру на код датчика.','invalid');}
         return false;
       }
-      if(code)return true;
-      code=parsed;input.value=parsed;stop();enter.hidden=true;present('Код зчитано. Перевіряю…','ready');
+      if(code===parsed)return true;
+      code=parsed;input.value=parsed;stop();enter.hidden=true;present('Код зчитано. Підтвердь підключення.','ready');
       queueMicrotask(()=>{if(!disposed&&root.isConnected)onCode(parsed);});return true;
     }
     async function start(){
@@ -93,17 +94,23 @@ window.SvitloSensorScanner = (() => {
       }catch{if(!disposed&&token===epoch)noCamera();}
     }
     enter.addEventListener('click',()=>{
-      stop();camera.hidden=true;enter.hidden=true;manual.hidden=false;
+      stop();code=null;camera.hidden=true;enter.hidden=true;manual.hidden=false;
       present('Введи код датчика.','manual');input.focus({preventScroll:true});
     },{signal});
     input.addEventListener('input',()=>{
+      if(busy)return;
       if(accept(input.value,false))return;
+      code=null;
       present(input.value.trim()?'Код неправильний або неповний.':'Введи код датчика.','manual');
     },{signal});
     const pause=()=>{if(!disposed&&!code&&manual.hidden)noCamera();};
     document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();},{signal});
     window.addEventListener('pagehide',pause,{signal});
-    active=()=>{disposed=true;stop();input.value='';abort.abort();};start();
+    active=()=>{disposed=true;stop();input.value='';code=null;abort.abort();onDispose();};start();
+    return {
+      setBusy(value){busy=!!value;input.disabled=busy;},
+      rejected(){if(!disposed){enter.hidden=false;root.dataset.scanState='error';}},
+    };
   }
   const html=()=>`<div class="sensor-scanner"><div class="sensor-camera" data-scan-camera><video muted playsinline aria-label="Камера для сканування QR"></video><svg class="sensor-qr-corners" data-scan-corners viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M27,21V14H34 M66,14H73V21 M73,79V86H66 M34,86H27V79"/></svg><span class="sensor-camera-unavailable" data-camera-unavailable hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v13H4ZM3 3l19 19M10 10a4 4 0 0 0 5 5"/></svg><strong>Камера недоступна</strong></span></div><div data-scan-manual hidden><label for="sensor-code">Код датчика</label><textarea class="field" id="sensor-code" rows="4" maxlength="512" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea></div><p data-scan-message role="status" aria-live="polite"></p><button type="button" class="dialog-action center" data-scan-enter hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/></svg>Ввести вручну</button></div>`;
   return {parse,crop,cornerPath,html,mount,dispose};

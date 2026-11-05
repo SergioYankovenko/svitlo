@@ -33,7 +33,8 @@ export function publishedReference(profile,date,now=Date.now(),saved=false){
   const from=civil(date),until=civil(addDays(date,1)),stamp=t=>Number.isFinite(t)&&t>=0;
   const fresh=[s,category,publication].every(x=>stamp(x.checkedAt)&&x.checkedAt<=now+300000&&stamp(x.freshUntil)&&x.freshUntil>now&&
     (x.sourceUpdatedAt===null||stamp(x.sourceUpdatedAt)&&x.sourceUpdatedAt<=now+300000));
-  if(publication.state==='not_published')return {available:false,notPublished:fresh};
+  const suspension={suspended:day.state==='suspended'||day.applicability?.state==='suspended',suspensionReason:day.applicability?.reason||null};
+  if(publication.state==='not_published')return {available:false,notPublished:fresh,stale:!fresh,...suspension};
   const savedPlan=saved&&date<=dayKey(now)&&[s,category,publication].every(x=>stamp(x.checkedAt)&&x.checkedAt<=now+300000&&now-x.checkedAt<=7*86400000&&(x.sourceUpdatedAt===null||stamp(x.sourceUpdatedAt)&&x.sourceUpdatedAt<=now+300000));
   if(publication.state!=='published'||!fresh&&!savedPlan||!Array.isArray(publication.intervals)||publication.intervals.length>2000||
     publication.intervals.some(e=>!e||!stamp(e.start)||!stamp(e.end)||e.start<from||e.end>until||e.end<=e.start))return {available:false};
@@ -42,7 +43,7 @@ export function publishedReference(profile,date,now=Date.now(),saved=false){
     if(c.evidenceMode!=='positive_only'||c.freshUntil<=now||c.checkedAt>now+300000||c.sourceUpdatedAt>now+300000)return [];
     return (c.days.find(d=>d.date===date)?.intervals||[]).filter(e=>e.start<until&&(e.end===null||e.end>from)).map(e=>({...e,category:k==='unplanned'?'planned':k,...(k==='unplanned'?{unplanned:true}:{})}));
   });
-  return {available:true,stale:!fresh,applicability:day.applicability?.state||'unconfirmed',events:publication.intervals.map(e=>({...e,category:'hourly'})),positive};
+  return {available:true,stale:!fresh,...suspension,applicability:day.applicability?.state||'unconfirmed',events:publication.intervals.map(e=>({...e,category:'hourly'})),positive};
 }
 export function plannedCountdown(profile,date,now=Date.now()){
   const ref=publishedReference(profile,date,now);
@@ -70,10 +71,22 @@ export function officialSource(profile,preferred){
 }
 export function scheduleFor(profile,date,now=Date.now()) {
   const from=civil(date),until=civil(addDays(date,1)),total=(until-from)/60000;
-  const d=dayState(profile?.snapshot||{},date,now);
-  const exact=d.hours.flatMap(h=>h.segments), displayed=d.displayHours.flatMap(h=>h.segments);
   const reference=publishedReference(profile,date,now,true);
-  const referenceEvents=reference?.available?[...reference.events,...reference.positive]:null;
+  let snapshot=profile?.snapshot||{};
+  if(reference?.suspended){
+    const s=snapshot.universal,line=selectedLine(s,snapshot.selectedLineId);
+    // A read projection only: retain original publication, timestamps and cached source unchanged.
+    // Expired positive-only observations must not acquire fresh certainty from the suspended table.
+    const categories=Object.fromEntries(Object.entries(line.categories).map(([kind,c])=>[kind,{...c,days:c.days.map(day=>
+      day.date===date&&(kind==='hourly'||c.freshUntil<=now||c.checkedAt>now+300000||c.sourceUpdatedAt>now+300000)
+        ? {...day,intervals:[]} : day)}]));
+    snapshot={...snapshot,universal:{...s,lines:s.lines.map(l=>l.id===line.id?{...l,categories}:l)}};
+  }
+  const d=dayState(snapshot,date,now);
+  const exact=d.hours.flatMap(h=>h.segments), displayed=d.displayHours.flatMap(h=>h.segments);
+  // An explicitly suspended plan stays in provenance, but must not paint effective hours or totals.
+  // Positive address intervals still come from dayState, including emergency intervals with no end.
+  const referenceEvents=reference?.available&&!reference.suspended?[...reference.events,...reference.positive]:null;
   const referenceDisplay=referenceEvents?displayHours(referenceEvents,from,until,false,now).flatMap(h=>h.segments):null;
   const sum=kind=>exact.filter(s=>s.kind===kind).reduce((n,s)=>n+(s.end-s.start)/60000,0);
   const out=exact.filter(s=>Object.hasOwn(labels,s.kind)).reduce((n,s)=>n+(s.end-s.start)/60000,0);
@@ -97,7 +110,7 @@ export function scheduleFor(profile,date,now=Date.now()) {
     out,unknown:sum('unknown'),clear:sum('clear'),planSummary,
     planEvents:referenceEvents?.map(e=>({start:Math.max(0,(e.start-from)/60000),end:e.end===null?null:Math.min(total,(e.end-from)/60000),kind:eventKind(e)}))||null,
     at,from,until,raw:d,
-    referenceAvailable:!!reference?.available,referenceStale:!!reference?.stale,referenceOnly:!!reference?.available&&(reference.stale||!d.known||reference.applicability!=='reported')};
+    suspended:!!reference?.suspended,referenceAvailable:!!reference?.available,referenceStale:!!reference?.stale,referenceOnly:!!referenceEvents&&(reference.stale||!d.known||reference.applicability!=='reported')};
 }
 export function contextFor(profile,date,now=Date.now()) {
   const d=scheduleFor(profile,date,now),current=date===dayKey(now),c=current?countdown(profile?.snapshot||{},now):{};
@@ -105,7 +118,11 @@ export function contextFor(profile,date,now=Date.now()) {
   const relevant=d.raw.events.filter(e=>e.end===null||e.end>now).sort((a,b)=>a.start-b.start);
   const active=relevant.filter(e=>e.start<=now).sort((a,b)=>({emergency:3,planned:2,hourly:1}[b.category]||0)-({emergency:3,planned:2,hourly:1}[a.category]||0))[0];
   const category=current?(active||relevant[0]):d.raw.events.slice().sort((a,b)=>({emergency:3,planned:2,hourly:1}[b.category]||0)-({emergency:3,planned:2,hourly:1}[a.category]||0))[0];
-  return {kind:category?eventKind(category):null,label:planned?.label||c.label||'',valueMinutes:planned?.minutes??c.minutes??null,warning:false,plannedCountdown:!!planned};
+  const ref=current&&!active?publishedReference(profile,date,now):null;
+  const suspensionLabel=ref?.suspended&&!ref.stale
+    ? /^(?:emergency_report_|reported_emergency_|address_emergency)/.test(ref.suspensionReason||'')?'Аварійний режим у черзі':'Погодинний графік тимчасово не діє'
+    : null;
+  return {kind:category?eventKind(category):null,label:suspensionLabel||planned?.label||c.label||'',valueMinutes:suspensionLabel?null:planned?.minutes??c.minutes??null,warning:false,plannedCountdown:!!planned};
 }
 export function profileView(p) {
   const a=p.address||{},city=(typeof a.city==='string'?a.city:a.city?.label||a.city?.name)||a.cityName||'', street=(typeof a.street==='string'?a.street:a.street?.label||a.street?.name)||'',house=(typeof a.house==='string'?a.house:a.house?.label||a.house?.name)||'';

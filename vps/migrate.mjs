@@ -36,6 +36,7 @@ try{
   migrations.push(['1014_main_app_subscription.sql',await readFile('vps/sql/main-app-subscription.sql','utf8')]);
   migrations.push(['1015_settlement_directory.sql',await readFile('vps/sql/settlement-directory.sql','utf8')]);
   migrations.push(['1016_phone_qr_rotation.sql',await readFile('vps/sql/phone-qr-rotation.sql','utf8')]);
+  migrations.push(['1018_expired_phone_qr.sql',await readFile('vps/sql/expired-phone-qr.sql','utf8')]);
   for(const [name,sql] of migrations){
     const hash=createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex');
     const old=(await c.query('select sha256 from svitlo_vps.migrations where name=$1',[name])).rows[0];
