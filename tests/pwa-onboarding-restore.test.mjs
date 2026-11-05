@@ -40,12 +40,13 @@ test('an additional draft without an owner or saved addresses is discarded',()=>
   const {state,create}=setup();state.onboardingDraft.initial=false;
   assert.equal(create().restore(),false);assert.equal(state.onboardingDraft,undefined);
 });
-for(const kind of ['city','street','house'])test(`${kind} input clears and whitespace never start a lookup`,()=>{
+for(const kind of ['city','street','house'])test(`${kind} clearing follows the approved city minimum or parent list rule`,()=>{
  const {create,requests,tick}=setup(),flow=create();flow.restore();flow.handleAction('onboard-edit-kind',{dataset:{kind}});
  const before=requests.length;
  for(const value of ['', '   '])flow.handleInput({target:{dataset:{onboardQuery:kind},value,hasAttribute:()=>false}});
- tick();assert.equal(requests.length,before);
+ tick();assert.equal(requests.length,before+(kind==='city'?0:1));
+ const afterClear=requests.length;
  const value=kind==='city'?'Ки':kind==='house'?'1':'М';
  flow.handleInput({target:{dataset:{onboardQuery:kind},value,hasAttribute:()=>false}});tick();
- assert.equal(requests.at(-1).q,value);assert.equal(requests.length,before+1);flow.close();
+ assert.equal(requests.at(-1).q,value);assert.equal(requests.length,afterClear+1);flow.close();
 });

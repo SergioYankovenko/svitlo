@@ -244,7 +244,8 @@
       if(scene === "search") prepare(fullbody ? "assets/mascot-finish-full-v2.webp" : "assets/mascot-finish-compact-v2.webp").catch(()=>{});
     }
     if (!spec && phase === "error") spec = {src:"assets/mascot-catalog-settled-compact-v2.webp"};
-    large.sync(spec); compact.sync(spec);
+    // LIVE-23: the editor keeps its approved thoughtful guide; lookup feedback has its own compact portrait.
+    large.sync(document.querySelector('.additional-address-edit') ? {src:'assets/onboarding-guide-house.webp'} : spec); compact.sync(spec);
     tour.sync(tourSource ? {src:tourSource} : null);
     for (const selector of [".onboard-greeting", ".lookup-portrait"]) {
       const host=document.querySelector(selector);

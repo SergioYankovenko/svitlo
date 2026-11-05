@@ -4,3 +4,51 @@ body.live-pwa{margin:0}
 .live-pwa .reminder-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
 .live-pwa .reminder-copy{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere}
 .live-pwa .reminder-copy .reminder-caption{margin:0;padding:0;grid-column:auto;line-height:1.3}
+
+/* PWA-LIVE-14–23: approved live follow-up, no prototype/LAB controls. */
+.live-pwa .hour-tile.current:not(.sensor-current){outline:0}
+.live-pwa .hour-tile.current:not(.sensor-current)::after{content:"";position:absolute;inset:0;border:2px solid var(--accent);border-radius:inherit;z-index:5;pointer-events:none}
+.live-pwa .full-legend{padding-top:16px}
+.live-pwa .full-legend h2{margin-bottom:0}
+.live-pwa .full-legend>.divider{margin:12px 0 16px}
+.live-pwa .sensor-connect-dialog .dialog-head{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:12px;row-gap:2px;padding:16px 20px 14px}
+.live-pwa .sensor-connect-dialog .dialog-head::before{content:"";grid-column:1;grid-row:1 / span 2;align-self:center;width:28px;height:28px;background:var(--accent);mask:url("assets/sensor-connection.png") center/contain no-repeat;-webkit-mask:url("assets/sensor-connection.png") center/contain no-repeat}
+.live-pwa .sensor-connect-dialog .dialog-title{grid-column:2;font-size:calc(19px * var(--scale));line-height:1.15;color:var(--accent)}
+.live-pwa .sensor-connect-dialog .dialog-context{grid-column:2;font-size:calc(12px * var(--scale));line-height:1.2;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.live-pwa .sensor-connect-dialog .dialog-head .divider{grid-column:1 / -1;margin:10px 0 0}
+.live-pwa .sensor-connect-dialog .dialog-body{padding:0 20px}
+.live-pwa .sensor-connect-dialog .sensor-camera{height:clamp(120px,28dvh,215px);border-radius:16px}
+.live-pwa .sensor-qr-corners{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;pointer-events:none}
+.live-pwa .sensor-qr-corners path{fill:none;stroke:var(--accent);stroke-width:2.5px;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.live-pwa .sensor-camera-unavailable{position:absolute;inset:0;display:grid;place-content:center;gap:12px;font-size:calc(16px * var(--scale));padding:20px;text-align:center;color:var(--ink)}
+.live-pwa .sensor-scanner [data-scan-message]{margin:10px 0 12px;text-align:center;line-height:1.3;font-size:calc(13px * var(--scale))}
+.live-pwa .sensor-connect-dialog[data-scan-state=unavailable] [data-scan-message]{display:none}
+.live-pwa .sensor-scanner [data-scan-enter]{width:100%;justify-content:center;margin:10px 0 0;min-height:44px}
+.live-pwa .sensor-connect-footer{padding:12px 20px 20px}
+.live-pwa .sensor-connect-footer button{justify-content:center}
+.live-pwa .additional-address-review .mascot-speech .onboard-confirmation-address{background:var(--bg);border:1px solid var(--track);border-radius:16px;padding:12px 10px;margin:11px 0 0;gap:8px;min-height:78px}
+.live-pwa .additional-address-review .mascot-speech .onboard-confirmation-address strong{font-size:calc(17px * var(--scale));line-height:1.4;text-wrap:initial;color:var(--ink)}
+.live-pwa .additional-address-review .mascot-speech .onboard-confirmation-address .onboard-clear{width:36px;height:44px;flex:none}
+.live-pwa .additional-address-review .mascot-speech .onboard-confirmation-address .onboard-clear svg{width:28px;height:28px}
+.live-pwa .additional-address-review .onboard-card,.live-pwa .additional-address-edit .onboard-card{position:relative;z-index:4;padding:18px}
+.live-pwa .additional-address-review .onboard-name{margin:0;min-height:52px}
+.live-pwa .additional-address-review .onboard-review-actions,.live-pwa .additional-address-edit .onboard-review-actions{margin-top:16px}
+.live-pwa .additional-address-edit .mascot-speech p{margin:0;font-size:calc(17px * var(--scale));line-height:1.4}
+.live-pwa .additional-address-edit .onboard-greeting{align-items:center}
+.live-pwa .onboard-additional-fields{display:grid;gap:14px}
+.live-pwa .onboard-additional-fields .onboard-search-group{margin:0}
+.live-pwa .onboard-additional-fields .onboard-label{font-size:calc(13px * var(--scale));line-height:1.3;margin:0 0 5px}
+.live-pwa .onboard-additional-fields .field{margin:0;min-height:52px}
+.live-pwa .onboard-additional-fields .onboard-results:empty{display:none}
+.live-pwa .onboard-additional-fields .onboard-results{margin-top:5px}
+@media(max-width:360px){
+.live-pwa .additional-address-review .onboard-card,.live-pwa .additional-address-edit .onboard-card{padding:14px}
+.live-pwa .additional-address-review .mascot-speech .onboard-confirmation-address strong{font-size:calc(15px * var(--scale))}
+}
+
+.live-pwa .sensor-connect-dialog[data-scan-state=unavailable] .sensor-camera{border:1px dashed var(--track)}
+.live-pwa .sensor-camera-unavailable svg{width:45px;height:45px;margin:auto;fill:none;stroke:var(--accent);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.live-pwa .sensor-camera-unavailable strong{font-weight:500}
+.live-pwa .sensor-scanner [data-scan-enter]{gap:8px;border:1px solid var(--track)}
+.live-pwa .sensor-scanner [data-scan-enter] svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.live-pwa .sensor-scanner textarea.field{resize:vertical;min-height:128px;line-height:1.4}

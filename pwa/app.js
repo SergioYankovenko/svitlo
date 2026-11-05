@@ -396,7 +396,7 @@
       template.content.querySelector('.schedule-empty-speech p').textContent = 'Дані графіка уточнюються';
       return template.innerHTML;
     }
-    return `${data.referenceOnly ? '<div class="schedule-note">Дані графіка уточнюються</div>' : ''}${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div><div class="actions one schedule-feedback"><button class="action mismatch-action" disabled aria-disabled="true">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
+    return `${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div><div class="actions one schedule-feedback"><button class="action mismatch-action" disabled aria-disabled="true">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
   }
   function scheduleCard(demo = false) {
     const date = window.SvitloClock.selected(state);
@@ -410,7 +410,7 @@
       })
       .join(
         "",
-      )}<span class="day-indicator"></span></div>${!demo && context().warning ? journey.warning() : ""}${!demo && state.scenario === "unknown" ? '<div class="schedule-note">Дані графіка уточнюються</div>' : ""}${!demo && state.scenario === "offline" ? '<div class="schedule-note">Збережений графік · немає мережі</div>' : ""}${demo ? `${grid(true)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off">${power(true)}</span>Світла немає</span></div>` : `<div id="day-pager" class="day-pager" tabindex="0" role="region" aria-label="Графік на ${date}. Стрілки перемикають сусідні дні"><div class="day-pane" data-date="${date}">${dayContent(date)}</div></div>`}</div></section>`;
+      )}<span class="day-indicator"></span></div>${!demo && context().warning ? journey.warning() : ""}${!demo && state.scenario === "offline" ? '<div class="schedule-note">Збережений графік · немає мережі</div>' : ""}${demo ? `${grid(true)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off">${power(true)}</span>Світла немає</span></div>` : `<div id="day-pager" class="day-pager" tabindex="0" role="region" aria-label="Графік на ${date}. Стрілки перемикають сусідні дні"><div class="day-pane" data-date="${date}">${dayContent(date)}</div></div>`}</div></section>`;
   }
 
   function home() {
@@ -501,7 +501,7 @@
       )
       .join(
         "",
-      )}</section><section class="card outlined"><div class="settings-title"><h2>Сповіщення</h2><button class="bell ${state.permission ? "" : "blocked"}" data-action="permission" aria-label="Стан дозволу на сповіщення">${icon(state.permission ? "bell" : "bell-off")}</button></div>${flags.slice(0, 2).map(switchRow).join("")}<div class="reminder-row"><div class="reminder-copy"><div>Нагадувати за</div><div class="reminder-caption">${state.switches.before || state.switches.restore ? "Оберіть час нагадування" : "Увімкніть нагадування, щоб вибрати час"}</div></div><button class="action reminder-value" data-action="reminder" ${!state.switches.before && !state.switches.restore ? "disabled" : ""}>${state.reminder} хв ▾</button></div><hr class="divider">${flags.slice(2, 5).map(switchRow).join("")}${state.target === "pwa" ? "" : `<hr class="divider">${switchRow(flags[5])}`}</section>${state.target === "pwa" ? `<section class="card outlined"><h2>Твої дані</h2><p>Адреси й підписка зберігаються на сервері «Світло». На пристрої зберігається офлайн-копія.</p></section>` : `<section class="card outlined"><h2>Віджети</h2><div class="actions"><button class="action" data-action="widget" data-type="detailed">Детальний · 4×4</button><button class="action" data-action="widget" data-type="compact">Компактний · 4×2</button></div></section>`}${prototypeOptions()}<hr class="divider"><section class="full-legend"><h2>Умовні позначення</h2>${[
+      )}</section><section class="card outlined"><div class="settings-title"><h2>Сповіщення</h2><button class="bell ${state.permission ? "" : "blocked"}" data-action="permission" aria-label="Стан дозволу на сповіщення">${icon(state.permission ? "bell" : "bell-off")}</button></div>${flags.slice(0, 2).map(switchRow).join("")}<div class="reminder-row"><div class="reminder-copy"><div>Нагадувати за</div><div class="reminder-caption">${state.switches.before || state.switches.restore ? "Оберіть час нагадування" : "Увімкніть нагадування, щоб вибрати час"}</div></div><button class="action reminder-value" data-action="reminder" ${!state.switches.before && !state.switches.restore ? "disabled" : ""}>${state.reminder} хв ▾</button></div><hr class="divider">${flags.slice(2, 5).map(switchRow).join("")}${state.target === "pwa" ? "" : `<hr class="divider">${switchRow(flags[5])}`}</section>${state.target === "pwa" ? "" : `<section class="card outlined"><h2>Віджети</h2><div class="actions"><button class="action" data-action="widget" data-type="detailed">Детальний · 4×4</button><button class="action" data-action="widget" data-type="compact">Компактний · 4×2</button></div></section>`}${prototypeOptions()}<section class="full-legend"><h2>Умовні позначення</h2><hr class="divider">${[
       ["hourly", "Погодинне відключення"],
       ["planned", "Планові роботи"],
       ["unplanned", "Позапланове відключення"],
@@ -664,7 +664,7 @@
       });
     }
     const focusTarget = $("modal-root").querySelector(
-      options.focus || "button,input,[tabindex]",
+      options.focus || "button,input,textarea,[tabindex]",
     );
     focusTarget?.focus({ preventScroll: true });
   }
@@ -893,6 +893,7 @@
     }
     if (element.dataset.tab) {
       closeDialog();
+      if (element.dataset.tab === "home" && tab !== "home" && schedule(window.SvitloClock.selected(state)).publication !== "published") state.viewDate = null;
       tab = element.dataset.tab;
       wizard = null;
       render(false);
@@ -907,6 +908,8 @@
     }
   });
   app.addEventListener("input", (event) => onboarding?.handleInput(event));
+  app.addEventListener("focusin", (event) => onboarding?.handleFocus(event));
+  app.addEventListener("scroll", (event) => onboarding?.handleScroll(event), true);
   app.addEventListener("keydown", (event) => onboarding?.handleKey(event));
   document.addEventListener("keydown", (event) => {
     if (!modal && event.key === "Escape" && supportHint.visible()) {
@@ -922,7 +925,7 @@
     if (event.key === "Tab") {
       const controls = [
         ...$("modal-root").querySelectorAll(
-          'button:not(:disabled),input,[tabindex="0"]',
+          'button:not(:disabled),input:not(:disabled),textarea:not(:disabled),[tabindex="0"]',
         ),
       ].filter((x) => !x.hidden && x.offsetParent !== null);
       if (!controls.length) return;
@@ -1113,10 +1116,13 @@
     window.SvitloClock.now(state).date +
     " " +
     window.SvitloClock.now(state).time;
+  let lastClockDate = window.SvitloClock.now(state).date;
   function tickClock() {
     const n = window.SvitloClock.now(state),
       key = n.date + " " + n.time;
     if (key !== lastClock) {
+      if (n.date !== lastClockDate && state.viewDate === lastClockDate) state.viewDate = null;
+      lastClockDate = n.date;
       lastClock = key;
       if (!onboarding.active() && !modal) render();
       else sensor?.refresh?.();

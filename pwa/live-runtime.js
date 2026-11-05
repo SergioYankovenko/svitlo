@@ -48,17 +48,12 @@ export async function createLive(){
     })().catch(error=>{offline=true;retryAfter=Date.now()+Math.min(900000,30000*2**Math.min(syncFailures++,5));if(error.status===401)clear();emit();throw error;}).finally(()=>{pending=null;pendingProfile=null;if(syncQueued){syncQueued=false;queueMicrotask(()=>sync().catch(()=>{}));}});
     return pending;
   }
-  async function search(kind,flow,q,signal){
-    if(!q.trim()||kind==='city'&&q.trim().length<2)return [];
-    const items=[];let cursor=null,pages=0;
-    do {
-      const result=await universalRequest('search',{kind:{city:'cities',street:'streets',house:'houses'}[kind],q:q.slice(0,120),limit:50,
-        ...(kind==='street'?{parentId:flow.city.id}:kind==='house'?{parentId:flow.street.id}:{}),...(cursor?{cursor}:{})},{signal});
-      items.push(...result.items);cursor=result.nextCursor;
-      // A visible "more" control is preferable to silently truncating a full catalogue.
-      if(++pages>=20&&cursor)throw Error('Уточніть пошук, щоб звузити список');
-    }while(cursor);
-    return items.map(x=>({...x,name:x.label,context:[x.region?.label,x.district?.label,x.context].filter(Boolean).join(' · ')}));
+  async function search(kind,flow,q,signal,cursor=null){
+    if(!['city','street','house'].includes(kind)||kind==='city'&&q.trim().length<2||kind==='street'&&!flow.city?.id||kind==='house'&&!flow.street?.id)return [];
+    const result=await universalRequest('search',{kind:{city:'cities',street:'streets',house:'houses'}[kind],q:q.slice(0,120),limit:50,
+      ...(kind==='street'?{parentId:flow.city.id}:kind==='house'?{parentId:flow.street.id}:{}),...(cursor?{cursor}:{})},{signal});
+    // Render a page immediately, then continue on scroll. Never hide a large city's list behind a page budget.
+    return Object.assign(result.items.map(x=>({...x,name:x.label,context:[x.region?.label,x.district?.label,x.context].filter(Boolean).join(' · ')})),{nextCursor:result.nextCursor||null});
   }
   async function enroll(flow,signal){
     const resolved=await universalRequest('resolve',{addressId:flow.house.id},{signal});

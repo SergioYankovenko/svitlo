@@ -32,7 +32,7 @@ window.SvitloLiveSensors={create(ctx){
 
   // A stable presentation record projects server DTOs. It grants no rights locally.
   const records=new Map(),reader='self';
-  let listExpanded=false,pendingBinding=null,scanPending=null,hubView=null,hubViewport=null,hourContext=null;
+  let listExpanded=false,pendingBinding=null,hubView=null,hubViewport=null,hourContext=null;
   const bindings=()=>ctx.addresses().filter(a=>binding(a.id));
   const member=p=>!!p&&live.sensors().some(s=>key(s)===key(p));
   const owner=p=>member(p)&&p.role==='owner';
@@ -227,20 +227,29 @@ window.SvitloLiveSensors={create(ctx){
       });
     }
 
-    function connect(addressId) {
+    function connect() {
       pendingBinding = null;
-      scanPending = null;
-      const free = ctx.addresses().filter(a => !profile(a.id));
-      const address = free.find(a => a.id === addressId) || (free.length === 1 ? free[0] : null);
-      managedAddressId = address?.id || null;
-      ctx.dialog("Підключити датчик",
-        window.SvitloSensorScanner.html(),
-        ctx.button("Скасувати","close","cancel")+button("Перевірити","check","","disabled"),address ? [address.city,address.street].filter(Boolean).join(", ") : "Адресу обереш після сканування",{className:"sensor-connect-dialog",footerClass:"paired"});
-      window.SvitloSensorScanner.mount(document.querySelector(".sensor-connect-dialog"));
+      const address = ctx.address();
+      if (!address?.id || bindingError(address.id)) return;
+      managedAddressId = address.id;
+      const target = address.id, label = [address.city,address.street].filter(Boolean).join(", ");
+      ctx.dialog("Підключити датчик",window.SvitloSensorScanner.html(),
+        ctx.button("Скасувати","close","cancel center"),label,
+        {className:"sensor-connect-dialog",footerClass:"sensor-connect-footer",focus:'[data-action="close"]'});
+      const root = document.querySelector(".sensor-connect-dialog");
+      const context=root.querySelector(".dialog-context");
+      if(context){context.title=label;context.id="sensor-connect-address";root.setAttribute("aria-describedby",context.id);}
+      window.SvitloSensorScanner.mount(root,{onCode(code){
+        if (!root.isConnected || managedAddressId !== target) return;
+        if (ctx.address()?.id !== target || bindingError(target)) {
+          ctx.close(); ctx.toast("Активна адреса змінилася. Підключи датчик ще раз."); return;
+        }
+        confirmConnection(code);
+      }});
     }
     function confirmConnection(code) {
       const sensorId=JSON.parse(code).sensorId;
-      if (bindingError(managedAddressId,sensorId)) return;
+      if (ctx.address()?.id !== managedAddressId || bindingError(managedAddressId)) return;
       pendingBinding = {addressId:managedAddressId,sensorId,qr:JSON.parse(code),requestId:crypto.randomUUID()};
       ctx.dialog("Підтвердити точку",`<p>${e(managedAddress().city)}, ${e(managedAddress().street)}</p><p>Мережа до резервного живлення · фаза 1.</p>`,
         ctx.button("Скасувати","close","cancel")+button("Підключити","confirm"),"",{footerClass:"paired"});
@@ -263,18 +272,9 @@ window.SvitloLiveSensors={create(ctx){
     switch(action){
       case 'list':listExpanded=bindings().length?!listExpanded:false;ctx.render();break;
       case 'connect':connect();break;
-      case 'connect-address':managedAddressId=el.dataset.address;if(scanPending){const code=scanPending;scanPending=null;confirmConnection(code);}else connect(managedAddressId);break;
-      case 'check':{
-        const code=window.SvitloSensorScanner.parse(document.getElementById('sensor-code')?.value||'');
-        if(!code){ctx.dialog('Не вдалося підключити','<p>Код неправильний або прострочений.</p>',button('Спробувати ще','connect')+ctx.button('Скасувати','close','cancel'),'',{footerClass:'paired'});break;}
-        const free=ctx.addresses().filter(a=>!profile(a.id));
-        if(managedAddressId&&free.some(a=>a.id===managedAddressId))confirmConnection(code);
-        else if(free.length&&bindings().length<10){scanPending=code;ctx.dialog('Обери адресу для датчика',`<div class="picker-list">${free.map(a=>button(e(a.name||[a.city,a.street].join(', ')),'connect-address','',`data-address="${e(a.id)}"`)).join('')}</div>`,ctx.button('Скасувати','close','cancel'));}
-        else ctx.dialog('Потрібна вільна адреса','<p>До наявних адрес уже підключено датчики. Спочатку додай іншу адресу.</p>',ctx.button('Зрозуміло','close','center'));
-        break;
-      }
       case 'confirm':{
-        if(!pendingBinding||bindingError(pendingBinding.addressId))break;const b=pendingBinding;
+        if(!pendingBinding)break;const b=pendingBinding;
+        if(ctx.address()?.id!==b.addressId||bindingError(b.addressId)){pendingBinding=null;ctx.close();ctx.toast('Активна адреса змінилася. Підключи датчик ще раз.');break;}
         await live.sensor('connect_qr',{requestId:b.requestId,qr:b.qr,profileId:b.addressId});pendingBinding=null;
         await live.sync('manual');await live.refreshSensors();ctx.close();ctx.render();
         ctx.dialog('Очікую перший сигнал','<p>Датчик підключено. До підтвердження стан залишається невідомим.</p>',ctx.button('Зрозуміло','close'));break;

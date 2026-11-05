@@ -34,6 +34,7 @@ window.SvitloOnboarding = {
         revisiting: flow.revisiting || null,
         reviewed: !!flow.reviewed,
         inlineReview: !!flow.inlineReview,
+        additionalEditing: !!flow.additionalEditing,
         editing: flow.editing || null,
         editBackup: flow.editBackup ? {
           city: flow.editBackup.city?.id, street: flow.editBackup.street?.id,
@@ -76,6 +77,7 @@ window.SvitloOnboarding = {
         revisiting: draft.revisiting || null,
         reviewed: !!draft.reviewed,
         inlineReview: !!draft.inlineReview,
+        additionalEditing: !draft.initial && !!draft.additionalEditing,
         editing: ["city", "street", "house"].includes(draft.editing) ? draft.editing : null,
       };
       for (const kind of ["city", "street", "house"]) {
@@ -99,7 +101,7 @@ window.SvitloOnboarding = {
         Object.assign(flow,current);
         if (backup.city && backup.street && backup.house) flow.editBackup = backup;
       }
-      if (flow.house) flow.inlineReview = true;
+      if (flow.house) flow.inlineReview = flow.initial || flow.additionalEditing;
       if (flow.initial && flow.house && !draft.reviewed) flow.phase = "address";
       if (flow.phase === "preferences" && !flow.resume && !flow.house) {
         flow = null;
@@ -157,7 +159,7 @@ window.SvitloOnboarding = {
         .replace(/^(?:с\.?|м\.?|вул\.?|улица|вулиця)\s+/, "")
         .replace(/\s+/g, " ")
         .trim();
-    const eligibleQuery=(kind,query)=>kind==='submit'||normalize(query||'').length>=(kind==='city'?2:1);
+    const eligibleQuery=(kind,query)=>kind==='submit'||kind==='city'&&normalize(query||'').length>=2||kind==='street'&&!!flow?.city||kind==='house'&&!!flow?.street;
     const latin = {
       а: "a",
       б: "b",
@@ -289,9 +291,11 @@ window.SvitloOnboarding = {
         kind === "submit" ? "onboard-submit-status" : "onboard-results-" + kind,
       );
       if (target) {
+        const previousScroll=target.scrollTop;
         target.innerHTML =
           kind === "submit" ? requestHTML(request) : resultHTML(kind);
         target.setAttribute("aria-busy", String(!!pending()));
+        if(request.more)target.scrollTop=previousScroll;
       }
       const greeting = document.querySelector(".onboard-greeting");
       if (greeting) greeting.outerHTML = mascotGreeting();
@@ -302,11 +306,14 @@ window.SvitloOnboarding = {
         document
           .querySelector(".onboard-address-flow")
           ?.insertAdjacentHTML("afterend", markup);
+      if(flow.additionalEditing){const primary=document.querySelector('.onboard-primary');if(primary)primary.disabled=!flow.house||pending();}
       window.SvitloLookupUI?.sync();
       window.SvitloMascot?.sync();
       window.SvitloViewport?.refresh(true);
     }
-    function beginRequest(kind, retry = false) {
+    function beginRequest(kind, retry = false, more = false) {
+      const cursor=more?flow?.cursors?.[kind]:null;
+      if(more&&!cursor)return;
       cancelRequest();
       if (!flow) return;
       const query = kind === "submit" ? "" : flow.queries[kind];
@@ -317,8 +324,8 @@ window.SvitloOnboarding = {
         flow.request = null;
         return;
       }
-      if (kind !== "submit") flow.results[kind] = [];
-      const request = (flow.request = { kind, query, phase: "pending" }),
+      if (kind !== "submit" && !more) flow.results[kind] = [];
+      const request = (flow.request = { kind, query, phase: "pending", more }),
         seq = sequence;
       const current = () =>
         !!flow && flow.request === request && seq === sequence;
@@ -352,11 +359,14 @@ window.SvitloOnboarding = {
       const timeout=after(30000,()=>{ if(current()){abortRequest?.abort();settle("timeout");} });
       const task=kind==="submit"
         ? window.SvitloLive.enroll(flow,abortRequest.signal)
-        : window.SvitloLive.search(kind,flow,query,abortRequest.signal);
+        : window.SvitloLive.search(kind,flow,query,abortRequest.signal,cursor);
       task.then(result=>{
         if(!current())return;
         if(kind==="submit") flow.savedProfile=result;
-        else flow.results[kind]=result;
+        else {
+          flow.results[kind]=more?[...new Map([...flow.results[kind],...result].map(r=>[r.id,r])).values()]:result;
+          flow.cursors ||= {};flow.cursors[kind]=result.nextCursor||null;
+        }
         settle();
       }).catch(error=>{if(current())settle(navigator.onLine===false?"offline":error.name==="AbortError"?"timeout":"temporary");});
     }
@@ -377,7 +387,7 @@ window.SvitloOnboarding = {
       if (!eligibleQuery(kind,flow.queries[kind]))
         return kind==='city'?'<div class="onboard-search-hint">Введіть щонайменше 2 літери</div>':"";
       const request = flow.request;
-      if (request && request.kind === kind && request.phase !== "ready")
+      if (request && request.kind === kind && request.phase !== "ready" && !request.more)
         return requestHTML(request);
       if (state().scenario === "offline") {
         flow.results[kind] = [];
@@ -389,12 +399,13 @@ window.SvitloOnboarding = {
       const list = matches(kind, query);
       flow.results[kind] = list;
       if (!list.length) return emptyHTML(kind);
-      return list.map(record => {
+      const markup = list.map(record => {
         const district = kind === "street" ? window.SvitloDeviceUI.verifiedDistrict(record) : "";
         const label = record.name + (district ? " · " + district : "");
         const context = kind === "city" ? record.context : record.previous ? "Колишня назва: " + record.previous : "";
         return `<button class="onboard-result" data-action="onboard-select" data-kind="${kind}" data-record="${e(record.id)}" aria-label="${e(label + (context ? ", " + context : ""))}"><strong class="${district ? "street-district" : ""}">${e(label)}</strong>${context ? `<small>${e(context)}</small>` : ""}</button>`;
       }).join("");
+      return markup+(request?.more&&request.phase!=='ready'?requestHTML(request):'');
     }
     function search(kind) {
       return `<div class="onboard-search-group">${kind === "city" ? "" : `<label class="onboard-label" for="onboard-${kind}">${fieldLabel(kind)}</label>`}<input id="onboard-${kind}" class="field" type="search" maxlength="${kind === "house" ? 32 : 160}" data-onboard-query="${kind}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="${kind === "house" ? "done" : "next"}" aria-label="${fieldLabel(kind)}" aria-controls="onboard-results-${kind}"${flow.city && !flow.inlineReview ? ' aria-describedby="onboard-selected-address"' : ""} placeholder="${kind === "city" ? "Введіть місто або село" : kind === "street" ? "Назва вулиці" : "Номер будинку"}" value="${e(flow.queries[kind])}"><div class="onboard-results" id="onboard-results-${kind}" aria-label="Підказки: ${fieldLabel(kind)}" aria-busy="${!!pending()}">${resultHTML(kind)}</div></div>`;
@@ -451,14 +462,15 @@ window.SvitloOnboarding = {
         !preferences &&
         (flow.request ||
           (state().scenario === "offline" ? { phase: "error" } : null));
+      const editingAdditional = !flow.initial && flow.additionalEditing;
       const empty = !preferences && !!emptyResultKind();
-      const waiting =
+      const waiting = !editingAdditional && (
         empty ||
         (request &&
           (["searching", "slow", "error"].includes(request.phase) ||
-            request.kind === "submit"));
-      const extendedReview = !preferences && !waiting && (flow.house || flow.inlineReview);
-      const picture = extendedReview ? "ready-extended-v1" : empty
+            request.kind === "submit")));
+      const extendedReview = !preferences && !waiting && flow.initial && (flow.house || flow.inlineReview);
+      const picture = editingAdditional ? "house" : extendedReview ? "ready-extended-v1" : empty
         ? "search-catalog-empty-notice"
         : waiting
           ? request.phase === "error"
@@ -472,14 +484,15 @@ window.SvitloOnboarding = {
               preferences: "preferences-v2",
             }[stage];
       const [intro, question] = copy[stage];
-      const speech = waiting
+      const streetFullBody = picture === "street";
+      const speech = editingAdditional ? '<p>Щось не те? Зараз виправимо.</p>' : waiting
         ? '<div class="lookup-speech-host"></div>'
-        : flow.inlineReview && !preferences
+        : flow.initial && flow.inlineReview && !preferences
           ? '<p class="mascot-intro">Перевір адресу й продовжимо.</p>'
         : stage === "city"
           ? `<p class="mascot-intro" id="onboard-city-intro">${intro}${intro ? " " : ""}<strong class="mascot-question">${question}</strong></p>`
           : `${intro ? `<p>${intro}</p>` : ""}${stage === "ready" ? '<div class="confirmed-speech-host"></div>' : ""}<h1>${question}</h1>`;
-      return `<div class="onboard-greeting ${extendedReview ? "review-mascot-extended" : ""} ${picture === "peeking-extended-v1" ? "welcome-mascot-extended" : ""} ${empty ? "mascot-no-results" : waiting && request.phase !== "error" ? "mascot-is-searching" : ""}"><div class="mascot-speech ${waiting ? "lookup-speech" : ""}">${speech}</div><img class="onboard-mascot" src="${request?.kind === "submit" && pending() ? window.SvitloMascot?.submitFallback || "assets/mascot-submit-fallback.webp" : "assets/onboarding-guide-" + (picture === "peeking-extended-v1" ? "peeking-legs-v2" : picture) + ".webp"}" width="${picture === "peeking-extended-v1" ? 384 : 1254}" height="${picture === "peeking-extended-v1" ? 480 : 1254}" alt="" aria-hidden="true" draggable="false" decoding="async"></div>`;
+      return `<div class="onboard-greeting ${extendedReview ? "review-mascot-extended" : ""} ${picture === "peeking-extended-v1" || streetFullBody ? "welcome-mascot-extended" : ""} ${empty ? "mascot-no-results" : waiting && request.phase !== "error" ? "mascot-is-searching" : ""}"><div class="mascot-speech ${waiting ? "lookup-speech" : ""}">${speech}</div><img class="onboard-mascot" src="${request?.kind === "submit" && pending() ? window.SvitloMascot?.submitFallback || "assets/mascot-submit-fallback.webp" : "assets/onboarding-guide-" + (picture === "peeking-extended-v1" ? "peeking-legs-v2" : streetFullBody ? "street-legs-v1" : picture) + ".webp"}" width="${picture === "peeking-extended-v1" || streetFullBody ? 384 : 1254}" height="${picture === "peeking-extended-v1" || streetFullBody ? 480 : 1254}" alt="" aria-hidden="true" draggable="false" decoding="async"></div>`;
     }
     function diagnosticContext() {
       const kind =
@@ -514,38 +527,32 @@ window.SvitloOnboarding = {
         ? `<footer class="onboard-address-footer ${failed && back ? "error-actions" : ""}">${back ? `<button class="action onboard-cancel" data-action="onboard-cancel" aria-label="Повернутись до графіка">${failed ? "До графіка" : "Повернутись до графіка"}</button>` : ""}${failed ? '<button class="action report-problem" data-action="onboard-report" aria-label="Повідомити про помилку">Повідомити</button>' : ""}</footer>`
         : "";
     }
+    function additionalFields() {
+      return `<div class="onboard-additional-fields">${["city","street","house"].map(kind=>{
+        const enabled=kind==='city'||(kind==='street'?!!flow.city:!!flow.street);
+        const value=flow[kind]?.name||flow.queries[kind]||'';
+        return `<div class="onboard-search-group"><label class="onboard-label" for="onboard-${kind}">${fieldLabel(kind)}</label><input id="onboard-${kind}" class="field" type="search" data-onboard-query="${kind}" data-onboard-additional="true" maxlength="${kind==='house'?32:160}" autocomplete="off" spellcheck="false" aria-label="${fieldLabel(kind)}" aria-controls="onboard-results-${kind}" placeholder="${kind==='city'?'Введіть місто або село':kind==='street'?'Назва вулиці':'Номер будинку'}" value="${e(value)}" ${enabled?'':'disabled'}><div class="onboard-results" id="onboard-results-${kind}">${flow.editing===kind?resultHTML(kind):''}</div></div>`;
+      }).join('')}</div>`;
+    }
     function addressScreen() {
-      const submitting = flow.request?.kind === "submit" && pending();
-      const review = !!flow.house,
-        inline = flow.inlineReview || review,
-        additional = !flow.initial;
-      if (review) window.SvitloMascot?.warmSubmit();
-      const fields = submitting
-        ? ""
-        : inline ? `<div class="onboard-inline-review">${["city","street","house"].map(kind=>{
-          const value = flow[kind] || (flow.editing === kind ? flow.editBackup?.[kind] : null);
-          const enabled = kind === "city" || (kind === "street" ? !!flow.city : !!flow.street);
-          return `<div class="onboard-review-row"><button class="review-row-toggle" data-action="onboard-edit-kind" data-kind="${kind}" aria-expanded="${flow.editing === kind}" ${enabled ? "" : "disabled"}><span><small>${fieldLabel(kind)}</small><strong>${e(value?.name || "Обери зі списку")}</strong></span><span class="review-row-icon" aria-hidden="true">${window.SvitloNativeUI.icon(flow.editing === kind ? "chevron" : "edit")}</span></button>${flow.editing === kind ? search(kind) : ""}</div>`;
-        }).join("")}</div>${additional ? `<input class="field onboard-name" id="onboard-name" data-onboard-name maxlength="32" enterkeyhint="done" aria-label="Назва адреси (необов’язково)" placeholder="Назва адреси (необов’язково)" value="${e(flow.name)}">` : ""}` : `<div class="onboard-fields">${flow.city ? selectedAddress() : ""}${!flow.city ? search("city") : !flow.street ? search("street") : search("house")}</div>`;
-      const failed =
-        flow.request?.phase === "error" ||
-        state().scenario === "offline" ||
-        !!emptyResultKind();
-      const status =
-        flow.request?.kind === "submit"
-          ? `<div id="onboard-submit-status" aria-busy="${!!pending()}">${requestHTML(flow.request)}</div>`
-          : "";
-      const actions =
-        (review || inline) && !submitting
-          ? `<div class="onboard-review-actions first-review-actions"><button class="action onboard-primary" ${review && !flow.editing ? "" : "disabled"} data-action="${flow.request?.kind === "submit" && flow.request.phase === "error" ? "onboard-retry" : "onboard-continue"}" data-kind="submit">${flow.request?.kind === "submit" && flow.request.phase === "error" ? "Спробувати ще" : "Продовжити"}</button></div>`
-          : "";
-      const content = submitting
-        ? status
-        : inline
-          ? `${fields}${status}${actions}`
-          : `<div class="card outlined onboard-card">${fields}${status}${actions}</div>`;
-      const footer = errorFooter();
-      return `<section class="onboard-address-flow ${submitting ? "is-submitting fullbody-pending" : ""} ${inline ? "first-address-review" : ""}" aria-label="Налаштування адреси">${mascotGreeting()}${content}${review && additional && state().target !== "pwa" && state().widgets === "none" && !submitting && !failed ? '<aside class="widget-discovery"><strong>Графік на головному екрані телефона</strong><p>Додай віджет «Світло» в «Опціях», щоб графік був під рукою.</p></aside>' : ""}</section>${footer}`;
+      const submitting=flow.request?.kind==='submit'&&pending(),review=!!flow.house,additional=!flow.initial;
+      const inline=flow.initial&&(flow.inlineReview||review),editingAdditional=additional&&flow.additionalEditing;
+      if(review)window.SvitloMascot?.warmSubmit();
+      let fields='';
+      if(!submitting){
+        if(editingAdditional)fields=additionalFields();
+        else if(inline)fields=`<div class="onboard-inline-review">${['city','street','house'].map(kind=>{
+          const value=flow[kind]||(flow.editing===kind?flow.editBackup?.[kind]:null);
+          const enabled=kind==='city'||(kind==='street'?!!flow.city:!!flow.street);
+          return `<div class="onboard-review-row"><button class="review-row-toggle" data-action="onboard-edit-kind" data-kind="${kind}" aria-expanded="${flow.editing===kind}" ${enabled?'':'disabled'}><span><small>${fieldLabel(kind)}</small><strong>${e(value?.name||'Обери зі списку')}</strong></span><span class="review-row-icon" aria-hidden="true">${window.SvitloNativeUI.icon(flow.editing===kind?'chevron':'edit')}</span></button>${flow.editing===kind?search(kind):''}</div>`;
+        }).join('')}</div>`;
+        else fields=`<div class="onboard-fields">${review?`<div class="confirmed-inline-host">${selectedAddress(true)}</div>`:flow.city?selectedAddress():''}${review?'':!flow.city?search('city'):!flow.street?search('street'):search('house')}${review&&additional?`<input class="field onboard-name" id="onboard-name" data-onboard-name maxlength="32" enterkeyhint="done" aria-label="Назва адреси (необов’язково)" placeholder="Назва адреси (необов’язково)" value="${e(flow.name)}">`:''}</div>`;
+      }
+      const status=flow.request?.kind==='submit'?`<div id="onboard-submit-status" aria-busy="${!!pending()}">${requestHTML(flow.request)}</div>`:'';
+      const enabled=review&&!pending()&&(editingAdditional||!flow.editing);
+      const actions=(review||inline||editingAdditional)&&!submitting?`<div class="onboard-review-actions ${inline?'first-review-actions':''}"><button class="action onboard-primary" ${enabled?'':'disabled'} data-action="${flow.request?.kind==='submit'&&flow.request.phase==='error'?'onboard-retry':'onboard-continue'}" data-kind="submit">${flow.request?.kind==='submit'&&flow.request.phase==='error'?'Спробувати ще':inline||editingAdditional?'Продовжити':'Показати графік'}</button></div>`:'';
+      const content=submitting?status:inline?`${fields}${status}${actions}`:`<div class="card outlined onboard-card">${fields}${status}${actions}</div>`;
+      return `<section class="onboard-address-flow ${submitting?'is-submitting fullbody-pending':''} ${inline?'first-address-review':''} ${editingAdditional?'additional-address-edit':''} ${additional&&review&&!editingAdditional?'additional-address-review':''}" aria-label="Налаштування адреси">${mascotGreeting()}${content}</section>${errorFooter()}`;
     }
 
     function preferenceScreen() {
@@ -670,7 +677,10 @@ window.SvitloOnboarding = {
           break;
         case "onboard-edit-address":
           if (flow?.house) {
-            flow.inlineReview = true;
+            flow.additionalEditing = !flow.initial;
+            flow.inlineReview = flow.initial || flow.additionalEditing;
+            flow.editing = null;
+            for(const kind of ['city','street','house']) flow.queries[kind]=flow[kind]?.name||'';
             ctx.render(false);
           }
           break;
@@ -711,8 +721,8 @@ window.SvitloOnboarding = {
           if (!flow || flow.phase !== "address") break;
           const kind = element.dataset.kind;
           if (
-            pending() ||
-            flow.request?.phase === "error" ||
+            (pending() && !flow.request?.more) ||
+            (flow.request?.phase === "error" && !flow.request.more) ||
             state().scenario === "offline"
           )
             break;
@@ -720,7 +730,7 @@ window.SvitloOnboarding = {
             (x) => x.id === element.dataset.record,
           );
           if (!record) break;
-          if (flow.editBackup && flow.editBackup[kind]?.id === record.id) {
+          if (!flow.additionalEditing && flow.editBackup && flow.editBackup[kind]?.id === record.id) {
             Object.assign(flow, flow.editBackup);
             delete flow.editBackup;
             flow.editing = null;
@@ -742,7 +752,7 @@ window.SvitloOnboarding = {
           if (kind === "house") {
             document.activeElement?.blur();
             delete flow.editBackup;
-            flow.inlineReview = true;
+            flow.inlineReview = flow.initial || flow.additionalEditing;
             flow.editing = null;
             ctx.render(false);
             break;
@@ -775,6 +785,10 @@ window.SvitloOnboarding = {
           break;
         }
         case "onboard-continue":
+          if (flow?.additionalEditing && flow.house && !pending()) {
+            flow.additionalEditing=false; flow.inlineReview=false; flow.editing=null;
+            delete flow.editBackup; cancelRequest(); ctx.render(false); document.querySelector('[data-action="onboard-edit-address"]')?.focus({preventScroll:true}); break;
+          }
           if (flow?.house && !flow.editing && !pending()) {
             document.activeElement?.blur();
             flow.reviewed = true;
@@ -787,7 +801,7 @@ window.SvitloOnboarding = {
             flow?.request?.phase === "error" &&
             flow.request.kind === element.dataset.kind
           ) {
-            beginRequest(element.dataset.kind, true);
+            beginRequest(element.dataset.kind, true, !!flow.request.more);
             ctx.render();
             if (element.dataset.kind !== "submit")
               document
@@ -844,12 +858,21 @@ window.SvitloOnboarding = {
       const kind = event.target.dataset.onboardQuery;
       if (!kind) return;
       flow.queries[kind] = event.target.value;
+      if (flow.additionalEditing) {
+        flow.editing=kind;
+        const fields=['city','street','house'];
+        for(const key of fields.slice(fields.indexOf(kind))){
+          flow[key]=null;
+          if(key!==kind){flow.queries[key]='';flow.results[key]=[];const node=document.getElementById('onboard-'+key);if(node){node.value='';node.disabled=true;}}
+        }
+      }
       if (normalize(event.target.value).length >= 2) flow.started = true;
       remember();
       cancelRequest();
       const seq = sequence;
       // Invalidate old row ownership immediately, before the simulated debounce finishes.
       flow.results[kind] = [];
+      if(flow.cursors)delete flow.cursors[kind];
       // The city minimum already belongs to beginRequest; don't flash a
       // pending/search scene during debounce for an ineligible query.
       if (!eligibleQuery(kind,flow.queries[kind])) {
@@ -892,6 +915,18 @@ window.SvitloOnboarding = {
       handleAction,
       handleInput,
       handleKey,
+      handleScroll(event){
+        const node=event.target,kind=node?.id?.replace('onboard-results-','');
+        if(!flow||!['city','street','house'].includes(kind)||pending()||flow.request?.phase==='error'||!flow.cursors?.[kind])return;
+        if(node.scrollHeight-node.clientHeight-node.scrollTop<80)beginRequest(kind,false,true);
+      },
+      handleFocus(event){
+        const kind=event.target.dataset?.onboardQuery;
+        if(!flow?.additionalEditing||!['city','street','house'].includes(kind)||event.target.disabled||flow.editing===kind)return;
+        cancelRequest();flow.editing=kind;flow.queries[kind]=event.target.value;
+        for(const other of ['city','street','house'])if(other!==kind){const box=document.getElementById('onboard-results-'+other);if(box)box.replaceChildren();}
+        beginRequest(kind);remember();
+      },
       responseChanged: () => {
         if (flow?.phase === "address") {
           const kind =
