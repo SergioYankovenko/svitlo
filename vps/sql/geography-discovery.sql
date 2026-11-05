@@ -1,4 +1,9 @@
 -- GEO-02 / GEO-AUD-01. Additive test-server discovery; no profile migration or catalogue repair.
+-- Take final DDL locks before ACL/catalog writes. Auto-analyze must not hold a
+-- table while waiting on our ACL XID when CREATE POLICY needs the same table.
+-- Fixed order, short transaction; diagnostic seeding happens after commit.
+lock table svitlo_geo.places,svitlo_geo.routes,svitlo_geo.route_places,
+ svitlo_vps.catalog,svitlo_vps.catalog_aliases,svitlo_vps.operators in access exclusive mode;
 do $$ begin if not exists(select 1 from pg_roles where rolname='svitlo_discovery_owner') then create role svitlo_discovery_owner nologin nobypassrls;end if;end $$;
 create schema svitlo_discovery authorization svitlo_discovery_owner;
 revoke all on schema svitlo_discovery from public;
