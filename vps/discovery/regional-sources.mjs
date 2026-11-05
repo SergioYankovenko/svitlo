@@ -32,6 +32,10 @@ export function directoryRows(raw,{key,name,max=5000,house=false}={}){
  }return [...map.values()];
 }
 export function cnRows(raw){if(!raw||raw.status==='error'||!Array.isArray(raw.list))invalid();return directoryRows(raw.list.map(r=>({id:r[0],name:r[1]})),{key:'id',name:'name'});}
+export function regionalDtekCities(raw){
+ if(!raw||Array.isArray(raw)||typeof raw!=='object'||!Object.keys(raw).length||Object.keys(raw).length>5000)invalid();let skippedStreetEntries=0;
+ const cities=Object.fromEntries(Object.entries(raw).map(([city,streets])=>{label(city);if(city.length>160||!Array.isArray(streets)||streets.length>10000)invalid();const names=[];for(const name of streets){if(typeof name==='string'&&!name.trim()){skippedStreetEntries++;continue;}names.push(label(name));}return [city,[...new Set(names)]];}));return {cities,skippedStreetEntries};
+}
 const unchecked={state:'unknown',status:'not_queried',complete:false,lines:[],provenance:{sourceUnavailable:true,sourceState:'queue_not_queried'}};
 export class RegionalDiscoverySources {
  constructor({fetcher=operatorFetch,gate=async()=>{},finish=async()=>{},now=Date.now}={}){Object.assign(this,{fetcher,gate,finish,now});this.clients=new Map();this.sessions=new Map();this.indexes=new Map();}
@@ -56,7 +60,7 @@ export class RegionalDiscoverySources {
  async kirov(op,path){const s=await this.kirovSession(op),data=await this.json(op,'/electricity-blackout'+path,{form:{ajax:'1',token:s.token},headers:{cookie:s.cookie,'x-requested-with':'XMLHttpRequest'}});if(!data||!Array.isArray(data.data))invalid();return data.data;}
  async poltava(op,kind,branch,city='',street=''){return this.json(op,'/customs/search-disconnection-cabinet.php',{form:{disconn:JSON.stringify({operation_type:kind,filial_id:id(branch),city_id:city?id(city):'',street_id:street?id(street):''})}});}
  dtek(op){if(!this.clients.has(op)){const cfg=this.config(op),client=new DtekClient('ua-kyiv-region-dtek',{fetcher:this.fetcher,gate:()=>this.gate(op),finish:(_,ticket,result)=>this.finish(op,ticket,result),now:this.now});client.config={host:new URL(cfg.origin).hostname};client.csrfCookieName='_csrf-dtek-'+cfg.cookie;this.clients.set(op,client);}return this.clients.get(op);}
- async dtekIndex(op){const old=this.indexes.get(op);if(old&&old.until>this.now())return old.promise;const entry={until:this.now()+21600000};entry.promise=this.dtek(op).streets().then(cities=>({cities,checkedAt:this.now()})).catch(e=>{if(this.indexes.get(op)===entry)this.indexes.delete(op);throw e;});this.indexes.set(op,entry);return entry.promise;}
+ async dtekIndex(op){const old=this.indexes.get(op);if(old&&old.until>this.now())return old.promise;const entry={until:this.now()+21600000};entry.promise=this.dtek(op).read({method:'getStreets'}).then(raw=>({...regionalDtekCities(raw.streets),checkedAt:this.now()})).catch(e=>{if(this.indexes.get(op)===entry)this.indexes.delete(op);throw e;});this.indexes.set(op,entry);return entry.promise;}
  async zoeIndex(){const op='ua-zaporizhzhia',old=this.indexes.get(op);if(old&&old.until>this.now())return old.promise;const entry={until:this.now()+21600000};entry.promise=this.request(op,'/macros/s/'+ZOE_DEPLOYMENT+'/callback?nocache_id=0',{origin:'https://script.google.com',form:{request:JSON.stringify(['getData','[]',null,[0],null,null])},headers:{'x-same-domain':'1',referer:'https://script.google.com/macros/s/'+ZOE_DEPLOYMENT+'/exec'}}).then(({body})=>({...parseZoePublic(body),checkedAt:this.now()})).catch(e=>{if(this.indexes.get(op)===entry)this.indexes.delete(op);throw e;});this.indexes.set(op,entry);return entry.promise;}
  async directory(op,{branch=null}={}){
   const cfg=this.config(op),family=cfg.family;let items,branches;
