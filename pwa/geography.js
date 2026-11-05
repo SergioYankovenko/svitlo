@@ -11,7 +11,7 @@ window.SvitloGeography = (() => {
     if(v.stage!=='region'&&!v.region||['route','done'].includes(v.stage)&&(!v.settlement||v.settlement.region?.code!==v.region.code)||v.community&&v.community.region?.code!==v.region?.code||v.route&&(typeof v.route.routeId!=='string'||v.route.routeId.length>350)||v.stage==='done'&&!v.route)return null;
     return v;
   }
-  function create({get,render,remember,onCity,onLegacy}){
+  function create({get,render,remember,onCity}){
     let serial=0,controller=null,timer=null,view={items:[],cursor:null,loading:false,error:null};
     const current=()=>get()?.geography,active=()=>!!current()&&!get().city&&get().phase==='address';
     function cancel(){serial++;controller?.abort();controller=null;clearTimeout(timer);timer=null;view={items:[],cursor:null,loading:false,error:null};}
@@ -71,7 +71,6 @@ window.SvitloGeography = (() => {
       else if(action==='geo-retry')load();
       else if(action==='geo-skip-community'){g.community=null;g.stage='settlement';g.query='';start();}
       else if(action==='geo-back'){g.query='';g.route=null;if(g.stage==='route'&&g.region.category!=='K'){g.settlement=null;g.stage='settlement';}else if(g.stage==='settlement'){g.community=null;g.stage='community';}else{Object.assign(g,fresh());}start();}
-      else if(action==='geo-legacy'){const name=g.settlement?.name||'';cancel();onLegacy(name);}
       return true;
     }
     function handleInput(event){if(!active()||!event.target.hasAttribute('data-geo-query'))return false;const g=current();g.query=event.target.value.slice(0,120);controller?.abort();serial++;clearTimeout(timer);view={items:[],cursor:null,loading:true,error:null};paint();remember();timer=setTimeout(()=>load(),250);return true;}

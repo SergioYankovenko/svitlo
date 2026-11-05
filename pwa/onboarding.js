@@ -165,8 +165,7 @@ window.SvitloOnboarding = {
         .trim();
     const eligibleQuery=(kind,query)=>kind==='submit'||kind==='city'&&normalize(query||'').length>=2||kind==='street'&&!!flow?.city||kind==='house'&&!!flow?.street;
     const geography=window.SvitloGeography?.create({get:()=>flow,render:ctx.render,remember,
-      onCity:record=>{cancelRequest();flow.city=record;flow.street=null;flow.house=null;flow.queries={city:'',street:'',house:''};flow.editing=flow.inlineReview?'street':null;delete flow.editBackup;flow.started=true;ctx.render(false);beginRequest('street');},
-      onLegacy:name=>{flow.geography=null;flow.city=null;flow.street=null;flow.house=null;flow.inlineReview=false;flow.additionalEditing=false;flow.editing=null;flow.queries={city:name,street:'',house:''};ctx.render(false);beginRequest('city');}});
+      onCity:record=>{cancelRequest();flow.city=record;flow.street=null;flow.house=null;flow.queries={city:'',street:'',house:''};flow.editing=flow.inlineReview?'street':null;delete flow.editBackup;flow.started=true;ctx.render(false);beginRequest('street');}});
     const latin = {
       а: "a",
       б: "b",
@@ -563,7 +562,7 @@ window.SvitloOnboarding = {
       const actions=(review||inline||editingAdditional)&&!submitting?`<div class="onboard-review-actions ${inline?'first-review-actions':''}"><button class="action onboard-primary" ${enabled?'':'disabled'} data-action="${flow.request?.kind==='submit'&&flow.request.phase==='error'?'onboard-retry':'onboard-continue'}" data-kind="submit">${flow.request?.kind==='submit'&&flow.request.phase==='error'?'Спробувати ще':inline||editingAdditional?'Продовжити':'Показати графік'}</button></div>`:'';
       const content=submitting?status:inline?`${fields}${status}${actions}`:`<div class="card outlined onboard-card">${fields}${status}${actions}</div>`;
       const place=flow.geography?.settlement,route=flow.geography?.route;
-      const location=place?`<div class="geo-selection-summary">${e([flow.geography.region?.name,flow.geography.community?.name,route?.branch?.name||route?.operator?.label].filter(Boolean).join(' · '))}</div>`:'';
+      const location=place&&flow.house?`<div class="geo-selection-summary">${e([flow.geography.region?.name,flow.geography.community?.name,route?.branch?.name||route?.operator?.label].filter(Boolean).join(' · '))}</div>`:'';
       return `<section class="onboard-address-flow ${submitting?'is-submitting fullbody-pending':''} ${inline?'first-address-review':''} ${editingAdditional?'additional-address-edit':''} ${additional&&review&&!editingAdditional?'additional-address-review':''}" aria-label="Налаштування адреси">${mascotGreeting()}${location}${content}</section>${errorFooter()}`;
     }
 

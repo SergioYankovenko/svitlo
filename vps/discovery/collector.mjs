@@ -32,7 +32,7 @@ export class DiscoveryCollector {
    const data=await this.streets(r),known=await this.known(r,'street'),keys=new Set(data.items.map(x=>x.key)),fresh=this.now()-data.checkedAt<86400000,missing=fresh?known.filter(x=>!keys.has(x.key)):[],hash=digest([data.items.map(x=>x.key).sort(),missing.map(x=>x.key).sort()]),offset=job.checkpoint.digest===hash?job.checkpoint.offset||0:0;
    const common={kind:'city',basis:'provider_dictionary',sourceCheckedAt:new Date(data.checkedAt).toISOString()};events.push({...common,subjectKey:'city',outcome:!fresh?'source_stale':data.items.length?'streets_listed':'streets_empty',detail:{count:data.items.length,localCount:known.length,fresh}});
    for(const x of missing.slice(offset,offset+200))events.push({...common,subjectKey:'street:'+x.key,kind:'street',streetKey:x.key,streetName:x.name,outcome:'street_absent',detail:{complete:true}});
-   children.push(...data.items);const complete=offset+200>=missing.length;return {events,children,checkpoint:complete?{}:{digest:hash,offset:offset+200},complete};
+   children.push(...data.items);if(!fresh)return {events,children,checkpoint:{},complete:false,error:'source_unavailable',retrySeconds:900};const complete=offset+200>=missing.length;return {events,children,checkpoint:complete?{}:{digest:hash,offset:offset+200},complete};
   }
   const data=await this.houses(r,job.sourceKey),known=await this.known(r,'address',job.sourceKey),keys=new Set(data.items.map(x=>x.key)),missing=known.filter(x=>!keys.has(x.key)),subjects=[...data.items.map(x=>({...x,present:true})),...missing.map(x=>({...x,present:false}))].sort((a,b)=>a.key<b.key?-1:a.key>b.key?1:0);
   const hash=digest(subjects.map(x=>[x.key,x.present])),offset=job.checkpoint.digest===hash?job.checkpoint.offset||0:0;
@@ -54,6 +54,6 @@ export class DiscoveryCollector {
   let packet;
   try{packet=await this.process(job);}catch(e){const error=transportOutcome(e);packet={events:[{subjectKey:job.kind+':'+job.sourceKey,kind:job.kind,...(job.kind==='street'?{streetKey:job.sourceKey,streetName:job.sourceName}:{}),outcome:error.outcome,basis:'transport',detail:{sourceState:error.error}}],children:[],checkpoint:job.checkpoint,complete:false,error:error.error,retrySeconds:error.retrySeconds};}
   const accepted=(await this.bridge.query('select svitlo_discovery.finish($1,$2,$3::jsonb) accepted',[job.id,job.token,JSON.stringify(packet)])).rows[0].accepted;
-  return {state:accepted?'recorded':'lease_lost',jobKind:job.kind,observations:packet.events.length,children:packet.children.length,complete:packet.complete,error:packet.error??null};
+  return {state:accepted?'recorded':'lease_lost',jobKind:job.kind,clusterCode:job.clusterCode,clusterLevel:job.clusterLevel,settlementCode:job.settlementCode,scopeStatus:job.scopeStatus,observations:packet.events.length,children:packet.children.length,complete:packet.complete,error:packet.error??null};
  }
 }

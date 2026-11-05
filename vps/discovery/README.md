@@ -29,6 +29,14 @@ House batches retain a source-list digest and offset. A changed list starts from
 
 The journal records public branch/city/street/house references, outcome, basis and source time; no profile owner, session, QR/ingest/control/push token, LS/account or raw upstream payload is stored. Last observation time is not substituted for an old source review time. Observations are retained for 90 days and cleaned in batches of 1,000. Human actions and normal live source/QR/history updates continue during releases; no stale baseline is restored over them.
 
+## Administrative clusters and progress
+
+Collection follows **oblast/special city → rayon → hromada → settlement → provider route → street → house**. The normal work unit is a hromada. Each provider retains its active community in PostgreSQL and finishes its eligible source routes/street portions before moving to another community. Providers rotate fairly, so one large community does not monopolize the other regions. A waiting source retry retains its unfinished state; other ready communities may continue. Reviewed Khrystynivka, Kyiv and Brovary are initial priorities, then administrative codes give stable traversal order.
+
+Every job and observation has a server-assigned KATOTTG cluster. Unique city/village matches retain separate settlement codes inside their community. If candidate settlements share only a rayon or oblast, the route remains at that common ancestor; no arbitrary community or settlement receives its progress. Unmatched routes are held at the region with an explicit mapping gap. Street jobs inherit the same cluster and source route, so restart and later code releases retain progress.
+
+The private report rolls up tasks once through the official hierarchy. Region totals reconcile to the physical queue; ambiguous work is not multiplied across all possible settlements. It shows route-list discovery, known street tasks/completions, checked source-house references, retries, missing routes and grouped outcomes. City lists discover the denominator dynamically; the street count is marked incomplete while source lists or mapping remain unknown. Percentages concern discovered source tasks, and **never establish complete geographical/electrical coverage**. House counts concern source references, which may include multiple branches for one physical address.
+
 ## Operator report and stopping
 
 From the active test release, with normal deployment administration access:
@@ -37,6 +45,8 @@ From the active test release, with normal deployment administration access:
 docker compose --env-file vps/release.env -f vps/compose.yaml run --rm --user 0 --entrypoint node migrate vps/discovery/report.mjs
 # Include successful source/queue observations too:
 docker compose --env-file vps/release.env -f vps/compose.yaml run --rm --user 0 --entrypoint node migrate vps/discovery/report.mjs --all
+# Drill into the Khrystynivka community; an oblast/rayon/settlement code works too:
+docker compose --env-file vps/release.env -f vps/compose.yaml run --rm --user 0 --entrypoint node migrate vps/discovery/report.mjs --cluster UA71060230000095772
 # Stop network observations without changing saved data:
 docker compose --env-file vps/release.env -f vps/compose.yaml stop discovery
 ```
