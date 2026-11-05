@@ -6,6 +6,7 @@ import {runtime} from '../runtime.js';
 import {ownerContext} from '../db.js';
 import {SensorAccess,tokenHash} from '../sensors/service.js';
 import {SensorIngest} from '../sensors/ingest.js';
+import {enableQaSubscriptions} from '../sensors/qa-entitlements.mjs';
 import {validProfile} from '../../app/lib/cache-data.js';
 import {publicProfile} from '../../server/service.js';
 const database=process.env.PGDATABASE;
@@ -20,6 +21,7 @@ const req=(cityId,street='Флорештська',house='10а/51')=>({schemaVers
 let calls=0;
 try{
  for(const actor of actors)await admin.query('insert into auth.users(id) values($1)',[actor]);
+ await enableQaSubscriptions(admin,actors);
  const key=['map-qa',randomUUID()],city=await up('city',key,'м. Христинівка');
  await admin.query("select svitlo_vps.catalog_route_state('ua-cherkasy',$1::jsonb::text,$2,'available',true,now(),'{\"reference\":\"isolated MAP-01 fixture\"}')",[JSON.stringify(key),city]);
  const street=await up('street',['map-provider-street'],'Контрольна',city),house=await up('address',['map-provider-house'],'1',street);

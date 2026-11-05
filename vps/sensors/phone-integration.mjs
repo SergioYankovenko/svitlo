@@ -1,5 +1,6 @@
 import pg from 'pg';import {readFile} from 'node:fs/promises';import {randomUUID,randomBytes,createHash} from 'node:crypto';import {spawn} from 'node:child_process';import assert from 'node:assert/strict';
 import {runtime} from '../runtime.js';import {ownerContext,pool} from '../db.js';import {PhoneSensors,externalPower} from './phone.js';import {SensorAccess,tokenHash} from './service.js';import {Sessions} from '../session.js';
+import {enableQaSubscriptions} from './qa-entitlements.mjs';
 const database=process.env.PGDATABASE;if(!/^svitlo_phone_qa_\d+$/.test(database||''))throw Error('Phone fixtures require disposable restored DB');
 const admin=new pg.Client({host:'postgres',user:'svitlo_owner',database,password:(await readFile('/run/secrets/owner_password','utf8')).trim()});await admin.connect();
 const rt=await runtime(),sp=pool('session',2),worker=pool('worker',2),secret=(await readFile('/run/secrets/phone_secret','utf8')).trim(),phone=new PhoneSensors({bridge:rt.bridge,secret}),access=new SensorAccess({bridge:rt.bridge,phone,secret:(await readFile('/run/secrets/sensor_access_secret','utf8')).trim()}),checks=[],sensitive=[];
@@ -20,6 +21,7 @@ const packet=(events,k=key)=>({schemaVersion:3,...ref(k),streamId:k.streamId,eve
 const send=(events,k=key)=>phone.batch('Bearer '+k.ingestToken,packet(events,k));
 try{
  for(const actor of actors)await admin.query('insert into auth.users(id) values($1)',[actor]);
+ await enableQaSubscriptions(admin,actors);
  const address=(await admin.query("select id from svitlo_vps.catalog where kind='address' and operator_id='qa-grid' order by label limit 1")).rows[0].id;
  const profile=async actor=>{const id=randomUUID();await admin.query("insert into public.svitlo_profiles(id,owner,address,name) values($1,$2,$3,'Phone QA')",[id,actor,JSON.stringify({canonicalAddressId:address,operatorId:'qa-grid',department:'universal:qa-grid',house:'1'})]);return id;};
  pa=await profile(a);pb=await profile(b);pv=await profile(v);
@@ -54,6 +56,7 @@ try{
   const q=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'owner_qr',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();assert.ok(q.qr.proof);sensitive.push(d.controlToken,q.qr.proof);
   assert.equal((await post('/api/v1/sensors',{schemaVersion:1,action:'list'},{Origin:url})).status,401);
   const sr=await post('/api/session',{}, {Origin:url}),session=await sr.json(),cookie=sr.headers.get('set-cookie').split(';')[0],headers={Origin:url,Cookie:cookie,'X-Svitlo-CSRF':session.session.csrf_token},profileId=await profile(session.session.user.id);
+  await enableQaSubscriptions(admin,[session.session.user.id]);
   const connected=await post('/api/v1/sensors',{schemaVersion:1,action:'connect_qr',requestId:randomUUID(),qr:q.qr,profileId},headers);assert.equal(connected.status,200);const point=(await connected.json()).sensor;
   const ik=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'ingest_credentials',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();
   sensitive.push(ik.ingestToken);const e=event(1,{observedAt:new Date().toISOString(),elapsedRealtimeMs:1,bootId:randomUUID(),monitorId:randomUUID()}),batch=packet([e],ik),sent=await post('/api/v1/sensor-events',batch,{Authorization:'Bearer '+ik.ingestToken});assert.equal(sent.status,200);assert.equal((await sent.json()).acknowledged[0].eventId,e.eventId);

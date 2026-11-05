@@ -14,6 +14,7 @@ import {dayKey,addDays} from '../../app/lib/time.js';
 import {finalCandidate,normalHouse} from '../maps/policy.js';
 import {SensorAccess,tokenHash} from '../sensors/service.js';
 import {SensorIngest} from '../sensors/ingest.js';
+import {enableQaSubscriptions} from '../sensors/qa-entitlements.mjs';
 const database=process.env.PGDATABASE;
 if(!/^svitlo_kyiv_qa_\d+$/.test(database||''))throw Error('Disposable restored Kyiv QA database required');
 const admin=new pg.Client({host:'postgres',user:'svitlo_owner',database,password:(await readFile('/run/secrets/owner_password','utf8')).trim()});await admin.connect();
@@ -36,6 +37,7 @@ try{
   for(const cache of ['indexCache','streetCache','snapshotCache','statusCache'])r.regions[cache].now=()=>now;
  }
  for(const id of actors)await admin.query('insert into auth.users(id) values($1)',[id]);
+ await enableQaSubscriptions(admin,actors);
  for(const r of [worker,rt])for(const operator of [op,province])r.regions.clients.set(operator,{streets:async()=>{calls++;return operator===op?{'м. Київ':['вул.Хрещатик']}:{'м.Бровари':['вул.Київська'],'м.Ірпінь':['вул.Університетська']};},houses:async()=>{calls++;return fixtures[operator===op?'kyiv':'brovary'];}});
  let cityMode='EmergencyShutdowns',cityMismatch=false,cityIncomplete=false;
  rt.regions.cityStatus=async()=>{const raw=yasnoFixtureAt(JSON.parse(await readFile(new URL('./fixtures/yasno-applies-23.1.json',import.meta.url),'utf8')),now);raw['23.1'].today.status=cityMode;if(cityMismatch){raw['23.1'].today.slots[1].end=809;raw['23.1'].today.slots[2].start=809;}if(cityIncomplete)raw['23.1'].today.slots=[];return projectYasno(raw,now);};

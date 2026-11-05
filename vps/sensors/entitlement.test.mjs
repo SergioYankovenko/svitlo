@@ -1,0 +1,18 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {entitlementAction} from './entitlement-handler.mjs';
+import {SensorAccess} from './service.js';
+const owner='11111111-1111-4111-8111-111111111111',input={schemaVersion:1,action:'entitlement'};
+const problem=(status,code)=>Object.assign(Error(code),{status,code});
+const value=(active=false)=>({http:200,schemaVersion:1,entitlement:{policy:'main_app_subscription_v1',ownerQrTransferGate:true,status:active?'active':'inactive',validUntil:active?new Date(Date.now()+3600000).toISOString():null,testAccess:active,maxAddresses:active?10:2,maxSensorsPerAddress:1}});
+const bridge=v=>({query:async()=>({rows:[{result:v}]})});
+test('entitlement read is inactive without a grant and exposes only the contract',async()=>{const raw={...value(),internal:'private'};assert.deepEqual(await entitlementAction(bridge(raw),owner,input,problem),{schemaVersion:1,entitlement:raw.entitlement});});
+test('active private grant returns its bounded server expiry',async()=>{const raw=value(true);assert.deepEqual((await entitlementAction(bridge(raw),owner,input,problem)).entitlement,raw.entitlement);});
+test('anonymous entitlement is401 without querying storage',async()=>{await assert.rejects(()=>entitlementAction({query:()=>assert.fail('query')},null,input,problem),e=>e.status===401);});
+test('body cannot select another subject or assert paid/test rights',async()=>{for(const extra of [{subject:owner},{owner},{testAccess:true},{paid:true},{validUntil:'2099-01-01'}])await assert.rejects(()=>entitlementAction({query:()=>assert.fail('query')},owner,{...input,...extra},problem),e=>e.status===400);});
+test('unsupported entitlement schema is400 before storage',async()=>{await assert.rejects(()=>entitlementAction({query:()=>assert.fail('query')},owner,{...input,schemaVersion:2},problem),e=>e.status===400);});
+test('storage errors become typed503 without leaking database details',async()=>{await assert.rejects(()=>entitlementAction({query:async()=>{throw Error('private database detail')}},owner,input,problem),e=>e.status===503&&e.code==='subscription_check_unavailable'&&!e.message.includes('private'));});
+test('missing or malformed SQL result remains503 rather than inactive',async()=>{for(const raw of [null,{}, {http:200},{http:201},{http:403,code:'unexpected'}])await assert.rejects(()=>entitlementAction(bridge(raw),owner,input,problem),e=>e.status===503);});
+test('database actor absence retains the401 contract',async()=>{await assert.rejects(()=>entitlementAction(bridge({http:401,code:'sensor_session_required'}),owner,input,problem),e=>e.status===401);});
+test('contradictory policy, limits, status and expiry fail closed',async()=>{for(const change of [{policy:'client_paid'},{ownerQrTransferGate:false},{status:'trial'},{maxAddresses:99},{maxSensorsPerAddress:10},{validUntil:'bad'},{validUntil:new Date(Date.now()-1).toISOString()}]){const raw=value(true);Object.assign(raw.entitlement,change);await assert.rejects(()=>entitlementAction(bridge(raw),owner,input,problem),e=>e.status===503);}});
+test('inactive result cannot advertise active expiry or test rights',async()=>{for(const change of [{validUntil:new Date(Date.now()+3600000).toISOString()},{testAccess:true},{maxAddresses:10}]){const raw=value();Object.assign(raw.entitlement,change);await assert.rejects(()=>entitlementAction(bridge(raw),owner,input,problem),e=>e.status===503);}});
+test('sensor dispatcher exposes entitlement after its existing auth guard',async()=>{const s=new SensorAccess({bridge:bridge(value()),phone:{reader:()=>assert.fail('phone route')}});assert.equal((await s.handle(owner,input)).entitlement.status,'inactive');await assert.rejects(()=>s.handle(null,input),e=>e.status===401);});
