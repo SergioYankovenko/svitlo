@@ -10,7 +10,8 @@ select jsonb_build_object('kind','configured','rows',jsonb_agg(x)) from (
 ) x;
 select jsonb_build_object('kind','directories','rows',jsonb_agg(x)) from (
  select operator_id,region_code,enabled,status,directory_complete,last_attempt_at,last_success_at,next_at,error_code,
- summary->>'routes' routes,summary->>'mapped' mapped,summary->>'queueLookup' queue_lookup
+ summary->>'routes' routes,summary->>'mapped' mapped,summary->>'queueLookup' queue_lookup,
+ summary->>'directoryScope' directory_scope,summary->>'acceptedRows' accepted_rows,summary->>'skippedRows' skipped_rows
  from svitlo_discovery.regional_sources order by region_code,operator_id
 ) x;
 select jsonb_build_object('kind','routes','rows',jsonb_agg(x)) from (

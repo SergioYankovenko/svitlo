@@ -89,7 +89,7 @@ def aggregate(data, generated_at=None):
       'refreshSeconds':60,'scope':'aggregate_provider_discovery','directoryVersion':'geo-20261105-v1',
       'territory':(data.get('territory') or [None])[0],
       'nodes':output,'activeClusters':data['active'],'collector':(data['state'] or [None])[0],
-      'sourceDirectories':[{k:r.get(k) for k in ('operator_id','region_code','enabled','status','directory_complete','last_attempt_at','last_success_at','next_at','error_code','routes','mapped','queue_lookup')} for r in data.get('directories',[])],
+      'sourceDirectories':[{k:r.get(k) for k in ('operator_id','region_code','enabled','status','directory_complete','last_attempt_at','last_success_at','next_at','error_code','routes','mapped','queue_lookup','directory_scope','accepted_rows','skipped_rows')} for r in data.get('directories',[])],
       'semantics':{'geographicCoverageConfirmed':False,'streets':'checked / known source street tasks; denominator grows during discovery',
         'houses':'source references, not deduplicated physical buildings','ambiguous':'tasks remain at the justified common ancestor; never copied into all candidate communities',
         'errors':'transport failures are not evidence that an address is absent','history':'outcomes are retained within the collector retention window, not only current failures'}}

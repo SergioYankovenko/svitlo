@@ -6,11 +6,13 @@ export async function refreshRegionalSources(c,source,{operators=Object.keys(COL
  await initializeRegionalSources(c);const result=[];
  for(const op of operators){
   const state=(await c.query('select * from svitlo_discovery.regional_sources where operator_id=$1',[op])).rows[0];if(!state.enabled||new Date(state.next_at).getTime()>now()){result.push({operator:op,status:'not_due'});continue;}
-  let checkpoint=state.checkpoint||{},summary={routes:0,mapped:0,ambiguous:0,jobsSeeded:0},complete=false;
+  let checkpoint=state.checkpoint||{},summary={routes:0,mapped:0,ambiguous:0,jobsSeeded:0},complete=false,regionalComplete=true,directoryScope=null,sourceCounts={};
   await c.query('update svitlo_discovery.regional_sources set last_attempt_at=clock_timestamp() where operator_id=$1',[op]);
   try{
    if(!checkpoint.branches){
     const directory=await source.directory(op);if(directory.limitation)throw Object.assign(Error('Search is not a full enumeration API'),{code:'public_directory_search_only'});
+    regionalComplete=directory.regionalComplete!==false;directoryScope=directory.directoryScope||null;
+    for(const k of ['acceptedRows','skippedRows'])if(Number.isSafeInteger(directory[k])&&directory[k]>=0)sourceCounts[k]=directory[k];
     if(directory.branches){checkpoint={branches:directory.branches,offset:0};}
     else{if(!directory.complete||!directory.items?.length)throw Object.assign(Error('Incomplete source directory'),{code:'invalid_source'});summary=await importRegionalRoutes(c,op,directory.items);complete=true;}
    }
@@ -26,9 +28,10 @@ export async function refreshRegionalSources(c,source,{operators=Object.keys(COL
    }
    const stats=(await c.query(`select count(*)::int routes,count(*) filter(where exists(select 1 from svitlo_geo.route_places l where l.route_id=r.id))::int mapped from svitlo_geo.routes r where r.operator_id=$1 and active`,[op])).rows[0];
    if(complete&&!stats.routes)throw Object.assign(Error('Empty regional directory'),{code:'invalid_source'});
-   const publicSummary={...stats,branchPagesChecked:checkpoint.offset||null,branchPagesTotal:checkpoint.branches?.length||null,queueLookup:COLLECTOR_SOURCES[op].family==='dtek'?'provider_address':'not_queried'};
-   await c.query(`update svitlo_discovery.regional_sources set status=$2,directory_complete=$3,last_success_at=clock_timestamp(),next_at=clock_timestamp()+make_interval(secs=>$4),checkpoint=$5,summary=$6,error_code=null where operator_id=$1`,[op,complete?'available':'partial',complete,complete?21600:60,complete?{}:checkpoint,publicSummary]);
-   await c.query("update svitlo_vps.operators set state='available' where id=$1 and config->>'collectorOnly'='true'",[op]);result.push({operator:op,status:complete?'available':'partial',...publicSummary});
+   const publicSummary={...stats,branchPagesChecked:checkpoint.offset||null,branchPagesTotal:checkpoint.branches?.length||null,queueLookup:COLLECTOR_SOURCES[op].family==='dtek'?'provider_address':COLLECTOR_SOURCES[op].family==='zoe'?'published_gpv_partial':'not_queried',...(directoryScope?{directoryScope,...sourceCounts}:{})};
+   const fullyCovered=complete&&regionalComplete;
+   await c.query(`update svitlo_discovery.regional_sources set status=$2,directory_complete=$3,last_success_at=clock_timestamp(),next_at=clock_timestamp()+make_interval(secs=>$4),checkpoint=$5,summary=$6,error_code=null where operator_id=$1`,[op,fullyCovered?'available':'partial',fullyCovered,complete?21600:60,complete?{}:checkpoint,publicSummary]);
+   await c.query("update svitlo_vps.operators set state='available' where id=$1 and config->>'collectorOnly'='true'",[op]);result.push({operator:op,status:fullyCovered?'available':'partial',...publicSummary});
   }catch(e){const code=safeCode(e),needsFeed=['public_directory_access_required','public_directory_search_only','source_format_unsupported','mapping_review_required'].includes(code),status=code==='forbidden'?'forbidden':needsFeed?'needs_feed':code.startsWith('invalid')?'invalid_source':'unavailable';
    await c.query(`update svitlo_discovery.regional_sources set status=$2,error_code=$3,directory_complete=false,next_at=clock_timestamp()+make_interval(secs=>$4),checkpoint=$5 where operator_id=$1`,[op,status,code,status==='forbidden'||needsFeed?21600:900,checkpoint]);
    await c.query("update svitlo_vps.operators set state='degraded' where id=$1 and config->>'collectorOnly'='true'",[op]);result.push({operator:op,status,error:code});

@@ -2,6 +2,7 @@
 import {DtekClient,boundedBody,regionError} from '../regions/dtek.js';
 import {resolveHouse,projectStreet} from '../regions/policy.js';
 import {operatorFetch} from '../operator-fetch.js';
+import {ZOE_DEPLOYMENT,ZOE_CITY_KEY,parseZoePublic,zoeResolution} from './zoe-public.mjs';
 export const COLLECTOR_SOURCES=Object.freeze({
  'ua-chernihiv':{regionPrefix:'UA74',label:'Чернігівобленерго',family:'chernihiv',url:'https://chernihivoblenergo.com.ua/blackouts',origin:'https://interruptions.energy.cn.ua',capital:'Чернігів'},
  'ua-sumy':{regionPrefix:'UA59',label:'Сумиобленерго',family:'sumy',url:'https://www.soe.com.ua/consumers/shutdowns',origin:'https://www.soe.com.ua',capital:'Суми'},
@@ -39,6 +40,7 @@ export class RegionalDiscoverySources {
  async request(op,path,{form,headers={},max=2500000,origin}={}){
   const c=this.config(op),base=origin||c.origin,url=new URL(path,base);
   // Callers use fixed public endpoints. No URL or host supplied by a user/catalog row.
+  if(base!==c.origin&&!(op==='ua-zaporizhzhia'&&base==='https://script.google.com'))invalid();
   if(url.origin!==base||url.username||url.password)invalid();
   const ticket=await this.gate(op);let status=0,error=null,retry=0;
   try{const r=await this.fetcher(url.href,{method:form?'POST':'GET',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{accept:'application/json,text/html','user-agent':'Svitlo-public-discovery/1.0',...(form?{'content-type':'application/x-www-form-urlencoded; charset=UTF-8'}:{}),...headers},...(form?{body:new URLSearchParams(form).toString()}:{})});status=r.status;retry=Math.min(900000,Math.max(0,Number(r.headers.get('retry-after'))*1000||0));
@@ -55,6 +57,7 @@ export class RegionalDiscoverySources {
  async poltava(op,kind,branch,city='',street=''){return this.json(op,'/customs/search-disconnection-cabinet.php',{form:{disconn:JSON.stringify({operation_type:kind,filial_id:id(branch),city_id:city?id(city):'',street_id:street?id(street):''})}});}
  dtek(op){if(!this.clients.has(op)){const cfg=this.config(op),client=new DtekClient('ua-kyiv-region-dtek',{fetcher:this.fetcher,gate:()=>this.gate(op),finish:(_,ticket,result)=>this.finish(op,ticket,result),now:this.now});client.config={host:new URL(cfg.origin).hostname};client.csrfCookieName='_csrf-dtek-'+cfg.cookie;this.clients.set(op,client);}return this.clients.get(op);}
  async dtekIndex(op){const old=this.indexes.get(op);if(old&&old.until>this.now())return old.promise;const entry={until:this.now()+21600000};entry.promise=this.dtek(op).streets().then(cities=>({cities,checkedAt:this.now()})).catch(e=>{if(this.indexes.get(op)===entry)this.indexes.delete(op);throw e;});this.indexes.set(op,entry);return entry.promise;}
+ async zoeIndex(){const op='ua-zaporizhzhia',old=this.indexes.get(op);if(old&&old.until>this.now())return old.promise;const entry={until:this.now()+21600000};entry.promise=this.request(op,'/macros/s/'+ZOE_DEPLOYMENT+'/callback?nocache_id=0',{origin:'https://script.google.com',form:{request:JSON.stringify(['getData','[]',null,[0],null,null])},headers:{'x-same-domain':'1',referer:'https://script.google.com/macros/s/'+ZOE_DEPLOYMENT+'/exec'}}).then(({body})=>({...parseZoePublic(body),checkedAt:this.now()})).catch(e=>{if(this.indexes.get(op)===entry)this.indexes.delete(op);throw e;});this.indexes.set(op,entry);return entry.promise;}
  async directory(op,{branch=null}={}){
   const cfg=this.config(op),family=cfg.family;let items,branches;
   if(family==='kharkiv')items=directoryRows(await this.json(op,'/frontend/web/index.php/uk/helper/get-villages'),{key:'adp_id',name:'aname'});
@@ -73,7 +76,7 @@ export class RegionalDiscoverySources {
   }else if(family==='dtek'){
    const data=await this.dtekIndex(op);items=Object.keys(data.cities).map(name=>({key:label(name),name}));
   }else if(family==='zoe'){
-   await this.request(op,'/outage/');throw regionError('public_directory_access_required');
+   const index=await this.zoeIndex();return {items:[{key:ZOE_CITY_KEY,name:'м. Запоріжжя'}],complete:true,regionalComplete:false,directoryScope:'published_city_subset',acceptedRows:index.acceptedRows,skippedRows:index.skippedRows};
   }else invalid();
   return {items,complete:true};
  }
@@ -82,6 +85,7 @@ export class RegionalDiscoverySources {
   else if(cfg.family==='kharkiv')items=directoryRows(await this.json(op,'/frontend/web/index.php/uk/helper/get-streets?adp_id='+id(r.provider_city_id)),{key:'adpid',name:'aname'});
   else if(cfg.family==='kirovohrad')items=(await this.kirov(op,'/street/'+id(r.provider_city_id))).map(x=>({key:id(x.StreetId),name:label([x.StreetType,x.StreetName].filter(Boolean).join(' '))}));
   else if(cfg.family==='chernihiv')throw regionError('public_directory_search_only');
+  else if(cfg.family==='zoe'){if(r.provider_city_id!==ZOE_CITY_KEY)invalid();const index=await this.zoeIndex();return {items:[...index.streets.keys()].map(name=>({key:name,name})),checkedAt:index.checkedAt};}
   else if(cfg.family==='dtek'){const index=await this.dtekIndex(op),names=index.cities[r.provider_city_name];if(!Array.isArray(names)||names.length>5000)invalid();items=names.map(name=>({key:label(name),name}));return {items,checkedAt:index.checkedAt};}
   else throw regionError('public_directory_access_required');
   return {items,checkedAt:this.now()};
@@ -91,6 +95,7 @@ export class RegionalDiscoverySources {
   else if(cfg.family==='kharkiv')items=directoryRows(await this.json(op,'/frontend/web/index.php/uk/helper/get-buildings?adp_id='+id(key)),{key:'adpid',name:'aname',house:true}).map(x=>({key:x.name,name:x.name}));
   else if(cfg.family==='kirovohrad')items=directoryRows(await this.kirov(op,'/house/'+id(key)),{key:'HouseId',name:'HouseName'}).map(x=>({key:x.name,name:x.name}));
   else if(cfg.family==='chernihiv')throw regionError('public_directory_search_only');
+  else if(cfg.family==='zoe'){if(r.provider_city_id!==ZOE_CITY_KEY)invalid();const index=await this.zoeIndex(),houses=index.streets.get(key);if(!houses)invalid();return {items:[...houses.keys()].map(name=>({key:name,name})),checkedAt:index.checkedAt,resolution:house=>zoeResolution(houses.get(house),index.checkedAt)};}
   else if(cfg.family==='dtek'){const data=projectStreet(await this.dtek(op).houses(r.provider_city_name,key),this.now());items=Object.keys(data.houses).map(name=>({key:name,name}));resolutions=Object.fromEntries(items.map(x=>[x.key,resolveHouse(data,x.key)]));}
   else throw regionError('public_directory_access_required');
   if(items.length>5000)invalid();return {items,checkedAt:this.now(),resolution:key=>resolutions?.[key]||{...unchecked,checkedAt:this.now()}};
