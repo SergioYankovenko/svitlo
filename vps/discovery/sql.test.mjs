@@ -7,6 +7,7 @@ const {data}=await loadBundle();await db.exec("insert into svitlo_vps.operators(
 const linked=[...new Map(data.routes.filter(r=>r.legacyCatalogCityId).map(r=>[r.legacyCatalogCityId,r])).values()];
 for(const r of linked)await db.query("insert into svitlo_vps.catalog(id,kind,label) values($1,'city',$2)",[r.legacyCatalogCityId,r.providerCityName]);
 for(const r of data.routes.filter(r=>r.operatorId==='ua-cherkasy'&&r.legacyCatalogCityId))await db.query("insert into svitlo_vps.catalog_aliases values('ua-cherkasy','city',$1::jsonb::text,$2) on conflict do nothing",[JSON.stringify([r.branchId,r.providerCityId]),r.legacyCatalogCityId]);
+await db.exec(await readFile(new URL('../sql/catalog-quality.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../sql/settlement-directory.sql',import.meta.url),'utf8'));await importGeography(db);
 await db.exec(await readFile(new URL('../sql/geography-discovery.sql',import.meta.url),'utf8'));await seedDiscovery(db);
 const city='UA71060230010046648',rid='ua-cherkasy:18:801';after(()=>db.close());

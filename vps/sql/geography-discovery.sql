@@ -3,7 +3,7 @@
 -- table while waiting on our ACL XID when CREATE POLICY needs the same table.
 -- Fixed order, short transaction; diagnostic seeding happens after commit.
 lock table svitlo_geo.places,svitlo_geo.routes,svitlo_geo.route_places,
- svitlo_vps.catalog,svitlo_vps.catalog_aliases,svitlo_vps.operators in access exclusive mode;
+ svitlo_vps.catalog,svitlo_vps.catalog_aliases,svitlo_vps.catalog_exclusions,svitlo_vps.operators in access exclusive mode;
 do $$ begin if not exists(select 1 from pg_roles where rolname='svitlo_discovery_owner') then create role svitlo_discovery_owner nologin nobypassrls;end if;end $$;
 create schema svitlo_discovery authorization svitlo_discovery_owner;
 revoke all on schema svitlo_discovery from public;
@@ -15,6 +15,12 @@ create policy discovery_reference_read on svitlo_geo.route_places for select to 
 create policy discovery_reference_read on svitlo_geo.places for select to svitlo_discovery_owner using(true);
 -- This allocator can add verified on-demand entries, but cannot update/delete existing ones.
 grant insert on svitlo_vps.catalog,svitlo_vps.catalog_aliases to svitlo_discovery_owner;
+-- Existing invoker trigger catalog_classify runs on every new catalogue row.
+-- Its exact-label quarantine needs these privileges for the newly allocated ID.
+-- This role cannot log in/be assumed and the sole API allocator never updates
+-- an existing row; the collector cannot execute it.
+grant select,insert,update,delete on svitlo_vps.catalog_exclusions to svitlo_discovery_owner;
+grant execute on function svitlo_vps.catalog_service_label(text,text) to svitlo_discovery_owner;
 grant execute on function svitlo_vps.catalog_upsert(text,text,text,text,uuid,jsonb,jsonb) to svitlo_discovery_owner;
 create table svitlo_discovery.policy(id boolean primary key default true check(id),enabled boolean not null default true,interval_seconds integer not null default 120 check(interval_seconds>=120),daily_limit integer not null default 360 check(daily_limit between 1 and 360),retention_days integer not null default 90 check(retention_days between 7 and 90));
 insert into svitlo_discovery.policy(id) values(true);
