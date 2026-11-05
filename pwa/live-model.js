@@ -144,10 +144,10 @@ export function contextFor(profile,date,now=Date.now()) {
     ? /^(?:emergency_report_|reported_emergency_|address_emergency)/.test(ref.suspensionReason||'')?'Аварійний режим у черзі':'Погодинний графік тимчасово не діє'
     : null;
   const emergencySuspension=/^(?:emergency_report_|reported_emergency_|address_emergency)/.test(publishedReference(profile,date,now,true)?.suspensionReason||'');
-  const notice=d.referenceAvailable&&d.suspended?{
+  const notice=d.suspended&&(d.referenceAvailable||ref?.suspended&&!ref.stale)?{
     title:d.referenceStale?'Збережений графік':emergencySuspension?'Аварійне відключення':'Графік призупинено',
     text:!d.referenceStale&&emergencySuspension?'Спеціалісти працюють над відновленням.':'Час відновлення уточнюється.',
-    reference:true,stale:d.referenceStale
+    reference:d.referenceAvailable,stale:d.referenceStale
   }:current&&active?.category==='emergency'?{
     title:'Аварійне відключення',
     text:'Спеціалісти працюють над відновленням.',

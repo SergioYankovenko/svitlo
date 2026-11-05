@@ -389,6 +389,8 @@
       date > window.SvitloClock.now(state).date,
       fixtureContext(date),
     );
+    const notice=dayContext.notice;
+    const banner=notice?`<div class="warning emergency-warning schedule-notice" role="note" data-reference="${notice.reference}" data-stale="${notice.stale}"><span class="emergency-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5M12 17h.01"/></svg></span><div class="emergency-copy"><strong>${esc(notice.title)}</strong><p>${esc(notice.text)}</p></div></div>`:'';
     if (missing || data.publication === 'unknown') {
       const placeholder = journey.unpublished(
         date === window.SvitloClock.tomorrow(state),
@@ -401,14 +403,12 @@
             }),
         state,
       );
-      if (missing) return placeholder;
+      if (missing) return banner+placeholder;
       const template = document.createElement('template');
       template.innerHTML = placeholder;
       template.content.querySelector('.schedule-empty-speech p').textContent = 'Дані графіка уточнюються';
-      return template.innerHTML;
+      return banner+template.innerHTML;
     }
-    const notice=dayContext.notice;
-    const banner=notice?`<div class="warning emergency-warning schedule-notice" role="note" data-reference="${notice.reference}" data-stale="${notice.stale}"><span class="emergency-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5M12 17h.01"/></svg></span><div class="emergency-copy"><strong>${esc(notice.title)}</strong><p>${esc(notice.text)}</p></div></div>`:'';
     return `${banner}${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div><div class="actions one schedule-feedback"><button class="action mismatch-action" disabled aria-disabled="true">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
   }
   function scheduleCard(demo = false) {

@@ -105,3 +105,13 @@ test('provider refresh through API envelope retains emergency context when the p
  assert.equal(c.notice.title,'Аварійне відключення');assert.equal(c.label,'Час відновлення уточнюється');
  assert(d.unknown>0);assert.equal(d.events.length,0);assert.equal(snapshot.notices[0].scope,'reported_group_day');
 });
+
+
+test('a freshly confirmed emergency banner survives a missing primary table without inventing a plan',async()=>{
+ const snapshot=JSON.parse(await readFile(new URL('deg25-emergency.json',root),'utf8'));
+ const day=snapshot.lines[0].categories.hourly.days[0];day.publication.state='not_published';day.publication.intervals=[];day.applicability.reason='reported_emergency_without_primary_plan';
+ const p=profile(snapshot),d=scheduleFor(p,date,now),c=contextFor(p,date,now);
+ assert.equal(d.publication,'unpublished');assert.equal(d.referenceAvailable,false);assert.equal(c.notice.title,'Аварійне відключення');assert.equal(c.notice.reference,false);
+ assert.equal(c.valueMinutes,null);assert.equal(d.planSummary,null);assert.equal(d.events.length,0);
+ snapshot.freshUntil=now-1;assert.equal(contextFor(profile(snapshot),date,now).notice,null);
+});
