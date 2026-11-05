@@ -1,5 +1,19 @@
 -- SUB-01 r2, candidate only. Append after 1013; never edit an applied migration.
 -- The authenticated main reader owns one grant; there are no sensor service grants.
+-- A takeover may create the incoming reader's profile. Its existing invoker
+-- triggers need only push ownership metadata and that reader's reminder task.
+-- Do not expose push subscription payloads or elevate the global triggers.
+grant execute on function public.svitlo_has_push(public.svitlo_profiles) to svitlo_sensor_owner;
+grant select(owner,profile_id) on public.svitlo_subscriptions to svitlo_sensor_owner;
+create policy sensor_push_owner_lookup on public.svitlo_subscriptions
+ for select to svitlo_sensor_owner using(owner=auth.uid());
+grant select(profile_id,due_at),insert(profile_id,due_at),update(due_at,generation,token,lease_until)
+ on public.svitlo_reminder_tasks to svitlo_sensor_owner;
+create policy sensor_own_profile_task on public.svitlo_reminder_tasks
+ to svitlo_sensor_owner
+ using(exists(select 1 from public.svitlo_profiles p where p.id=profile_id and p.owner=auth.uid()))
+ with check(exists(select 1 from public.svitlo_profiles p where p.id=profile_id and p.owner=auth.uid()));
+
 create table svitlo_sensors.main_app_subscriptions (
  subject uuid primary key references auth.users(id) on delete cascade,
  source text not null check(source in ('verified_payment','private_test')),
