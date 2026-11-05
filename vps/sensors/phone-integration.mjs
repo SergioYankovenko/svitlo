@@ -54,13 +54,16 @@ try{
   assert.equal((await post('/api/v1/sensor-devices/register',{schemaVersion:1,registrationToken:token('sr')},{Origin:url})).status,403);
   const d=await (await post('/api/v1/sensor-devices/register',{schemaVersion:1,registrationToken:token('sr')})).json();assert.ok(d.controlToken);
   let q=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'owner_qr',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();assert.ok(q.qr.proof);sensitive.push(d.controlToken,q.qr.proof);
+  const oldManual=q.manualCode;assert.ok(/^[0-9]{6}$/.test(oldManual));
   const rotatePacket={schemaVersion:1,action:'rotate_owner_qr',sensorId:d.sensorId,requestId:randomUUID()},rotatedResponse=await post('/api/v1/sensor-devices/control',rotatePacket,{Authorization:'Bearer '+d.controlToken});assert.equal(rotatedResponse.status,200);
   const rotated=await rotatedResponse.json();sensitive.push(rotated.qr.proof);assert.ok(rotated.qr.proof!==q.qr.proof,'HTTP rotation replaces proof');
   const retried=await (await post('/api/v1/sensor-devices/control',rotatePacket,{Authorization:'Bearer '+d.controlToken})).json();assert.ok(retried.qr.proof===rotated.qr.proof&&retried.expiresAt===rotated.expiresAt,'HTTP retry is idempotent');q=rotated;
   assert.equal((await post('/api/v1/sensors',{schemaVersion:1,action:'list'},{Origin:url})).status,401);
   const sr=await post('/api/session',{}, {Origin:url}),session=await sr.json(),cookie=sr.headers.get('set-cookie').split(';')[0],headers={Origin:url,Cookie:cookie,'X-Svitlo-CSRF':session.session.csrf_token},profileId=await profile(session.session.user.id);
   await enableQaSubscriptions(admin,[session.session.user.id]);
-  const connected=await post('/api/v1/sensors',{schemaVersion:1,action:'connect_qr',requestId:randomUUID(),qr:q.qr,profileId},headers);assert.equal(connected.status,200);const point=(await connected.json()).sensor;
+  assert.ok(q.manualCode!==oldManual&&retried.manualCode===q.manualCode);
+  assert.equal((await post('/api/v1/sensors',{schemaVersion:1,action:'connect_qr',requestId:randomUUID(),qr:{version:1,kind:'phone_code',code:oldManual},profileId},headers)).status,404);
+  const connected=await post('/api/v1/sensors',{schemaVersion:1,action:'connect_qr',requestId:randomUUID(),qr:{version:1,kind:'phone_code',code:q.manualCode},profileId},headers);assert.equal(connected.status,200);const point=(await connected.json()).sensor;
   const ik=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'ingest_credentials',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();
   sensitive.push(ik.ingestToken);const e=event(1,{observedAt:new Date().toISOString(),elapsedRealtimeMs:1,bootId:randomUUID(),monitorId:randomUUID()}),batch=packet([e],ik),sent=await post('/api/v1/sensor-events',batch,{Authorization:'Bearer '+ik.ingestToken});assert.equal(sent.status,200);assert.equal((await sent.json()).acknowledged[0].eventId,e.eventId);
   const live=await post('/api/v1/sensors',{schemaVersion:1,action:'signal',...ref(point)},headers);assert.equal(live.status,200);assert.equal(live.headers.get('cache-control'),'no-store');assert.equal((await live.json()).signal.powerState,'on');
