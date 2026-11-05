@@ -18,20 +18,25 @@ function publicPlace(p){
   district:p.district_code?{code:p.district_code,name:p.district_name}:null,community:p.community_code?{code:p.community_code,name:p.community_name}:null};
 }
 export class Geography {
- constructor(bridge){this.db=bridge;}
+ constructor(bridge,{supports=op=>op.adapter_key==='cherkasy-v1'&&op.id==='ua-cherkasy'||op.adapter_key==='dtek-public-v1'&&['ua-kyiv-dtek','ua-kyiv-region-dtek'].includes(op.id)}={}){this.db=bridge;this.supports=supports;}
  async ready(){return (await this.db.query('select exists(select 1 from svitlo_geo.editions where active and version=$1 and bundle_sha256=$2 and node_count=$3 and settlement_count=$4 and route_count=$5) ok',[expectedEdition.bundleVersion,expectedEdition.sha256,expectedEdition.nodeCount,expectedEdition.settlementCount,expectedEdition.routeCount])).rows[0]?.ok===true;}
  async edition(){const e=(await this.db.query('select version,edition_date::text,source_url,node_count,settlement_count,route_count from svitlo_geo.editions where active')).rows[0];if(!e)throw geoProblem(503,'settlement_directory_unavailable');return {version:e.version,editionDate:e.edition_date,sourceUrl:e.source_url,nodeCount:e.node_count,settlementCount:e.settlement_count,routeCount:e.route_count};}
  async search(p){
-  exact(p,['schemaVersion','kind','q','regionCode','districtCode','communityCode','parentCode','limit','cursor']);
+  exact(p,['schemaVersion','kind','q','regionCode','districtCode','communityCode','parentCode','limit','cursor','availableOnly']);
   const kind=p.kind??'settlements',q=p.q??'',limit=p.limit??30;
   if(!Object.hasOwn(kinds,kind)||typeof q!=='string'||q.length>120||/[\u0000-\u001f\u007f]/u.test(q)||!Number.isInteger(limit)||limit<1||limit>50)throw geoProblem(400,'invalid_settlement_search');
+  if(p.availableOnly!==undefined&&(typeof p.availableOnly!=='boolean'||p.availableOnly&&kind!=='settlements'))throw geoProblem(400,'invalid_settlement_search');
   for(const key of ['regionCode','districtCode','communityCode','parentCode'])if(p[key]!==undefined&&(typeof p[key]!=='string'||!code.test(p[key])))throw geoProblem(400,'invalid_administrative_filter');
   const needle=searchName(q),hasFilter=Boolean(p.parentCode||p.regionCode||p.districtCode||p.communityCode),directory=await this.edition();
   // Empty editor never launches a national scan. Explicit region/parent browsing is bounded.
   if(needle.length<2&&kind!=='regions'&&!hasFilter)return {schemaVersion:1,directory,items:[],nextCursor:null,complete:true};
-  const signature=createHash('sha256').update(JSON.stringify([directory.version,kind,needle,p.regionCode??null,p.districtCode??null,p.communityCode??null,p.parentCode??null])).digest('hex');
+  const signature=createHash('sha256').update(JSON.stringify([directory.version,kind,needle,p.regionCode??null,p.districtCode??null,p.communityCode??null,p.parentCode??null,...(p.availableOnly?['available_only']:[])])).digest('hex');
   let after=null;if(p.cursor!==undefined){try{if(typeof p.cursor!=='string'||p.cursor.length>1000)throw Error();after=JSON.parse(Buffer.from(p.cursor,'base64url').toString());if(after.signature!==signature||typeof after.name!=='string'||after.name.length>240||!code.test(after.code))throw Error();}catch{throw geoProblem(400,'invalid_settlement_cursor');}}
   const params=[];const bind=v=>{params.push(v);return '$'+params.length;};const where=['p.active',kinds[kind]];
+  // User-facing city search only. Keep the full national directory/admin API intact.
+  // Filter before LIMIT/cursor: unsupported names must not occupy result pages.
+  // Temporary upstream cooldowns do not erase a connected place from the directory.
+  if(p.availableOnly){const available=(await this.db.query("select * from svitlo_vps.operators where not is_test and state<>'disabled'")).rows.filter(op=>this.supports(op)).map(op=>op.id);where.push(`exists(select 1 from svitlo_geo.route_places l join svitlo_geo.routes route on route.id=l.route_id where l.settlement_code=p.code and route.active and route.operator_id=any(${bind(available)}::text[]))`);}
   for(const [field,col,level] of [['regionCode','region_code',1],['districtCode','district_code',2],['communityCode','community_code',3],['parentCode','parent_code',null]])if(p[field]){
    const parent=(await this.db.query('select level from svitlo_geo.places where code=$1 and active',[p[field]])).rows[0];
    if(!parent||level!==null&&parent.level!==level)throw geoProblem(400,'invalid_administrative_filter');where.push(`p.${col}=${bind(p[field])}`);

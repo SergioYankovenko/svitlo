@@ -2,7 +2,7 @@ name: Build private VPS artifact
 on:
   workflow_dispatch:
   push:
-    branches: [codex/discovery-throughput-20261105, codex/pwa-live-24-28-release-20261105, codex/phone-qr-pilot-20261105, codex/architecture-hardening-20261104, codex/kyiv-regions-20261104, codex/pwa-cache-20261104, codex/paired-source-history-20261104, codex/pwa-live-v2-20261104, codex/kyiv-address-display-20261104, codex/main-app-subscription-vps-20261105, codex/pwa-next-20261105, codex/settlement-routing-20261105, codex/pwa-geography-audit-20261105]
+    branches: [codex/settlement-background-20261105, codex/discovery-throughput-20261105, codex/pwa-live-24-28-release-20261105, codex/phone-qr-pilot-20261105, codex/architecture-hardening-20261104, codex/kyiv-regions-20261104, codex/pwa-cache-20261104, codex/paired-source-history-20261104, codex/pwa-live-v2-20261104, codex/kyiv-address-display-20261104, codex/main-app-subscription-vps-20261105, codex/pwa-next-20261105, codex/settlement-routing-20261105, codex/pwa-geography-audit-20261105]
 permissions:
   contents: read
 concurrency:

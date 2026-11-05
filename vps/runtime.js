@@ -1,3 +1,4 @@
+import {adapterFor} from './universal/adapters.js';
 import {readFileSync} from 'node:fs';
 import {Database} from '../server/database.js';
 import {Source} from '../server/source.js';
@@ -43,5 +44,5 @@ export async function runtime(role='api'){
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
   const service=new UniversalService({...options,maps},reader);
   const sourceHistory=new SourceHistory({bridge,regions,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
-  return {p,bridge,db,source,service,legacy,reader,maps,regions,sourceHistory,geography:new Geography(bridge),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions}),secret,...delivery};
+  return {p,bridge,db,source,service,legacy,reader,maps,regions,sourceHistory,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions}),secret,...delivery};
 }
