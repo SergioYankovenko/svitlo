@@ -53,7 +53,10 @@ try{
   const url='http://127.0.0.1:8080',post=(path,body,headers={})=>fetch(url+path,{method:'POST',headers:{'Content-Type':'application/json',...headers},body:typeof body==='string'?body:JSON.stringify(body)});
   assert.equal((await post('/api/v1/sensor-devices/register',{schemaVersion:1,registrationToken:token('sr')},{Origin:url})).status,403);
   const d=await (await post('/api/v1/sensor-devices/register',{schemaVersion:1,registrationToken:token('sr')})).json();assert.ok(d.controlToken);
-  const q=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'owner_qr',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();assert.ok(q.qr.proof);sensitive.push(d.controlToken,q.qr.proof);
+  let q=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'owner_qr',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();assert.ok(q.qr.proof);sensitive.push(d.controlToken,q.qr.proof);
+  const rotatePacket={schemaVersion:1,action:'rotate_owner_qr',sensorId:d.sensorId,requestId:randomUUID()},rotatedResponse=await post('/api/v1/sensor-devices/control',rotatePacket,{Authorization:'Bearer '+d.controlToken});assert.equal(rotatedResponse.status,200);
+  const rotated=await rotatedResponse.json();sensitive.push(rotated.qr.proof);assert.ok(rotated.qr.proof!==q.qr.proof,'HTTP rotation replaces proof');
+  const retried=await (await post('/api/v1/sensor-devices/control',rotatePacket,{Authorization:'Bearer '+d.controlToken})).json();assert.ok(retried.qr.proof===rotated.qr.proof&&retried.expiresAt===rotated.expiresAt,'HTTP retry is idempotent');q=rotated;
   assert.equal((await post('/api/v1/sensors',{schemaVersion:1,action:'list'},{Origin:url})).status,401);
   const sr=await post('/api/session',{}, {Origin:url}),session=await sr.json(),cookie=sr.headers.get('set-cookie').split(';')[0],headers={Origin:url,Cookie:cookie,'X-Svitlo-CSRF':session.session.csrf_token},profileId=await profile(session.session.user.id);
   await enableQaSubscriptions(admin,[session.session.user.id]);

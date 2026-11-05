@@ -4,8 +4,10 @@ window.SvitloSensorScanner = (() => {
   let active = null, decoder = null;
   function parse(raw) {
     if(typeof raw!=='string'||raw.length>512)return null;
+    if(/^[0-9]{6}$/.test(raw.trim()))return JSON.stringify({version:1,kind:'phone_code',code:raw.trim()});
     try {
       const q=JSON.parse(raw),uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+      if(q?.kind==='phone_code')return q.version===1&&typeof q.code==='string'&&/^[0-9]{6}$/.test(q.code)&&Object.keys(q).length===3&&Object.keys(q).every(k=>['version','kind','code'].includes(k))?JSON.stringify(q):null;
       if(q.version!==1||!['phone_owner','factory_owner','viewer_invite'].includes(q.kind)||!uuid.test(q.sensorId)||Object.keys(q).some(k=>!['version','kind','sensorId','proof'].includes(k)))return null;
       const prefix={phone_owner:'sp_',factory_owner:'so_',viewer_invite:'si_'}[q.kind];
       return typeof q.proof==='string'&&new RegExp('^'+prefix+'[A-Za-z0-9_-]{43}$').test(q.proof)?JSON.stringify(q):null;
