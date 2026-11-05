@@ -14,7 +14,7 @@ try{
   try{
    const result=await collector.runDue();
    waitMs=Number.isFinite(result.waitMs)?result.waitMs:1000;
-   if(!['not_due','idle','daily_limit','busy','sources_waiting','disabled'].includes(result.state))console.log(JSON.stringify({event:'address_discovery',...result}));
+   if(!['not_due','idle','daily_limit','busy','sources_waiting','territory_hold','disabled'].includes(result.state))console.log(JSON.stringify({event:'address_discovery',...result}));
   }catch(e){
    waitMs=15000;
    console.error(JSON.stringify({event:'address_discovery_error',code:/^[A-Z0-9_]{1,32}$/i.test(e.code||'')?e.code:'collector_error'}));
