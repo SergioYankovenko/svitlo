@@ -88,6 +88,16 @@ export function scheduleFor(profile,date,now=Date.now()) {
   // Positive address intervals still come from dayState, including emergency intervals with no end.
   const referenceEvents=reference?.available&&!reference.suspended?[...reference.events,...reference.positive]:null;
   const referenceDisplay=referenceEvents?displayHours(referenceEvents,from,until,false,now).flatMap(h=>h.segments):null;
+  // Separate, decorative reference only. Never enters at(), events, totals or delivery.
+  const suspendedDisplay=reference?.available&&reference.suspended&&reference.events.length
+    ? displayHours(reference.events,from,until,false,now).flatMap(h=>h.segments):null;
+  const referenceOverlay=suspendedDisplay?{
+    stale:reference.stale,
+    at(minute){
+      const t=from+minute*60000;
+      return t>=from&&t<until&&suspendedDisplay.some(s=>s.kind==='hourly'&&s.start<=t&&t<s.end);
+    }
+  }:null;
   const sum=kind=>exact.filter(s=>s.kind===kind).reduce((n,s)=>n+(s.end-s.start)/60000,0);
   const out=exact.filter(s=>Object.hasOwn(labels,s.kind)).reduce((n,s)=>n+(s.end-s.start)/60000,0);
   const at=(minute,rounded=false)=>{
@@ -109,7 +119,7 @@ export function scheduleFor(profile,date,now=Date.now()) {
     events:d.events.map(e=>({start:Math.max(0,(e.start-from)/60000),end:Math.min(total,((e.end??now)-from)/60000),kind:eventKind(e)})),
     out,unknown:sum('unknown'),clear:sum('clear'),planSummary,
     planEvents:referenceEvents?.map(e=>({start:Math.max(0,(e.start-from)/60000),end:e.end===null?null:Math.min(total,(e.end-from)/60000),kind:eventKind(e)}))||null,
-    at,from,until,raw:d,
+    at,from,until,raw:d,referenceOverlay,
     suspended:!!reference?.suspended,referenceAvailable:!!reference?.available,referenceStale:!!reference?.stale,referenceOnly:!!referenceEvents&&(reference.stale||!d.known||reference.applicability!=='reported')};
 }
 export function contextFor(profile,date,now=Date.now()) {
@@ -122,7 +132,17 @@ export function contextFor(profile,date,now=Date.now()) {
   const suspensionLabel=ref?.suspended&&!ref.stale
     ? /^(?:emergency_report_|reported_emergency_|address_emergency)/.test(ref.suspensionReason||'')?'Аварійний режим у черзі':'Погодинний графік тимчасово не діє'
     : null;
-  return {kind:category?eventKind(category):null,label:suspensionLabel||planned?.label||c.label||'',valueMinutes:suspensionLabel?null:planned?.minutes??c.minutes??null,warning:false,plannedCountdown:!!planned};
+  const emergencySuspension=/^(?:emergency_report_|reported_emergency_|address_emergency)/.test(publishedReference(profile,date,now,true)?.suspensionReason||'');
+  const notice=d.referenceAvailable&&d.suspended?{
+    title:d.referenceStale?'Збережений графік':emergencySuspension?'Аварійне відключення':'Графік призупинено',
+    text:!d.referenceStale&&emergencySuspension?'Спеціалісти працюють над відновленням.':'Час відновлення уточнюється.',
+    reference:true,stale:d.referenceStale
+  }:current&&active?.category==='emergency'?{
+    title:'Аварійне відключення',
+    text:'Спеціалісти працюють над відновленням.',
+    reference:false,stale:false
+  }:null;
+  return {kind:category?eventKind(category):null,label:suspensionLabel||planned?.label||c.label||'',valueMinutes:suspensionLabel?null:planned?.minutes??c.minutes??null,warning:false,notice,plannedCountdown:!!planned};
 }
 export function profileView(p) {
   const a=p.address||{},city=(typeof a.city==='string'?a.city:a.city?.label||a.city?.name)||a.cityName||'', street=(typeof a.street==='string'?a.street:a.street?.label||a.street?.name)||'',house=(typeof a.house==='string'?a.house:a.house?.label||a.house?.name)||'';

@@ -326,6 +326,8 @@
         const unique = [...new Set(halves)],
           one = unique.length === 1 ? unique[0] : null,
           unknown = unique.every((k) => k === "unknown");
+        const reference = halves.map((k,j)=>k==='unknown'&&data.referenceOverlay?.at(start+j*30+15)===true);
+        const referenceHTML=reference.some(Boolean)?`<div class="tile-reference" aria-hidden="true">${reference.map(on=>`<i class="${on?'reference-segment':''}"></i>`).join('')}</div>`:'';
         const current =
           !demo &&
           date === window.SvitloClock.now(state).date &&
@@ -336,11 +338,11 @@
         const accessible = halves
           .map(
             (k, j) =>
-              `${j + 1}-ша півгодина: ${k === "unknown" ? "стан невідомий" : k ? kindLabel(k) : "світло є"}`,
+              `${j + 1}-ша півгодина: ${k === "unknown" ? "стан невідомий" : k ? kindLabel(k) : "світло є"}${reference[j] ? "; призупинений довідковий план відключення" : ""}`,
           )
           .join("; ");
         const tracks = !demo ? sensor?.tracks(date, start, start + count * 30, halves, current) || "" : "";
-        const tile = `<div class="hour-tile ${current ? "current" + (sensor?.hasBinding() ? " sensor-current" : "") : ""} ${one && one !== "unknown" ? "colored" : ""} ${one === "unplanned" ? "purple-time" : ""} ${unknown ? "unknown" : ""}" role="${tracks ? "group" : "img"}" aria-label="${label}${current ? ", поточна година" : ""}${repeated ? ", зміна часу" : ""}: ${esc(accessible)}"><div class="tile-segments">${halves.map((k) => `<i class="${k === "unknown" ? "unknown" : ""}" style="background-color:${k && k !== "unknown" ? `var(--${k})` : "transparent"}"></i>`).join("")}</div>${tracks}<div class="hour-label">${power(off, unknown)}<span class="hour-times"><span>${label}</span>${repeated ? '<span class="clock-change">зміна часу</span>' : ""}${state.range ? `<span>${next}</span>` : ""}</span></div>${repeated && unique.length > 1 ? `<div style="position:absolute;bottom:2px;display:flex;gap:3px;z-index:1;font-size:8px">${halves.map((k) => power(!!k, k === "unknown")).join("")}</div>` : ""}</div>`;
+        const tile = `<div class="hour-tile ${current ? "current" + (sensor?.hasBinding() ? " sensor-current" : "") : ""} ${one && one !== "unknown" ? "colored" : ""} ${one === "unplanned" ? "purple-time" : ""} ${unknown ? "unknown" : ""}" role="${tracks ? "group" : "img"}" aria-label="${label}${current ? ", поточна година" : ""}${repeated ? ", зміна часу" : ""}: ${esc(accessible)}"><div class="tile-segments">${halves.map((k) => `<i class="${k === "unknown" ? "unknown" : ""}" style="background-color:${k && k !== "unknown" ? `var(--${k})` : "transparent"}"></i>`).join("")}</div>${referenceHTML}${tracks}<div class="hour-label">${power(off, unknown)}<span class="hour-times"><span>${label}</span>${repeated ? '<span class="clock-change">зміна часу</span>' : ""}${state.range ? `<span>${next}</span>` : ""}</span></div>${repeated && unique.length > 1 ? `<div style="position:absolute;bottom:2px;display:flex;gap:3px;z-index:1;font-size:8px">${halves.map((k) => power(!!k, k === "unknown")).join("")}</div>` : ""}</div>`;
         return tile;
       })
       .join("")}</div></div>`;
@@ -396,7 +398,10 @@
       template.content.querySelector('.schedule-empty-speech p').textContent = 'Дані графіка уточнюються';
       return template.innerHTML;
     }
-    return `${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div><div class="actions one schedule-feedback"><button class="action mismatch-action" disabled aria-disabled="true">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
+    const notice=dayContext.notice;
+    const banner=notice?`<div class="warning emergency-warning schedule-notice" role="note" data-reference="${notice.reference}" data-stale="${notice.stale}"><span class="emergency-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5M12 17h.01"/></svg></span><div class="emergency-copy"><strong>${esc(notice.title)}</strong><p>${esc(notice.text)}</p></div></div>`:'';
+    const referenceKey=data.referenceOverlay?'<div class="legend-reference"><span class="reference-key-sample" aria-hidden="true"></span><span>Довідковий план</span></div>':'';
+    return `${banner}${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div>${referenceKey}<div class="actions one schedule-feedback"><button class="action mismatch-action" disabled aria-disabled="true">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
   }
   function scheduleCard(demo = false) {
     const date = window.SvitloClock.selected(state);
@@ -410,7 +415,7 @@
       })
       .join(
         "",
-      )}<span class="day-indicator"></span></div>${!demo && context().warning ? journey.warning() : ""}${!demo && state.scenario === "offline" ? '<div class="schedule-note">Збережений графік · немає мережі</div>' : ""}${demo ? `${grid(true)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off">${power(true)}</span>Світла немає</span></div>` : `<div id="day-pager" class="day-pager" tabindex="0" role="region" aria-label="Графік на ${date}. Стрілки перемикають сусідні дні"><div class="day-pane" data-date="${date}">${dayContent(date)}</div></div>`}</div></section>`;
+      )}<span class="day-indicator"></span></div>${!demo && state.scenario === "offline" ? '<div class="schedule-note">Збережений графік · немає мережі</div>' : ""}${demo ? `${grid(true)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off">${power(true)}</span>Світла немає</span></div>` : `<div id="day-pager" class="day-pager" tabindex="0" role="region" aria-label="Графік на ${date}. Стрілки перемикають сусідні дні"><div class="day-pane" data-date="${date}">${dayContent(date)}</div></div>`}</div></section>`;
   }
 
   function home() {
