@@ -33,7 +33,7 @@ export function directoryRows(raw,{key,name,max=5000,house=false}={}){
 export function cnRows(raw){if(!raw||raw.status==='error'||!Array.isArray(raw.list))invalid();return directoryRows(raw.list.map(r=>({id:r[0],name:r[1]})),{key:'id',name:'name'});}
 const unchecked={state:'unknown',status:'not_queried',complete:false,lines:[],provenance:{sourceUnavailable:true,sourceState:'queue_not_queried'}};
 export class RegionalDiscoverySources {
- constructor({fetcher=operatorFetch,gate=async()=>{},finish=async()=>{},now=Date.now}={}){Object.assign(this,{fetcher,gate,finish,now});this.clients=new Map();this.sessions=new Map();}
+ constructor({fetcher=operatorFetch,gate=async()=>{},finish=async()=>{},now=Date.now}={}){Object.assign(this,{fetcher,gate,finish,now});this.clients=new Map();this.sessions=new Map();this.indexes=new Map();}
  handles(op){return Object.hasOwn(COLLECTOR_SOURCES,op);}
  config(op){const c=COLLECTOR_SOURCES[op];if(!c)throw regionError('unsupported_operator',400);return c;}
  async request(op,path,{form,headers={},max=2500000,origin}={}){
@@ -54,6 +54,7 @@ export class RegionalDiscoverySources {
  async kirov(op,path){const s=await this.kirovSession(op),data=await this.json(op,'/electricity-blackout'+path,{form:{ajax:'1',token:s.token},headers:{cookie:s.cookie,'x-requested-with':'XMLHttpRequest'}});if(!data||!Array.isArray(data.data))invalid();return data.data;}
  async poltava(op,kind,branch,city='',street=''){return this.json(op,'/customs/search-disconnection-cabinet.php',{form:{disconn:JSON.stringify({operation_type:kind,filial_id:id(branch),city_id:city?id(city):'',street_id:street?id(street):''})}});}
  dtek(op){if(!this.clients.has(op)){const cfg=this.config(op),client=new DtekClient('ua-kyiv-region-dtek',{fetcher:this.fetcher,gate:()=>this.gate(op),finish:(_,ticket,result)=>this.finish(op,ticket,result),now:this.now});client.config={host:new URL(cfg.origin).hostname};client.csrfCookieName='_csrf-dtek-'+cfg.cookie;this.clients.set(op,client);}return this.clients.get(op);}
+ async dtekIndex(op){const old=this.indexes.get(op);if(old&&old.until>this.now())return old.promise;const entry={until:this.now()+21600000};entry.promise=this.dtek(op).streets().then(cities=>({cities,checkedAt:this.now()})).catch(e=>{if(this.indexes.get(op)===entry)this.indexes.delete(op);throw e;});this.indexes.set(op,entry);return entry.promise;}
  async directory(op,{branch=null}={}){
   const cfg=this.config(op),family=cfg.family;let items,branches;
   if(family==='kharkiv')items=directoryRows(await this.json(op,'/frontend/web/index.php/uk/helper/get-villages'),{key:'adp_id',name:'aname'});
@@ -70,7 +71,7 @@ export class RegionalDiscoverySources {
    // Never interpret opaque/error data as an empty authoritative directory.
    if(raw.payload)throw regionError('source_format_unsupported');items=directoryRows(raw.data||raw,{key:'id',name:'name'});return {items,complete:false,limitation:'capital_lookup_only'};
   }else if(family==='dtek'){
-   const data=await this.dtek(op).streets();items=Object.keys(data).map(name=>({key:label(name),name}));
+   const data=await this.dtekIndex(op);items=Object.keys(data.cities).map(name=>({key:label(name),name}));
   }else if(family==='zoe'){
    await this.request(op,'/outage/');throw regionError('public_directory_access_required');
   }else invalid();
@@ -81,7 +82,7 @@ export class RegionalDiscoverySources {
   else if(cfg.family==='kharkiv')items=directoryRows(await this.json(op,'/frontend/web/index.php/uk/helper/get-streets?adp_id='+id(r.provider_city_id)),{key:'adpid',name:'aname'});
   else if(cfg.family==='kirovohrad')items=(await this.kirov(op,'/street/'+id(r.provider_city_id))).map(x=>({key:id(x.StreetId),name:label([x.StreetType,x.StreetName].filter(Boolean).join(' '))}));
   else if(cfg.family==='chernihiv')throw regionError('public_directory_search_only');
-  else if(cfg.family==='dtek'){const index=await this.dtek(op).streets(),names=index[r.provider_city_name];if(!Array.isArray(names)||names.length>5000)invalid();items=names.map(name=>({key:label(name),name}));}
+  else if(cfg.family==='dtek'){const index=await this.dtekIndex(op),names=index.cities[r.provider_city_name];if(!Array.isArray(names)||names.length>5000)invalid();items=names.map(name=>({key:label(name),name}));return {items,checkedAt:index.checkedAt};}
   else throw regionError('public_directory_access_required');
   return {items,checkedAt:this.now()};
  }
