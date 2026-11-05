@@ -69,7 +69,8 @@ test('an empty or absent publication never draws a fictitious reference grid',()
  const {s,line}=setup();line.categories.hourly.days[0].publication.intervals=[];
  assert.equal(scheduleFor(profile(s),date,now).referenceOverlay,null);
  line.categories.hourly.days[0].publication.state='not_published';
- assert.equal(scheduleFor(profile(s),date,now).referenceOverlay,null);assert.equal(contextFor(profile(s),date,now).notice,null);
+ assert.equal(scheduleFor(profile(s),date,now).referenceOverlay,null);
+ const notice=contextFor(profile(s),date,now).notice;assert.equal(notice.title,'Аварійне відключення');assert.equal(notice.reference,false);assert.equal(notice.stale,false);
 });
 
 
