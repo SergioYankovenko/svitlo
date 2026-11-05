@@ -40,8 +40,8 @@ test('overlaps and conflicting current flags become ambiguous, never occupied',(
  assert.throws(()=>compileTerritories([],nodes));assert.throws(()=>compile([row(1,nodes[0].code,{dateOfChange:'2026-02-30'})]));assert.throws(()=>compile([row(1,nodes[0].code,{statusTemporaryOccupation:'true'})]));
 });
 test('import is additive, retains all task checkpoints, and older snapshots cannot roll back a newer edition',async()=>{
- const before=(await db.query('select * from svitlo_discovery.jobs order by id')).rows;
- assert.equal((await importTerritories(db,snapshot)).status,'imported');assert.deepEqual((await db.query('select * from svitlo_discovery.jobs order by id')).rows,before);
+ const before=(await db.query('select to_jsonb(j) job from svitlo_discovery.jobs j order by id')).rows;
+ assert.equal((await importTerritories(db,snapshot)).status,'imported');assert.deepEqual((await db.query('select to_jsonb(j) job from svitlo_discovery.jobs j order by id')).rows,before);
  assert.equal((await db.query('select count(*)::int n from svitlo_discovery.territory_places')).rows[0].n,data.nodes.length);
  assert.equal((await importTerritories(db,snapshot)).status,'newer_snapshot_retained');
 });
