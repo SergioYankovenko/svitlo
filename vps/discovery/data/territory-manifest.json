@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "sourceUrl": "https://map-api.minre.gov.ua/map-state",
+  "sourcePage": "https://dp-reintegration.gov.ua/mapa-terytorij",
+  "sourceSha256": "eeae5b03cc2995d458b7d43b04b6aee1f3b2814333c001670201fa27b0a382a0",
+  "checkedAt": "2026-11-05T15:21:21.275Z",
+  "sourceUpdatedAt": "2026-11-05T09:43:36.886Z",
+  "asOfDate": "2026-11-05",
+  "placeCount": 31744,
+  "sourceRows": 13966,
+  "currentRecords": 2985,
+  "sha256": "c21ef8ff013b5c6894e4f7fa9470a195e26c0984a22bd5ca38c5e83b00761985",
+  "compressedSha256": "0e9f81ea28b4048f0de97057a1c0e6d7a09c27e33171334bcaae522c8142625c",
+  "diagnostics": {
+    "historicalInvalidIntervals": 1874,
+    "unmatchedCodes": 0,
+    "overlappingCurrentCodes": 0,
+    "conflictingStatuses": 0,
+    "sourceLevelDifferences": 4
+  }
+}

@@ -4,7 +4,9 @@ import {civil,addDays,dayKey} from '../../app/lib/time.js';
 if(!/^svitlo_sources_qa_\d+$/.test(process.env.PGDATABASE||''))throw Error('Disposable restored source-history QA database required');
 const ci=process.env.SOURCE_HISTORY_CI==='true';if(ci&&process.env.PGHOST!=='127.0.0.1')throw Error('CI history credentials are localhost-only');
 const admin=new pg.Client({host:process.env.PGHOST||'postgres',database:process.env.PGDATABASE,user:'svitlo_owner',password:ci?'isolated-history-ci':(await readFile('/run/secrets/owner_password','utf8')).trim()});await admin.connect();
-const connection=role=>{const p=ci?new pg.Pool({host:'127.0.0.1',database:process.env.PGDATABASE,user:'svitlo_stage_'+role,password:'isolated-history-ci',max:2}):pool(role,2);return {p,bridge:{query:(...args)=>p.query(...args)}};};
+// Keep the two independent worker connections and concurrent claims, within the
+// shared runtime role's connection budget while the live scheduler is running.
+const connection=role=>{const p=ci?new pg.Pool({host:'127.0.0.1',database:process.env.PGDATABASE,user:'svitlo_stage_'+role,password:'isolated-history-ci',max:1}):pool(role,1);return {p,bridge:{query:(...args)=>p.query(...args)}};};
 const a=connection('worker'),b=connection('worker'),api=connection('api'),checks=[];
 const check=async(name,fn)=>{await fn();checks.push(name);console.log(JSON.stringify({check:name,status:'pass'}));};
 const digest=async()=>(await admin.query("select count(*) n,md5(string_agg(id::text||owner::text||address::text||name||preferences::text,'|' order by id)) digest from public.svitlo_profiles")).rows[0];

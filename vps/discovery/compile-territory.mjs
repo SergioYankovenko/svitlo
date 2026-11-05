@@ -1,0 +1,14 @@
+import {readFile,writeFile,mkdir,stat} from 'node:fs/promises';
+import {gzipSync} from 'node:zlib';
+import {createHash} from 'node:crypto';
+import {loadBundle} from '../geography/bundle.mjs';
+import {compileTerritories} from './territory.mjs';
+const file=process.argv[2];if(!file)throw Error('Usage: compile-territory.mjs public-map-state.json');
+const body=await readFile(file),{data}=await loadBundle(),sha=v=>createHash('sha256').update(v).digest('hex');
+const s=compileTerritories(JSON.parse(body),data.nodes,{sourceSha256:sha(body),checkedAt:(await stat(file)).mtime.toISOString()});
+const json=Buffer.from(JSON.stringify(s)),compressed=gzipSync(json);
+await mkdir(new URL('./data/',import.meta.url),{recursive:true});
+await writeFile(new URL('./data/territory-status.json.gz',import.meta.url),compressed);
+const manifest={schemaVersion:1,sourceUrl:s.sourceUrl,sourcePage:s.sourcePage,sourceSha256:s.sourceSha256,checkedAt:s.checkedAt,sourceUpdatedAt:s.sourceUpdatedAt,asOfDate:s.asOfDate,placeCount:s.places.length,sourceRows:s.sourceRows,currentRecords:s.currentRecords,sha256:sha(json),compressedSha256:sha(compressed),diagnostics:s.diagnostics};
+await writeFile(new URL('./data/territory-manifest.json',import.meta.url),JSON.stringify(manifest,null,2)+'\n');
+console.log(JSON.stringify({...manifest,compressedBytes:compressed.length}));

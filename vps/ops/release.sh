@@ -28,6 +28,15 @@ commit=$(python3 -c "import json;print(json.load(open('$target/manifest.json'))[
 test "$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" = "$commit"
 printf 'STAGE_IMAGE=%s\nRELEASE_ID=%s\nSVITLO_PILOT_PUSH=enabled\n' "$image" "$release" > "$target/vps/release.env"
 cd "$target"
+# Reserve the worker role's connection budget for two-process restored QA.
+# Graceful stop finishes the current portion; any failed gate resumes this same container.
+discovery_was_running=false
+resume_discovery(){ if test "$discovery_was_running" = true;then docker start svitlo-stage-discovery-1 >/dev/null || true;fi; }
+if test "$(docker inspect -f '{{.State.Running}}' svitlo-stage-discovery-1 2>/dev/null || true)" = true;then
+ discovery_was_running=true
+ docker stop -t 90 svitlo-stage-discovery-1 >/dev/null
+fi
+trap resume_discovery EXIT
 /usr/local/sbin/svitlo-stage-backup
 backup=$(cat /var/lib/svitlo-stage/latest-backup)
 mounts=(--mount type=bind,src=/etc/svitlo/secrets/postgres-owner-password,dst=/run/secrets/owner_password,readonly)
@@ -37,7 +46,7 @@ for suite in phone history map regions pwa sources subscriptions geography disco
  qa="svitlo_${suite}_qa_$(date +%s)"
  if test "$suite" = regions;then qa="svitlo_kyiv_qa_$(date +%s)";fi
  docker exec svitlo-postgres-1 createdb -U svitlo_owner "$qa"
- trap 'docker exec svitlo-postgres-1 dropdb -U svitlo_owner "$qa"' EXIT
+ trap 'docker exec svitlo-postgres-1 dropdb -U svitlo_owner "$qa" || true; resume_discovery' EXIT
  docker exec -i svitlo-postgres-1 pg_restore --exit-on-error -U svitlo_owner -d "$qa" < "$backup"
  if test -f vps/sql/operations.sql;then
   existing=$(docker exec svitlo-postgres-1 psql -X -U svitlo_owner -d "$qa" -Atc "select sha256 from svitlo_vps.migrations where name='1011_operations.sql'")
@@ -73,7 +82,7 @@ for suite in phone history map regions pwa sources subscriptions geography disco
   docker exec -i svitlo-postgres-1 psql -X -q -1 -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" < vps/sql/settlement-directory.sql
   docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('1015_settlement_directory.sql','$hash')"
  else test "$existing" = "$hash";fi
- for spec in 1016_phone_qr_rotation.sql:phone-qr-rotation.sql 1018_expired_phone_qr.sql:expired-phone-qr.sql 1019_geography_discovery.sql:geography-discovery.sql 1020_historical_plan.sql:historical-plan.sql;do
+ for spec in 1016_phone_qr_rotation.sql:phone-qr-rotation.sql 1018_expired_phone_qr.sql:expired-phone-qr.sql 1019_geography_discovery.sql:geography-discovery.sql 1020_historical_plan.sql:historical-plan.sql 1021_discovery_throughput.sql:discovery-throughput.sql 1022_discovery_territory.sql:discovery-territory.sql;do
   name=${spec%%:*};file=${spec#*:}
   existing=$(docker exec svitlo-postgres-1 psql -X -U svitlo_owner -d "$qa" -Atc "select sha256 from svitlo_vps.migrations where name='$name'")
   hash=$(sed 's/\r$//' "vps/sql/$file" | sha256sum | cut -d' ' -f1)
@@ -89,7 +98,7 @@ for suite in phone history map regions pwa sources subscriptions geography disco
  docker run --rm --network svitlo_backend --user 0 -e PGDATABASE="$qa" "${mounts[@]}" --entrypoint node "$image" "$script"
  if test "$suite" = phone;then docker run --rm --network svitlo_backend --user 0 -e PGDATABASE="$qa" "${mounts[@]}" --entrypoint node "$image" vps/sensors/qr-rotation-integration.mjs;fi
  docker exec svitlo-postgres-1 dropdb -U svitlo_owner "$qa"
- trap - EXIT
+ trap resume_discovery EXIT
 done
 compose=(docker compose --env-file vps/release.env -f vps/compose.yaml)
 "${compose[@]}" run --rm --user 0 migrate
@@ -101,6 +110,7 @@ for i in $(seq 1 30);do if curl -fsS --max-time 5 -H 'Host: localhost:18765' "ht
 test "$(readlink -f /opt/svitlo/staging/current)" = "$expected"
 ARC_LOCK_HELD=1 bash vps/ops/control.sh "$target" "$expected"
 "${compose[@]}" up -d discovery
+discovery_was_running=false
 # Exact same image in the standby, after new live slot has passed checks.
 other=a;test "$slot" = b || other=b
 "${compose[@]}" --profile second-slot up -d "api-$other"
