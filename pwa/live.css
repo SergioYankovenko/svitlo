@@ -81,3 +81,24 @@ body.live-pwa{margin:0}
 
 /* PWA-LIVE-35: shared dialog-action alignment must not shift the disclosure glyph. */
 .live-pwa .sensor-options-header .sensor-chevron{grid-template-columns:1fr;justify-content:center;align-content:center}
+
+/* PWA-LIVE-36–40: local decoded frame, calm scan feedback and fixed hour plots. */
+.live-pwa .sensor-scan-still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.live-pwa .sensor-scan-sweep{display:none;position:absolute;left:14%;right:14%;height:2px;top:14%;pointer-events:none;background:var(--accent);box-shadow:0 0 10px 3px color-mix(in srgb,var(--accent) 55%,transparent);z-index:1}
+.live-pwa .sensor-scan-sweep::before{content:"";position:absolute;inset:-26px 0 2px;background:linear-gradient(transparent,color-mix(in srgb,var(--accent) 22%,transparent))}
+.live-pwa [data-scan-state=scanning] .sensor-scan-sweep,.live-pwa [data-scan-state=invalid] .sensor-scan-sweep{display:block;animation:sensor-scan-sweep 2.4s ease-in-out infinite}
+@keyframes sensor-scan-sweep{0%{top:14%;opacity:0}18%{opacity:.75}82%{opacity:.75}100%{top:86%;opacity:0}}
+.live-pwa .sensor-qr-corners{z-index:2}
+.live-pwa .sensor-hour-dialog .dialog-body{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.live-pwa .sensor-hour-dialog .hour-comparison{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.live-pwa .sensor-hour-dialog .hour-time-area{flex:none}
+.live-pwa .sensor-hour-dialog .hour-facts{min-height:0;overflow:auto;overscroll-behavior:contain;align-content:start;padding:2px;scrollbar-gutter:stable}
+.live-pwa .sensor-hour-dialog .hour-facts:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:4px}
+@media(prefers-reduced-motion:reduce){.live-pwa [data-scan-state=scanning] .sensor-scan-sweep,.live-pwa [data-scan-state=invalid] .sensor-scan-sweep{animation:none;top:50%;opacity:.35}}
+
+/* PWA-SENSOR-ICONS-01: approved inline vectors, existing size and state tokens. */
+.live-pwa .sensor-connect-dialog .sensor-connection-icon{background:none;mask:none;-webkit-mask:none;color:var(--cancel-ink)}
+.live-pwa .sensor-connect-dialog[data-connection-state=ready] .sensor-connection-icon,.live-pwa .sensor-connect-dialog[data-connection-state=connecting] .sensor-connection-icon{background:none;mask:none;-webkit-mask:none;color:var(--accent)}
+.live-pwa .sensor-connection-icon svg{display:block;width:100%;height:100%}
+.live-pwa .sensor-add span{display:grid;place-items:center}
+.live-pwa .sensor-add .svitlo-sensor-icon{display:block;width:24px;height:24px}

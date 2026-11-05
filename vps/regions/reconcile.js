@@ -1,5 +1,5 @@
 // Publication, applicability and actual power are independent. Mirrors are not extra votes.
-export const RECONCILIATION_VERSION='kyiv-sources-v3';
+export const RECONCILIATION_VERSION='kyiv-sources-v4';
 const stamp=x=>Number.isFinite(x)&&x>0;
 export function reconcileDay({date,primary,secondary=null,addressEmergency=false,hidden=false,now=Date.now()}){
  const secondaryIntervals=Array.isArray(secondary?.intervals)?secondary.intervals:[];
@@ -26,7 +26,7 @@ export function reconcileDay({date,primary,secondary=null,addressEmergency=false
  if(secondary.status==='EmergencyShutdowns'){
   if(secondary.publishedAt>=primary.publishedAt)return decision('suspended','emergency_report_newer_than_plan',[],{scope:'reported_group_day',publication:'published',applicability:'suspended',publishedIntervals:primary.intervals});
   // Publishing a new plan alone is not proof that an emergency was cancelled.
-  return decision('unknown','newer_plan_conflicts_with_emergency',primary.intervals,{publication:'published',applicability:'conflict'});
+  return decision('suspended','emergency_report_survives_new_plan',[],{scope:'reported_group_day',publication:'published',applicability:'suspended',publishedIntervals:primary.intervals});
  }
  if(secondary.status==='ScheduleApplies'||secondary.status==='NoOutages'){
   if(secondary.status==='NoOutages'&&secondaryIntervals.length)return decision('unknown','secondary_status_conflicts_with_slots',primary.intervals,{publication:'published',applicability:'conflict',secondaryIntervals});

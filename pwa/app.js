@@ -121,10 +121,14 @@
   const isToday = () => window.SvitloClock.isToday(state);
   const hhmm = (x) =>
     `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`;
-  const duration = (x) =>
-    `${Math.floor(x / 60)} год${x % 60 ? ` ${x % 60} хв` : ""}`;
-  const richDuration = (x) =>
-    `<span class="duration-pair">${Math.floor(x / 60)}<span class="unit">&nbsp;год</span></span>${x % 60 ? ` <span class="duration-pair">${x % 60}<span class="unit">&nbsp;хв</span></span>` : ""}`;
+  const duration = (value) => {
+    const x = Math.max(0, Math.round(value));
+    return `${Math.floor(x / 60)} год${x % 60 ? ` ${x % 60} хв` : ""}`;
+  };
+  const richDuration = (value) => {
+    const x = Math.max(0, Math.round(value));
+    return `<span class="duration-pair">${Math.floor(x / 60)}<span class="unit">&nbsp;год</span></span>${x % 60 ? ` <span class="duration-pair">${x % 60}<span class="unit">&nbsp;хв</span></span>` : ""}`;
+  };
   const icon = (name, cls = "") => window.SvitloNativeUI.icon(name, cls);
   const power = (off = false, unknown = false) =>
     window.SvitloNativeUI.power(off, unknown, state.bulbs);

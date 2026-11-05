@@ -12,7 +12,7 @@ function setup(bound=false,request){
  const root={isConnected:true,dataset:{},querySelector:k=>{if(!nodes.has(k))nodes.set(k,node());return nodes.get(k);},setAttribute(){}};
  const live={sensors:()=>bound?[{sensorId:'s',bindingEpoch:1,readerProfileId:'a'}]:[],sensor:async(action,data)=>{requests.push({action,data});return request?request(action,data):{};},sync:async()=>{},refreshSensors:async()=>{}};
  const scanner={setBusy(){},rejected(){}};
- const window={SvitloLive:live,SvitloSensorModel:{},SvitloNativeUI:{icon:()=>''},SvitloSensorScanner:{html:()=>'',mount:(_,options)=>{onCode=options.onCode;return scanner;}}};
+ const window={SvitloLive:live,SvitloSensorModel:{},SvitloNativeUI:{icon:()=>'',sensorIcon:()=>''},SvitloSensorScanner:{html:()=>'',mount:(_,options)=>{onCode=options.onCode;return scanner;}}};
  const document={getElementById:()=>({addEventListener(){}}),querySelector:()=>root,createElement:node};
  vm.runInNewContext(source,{window,document,localStorage:{getItem:()=>null},crypto});
  const ctx={esc:x=>x,address:()=>addresses.find(a=>a.id===active),addresses:()=>addresses,button:()=>'',dialog:(title)=>dialogs.push(title),close:()=>{root.isConnected=false;},toast:t=>toasts.push(t),render(){}};

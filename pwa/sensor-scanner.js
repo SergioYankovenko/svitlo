@@ -41,7 +41,7 @@ window.SvitloSensorScanner = (() => {
   function mount(root,{onCode=()=>{},onState=()=>{},onDispose=()=>{}}={}) {
     dispose();if(!root)return;
     const abort=new AbortController(),signal=abort.signal,
-      video=root.querySelector('video'),message=root.querySelector('[data-scan-message]'),
+      video=root.querySelector('video'),still=root.querySelector('[data-scan-still]'),message=root.querySelector('[data-scan-message]'),
       digits=[...root.querySelectorAll('[data-sensor-digit]')],manual=root.querySelector('[data-scan-manual]'),
       enter=root.querySelector('[data-scan-enter]'),camera=root.querySelector('[data-scan-camera]'),
       frame=root.querySelector('[data-scan-corners]'),unavailable=root.querySelector('[data-camera-unavailable]');
@@ -52,7 +52,7 @@ window.SvitloSensorScanner = (() => {
       stop();video.hidden=true;frame.setAttribute('hidden','');unavailable.hidden=false;enter.hidden=false;
       present('Камера недоступна','unavailable');
     }
-    function accept(raw,fromCamera){
+    function accept(raw,fromCamera,captured){
       if(busy)return false;
       const parsed=parse(raw);
       if(!parsed){
@@ -60,6 +60,10 @@ window.SvitloSensorScanner = (() => {
         return false;
       }
       if(code===parsed)return true;
+      if(fromCamera&&captured){
+        still.width=captured.width;still.height=captured.height;
+        still.getContext('2d').drawImage(captured,0,0);still.hidden=false;video.hidden=true;
+      }
       code=parsed;stop();enter.hidden=true;present('Код зчитано. Підтвердь підключення.','ready');
       queueMicrotask(()=>{if(!disposed&&root.isConnected&&code===parsed)onCode(parsed);});return true;
     }
@@ -85,7 +89,7 @@ window.SvitloSensorScanner = (() => {
               const pixels=context.getImageData(0,0,canvas.width,canvas.height),result=decode(pixels.data,pixels.width,pixels.height,{inversionAttempts:'attemptBoth'});
               frame.querySelector('path').setAttribute('d',result?cornerPath(result.location,canvas.width,canvas.height):'M27,21V14H34 M66,14H73V21 M73,79V86H66 M34,86H27V79');
               frame.dataset.tracking=String(!!result);
-              if(result&&accept(result.data,true)){canvas.width=canvas.height=0;return;}
+              if(result&&accept(result.data,true,canvas)){canvas.width=canvas.height=0;return;}
             }
           }catch{noCamera();return;}
           timer=setTimeout(scan,200);
@@ -94,7 +98,7 @@ window.SvitloSensorScanner = (() => {
       }catch{if(!disposed&&token===epoch)noCamera();}
     }
     enter.addEventListener('click',()=>{
-      stop();code=null;camera.hidden=true;enter.hidden=true;manual.hidden=false;
+      stop();still.hidden=true;still.width=still.height=0;code=null;camera.hidden=true;enter.hidden=true;manual.hidden=false;
       digits.forEach(input=>input.value='');
       present('Введи 6 цифр коду.','manual');digits[0]?.focus({preventScroll:true});
     },{signal});
@@ -134,12 +138,12 @@ window.SvitloSensorScanner = (() => {
     const pause=()=>{if(!disposed&&!code&&manual.hidden)noCamera();};
     document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();},{signal});
     window.addEventListener('pagehide',pause,{signal});
-    active=()=>{disposed=true;stop();digits.forEach(input=>input.value='');code=null;abort.abort();onDispose();};start();
+    active=()=>{disposed=true;stop();still.hidden=true;still.width=still.height=0;digits.forEach(input=>input.value='');code=null;abort.abort();onDispose();};start();
     return {
       setBusy(value){busy=!!value;digits.forEach(input=>input.disabled=busy);},
       rejected(){if(!disposed){enter.hidden=!manual.hidden;root.dataset.scanState='error';}},
     };
   }
-  const html=()=>`<div class="sensor-scanner"><div class="sensor-camera" data-scan-camera><video muted playsinline aria-label="Камера для сканування QR"></video><svg class="sensor-qr-corners" data-scan-corners viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M27,21V14H34 M66,14H73V21 M73,79V86H66 M34,86H27V79"/></svg><span class="sensor-camera-unavailable" data-camera-unavailable hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v13H4ZM3 3l19 19M10 10a4 4 0 0 0 5 5"/></svg><strong>Камера недоступна</strong></span></div><div data-scan-manual hidden><div class="sensor-code-digits" role="group" aria-label="Шестизначний код датчика">${Array.from({length:6},(_,index)=>`<input class="sensor-code-digit" data-sensor-digit="${index}" id="sensor-code${index?"-"+index:""}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="${index===0?"one-time-code":"off"}" autocapitalize="off" spellcheck="false" aria-label="Цифра ${index+1} з 6">`).join("")}</div></div><p data-scan-message role="status" aria-live="polite"></p><button type="button" class="dialog-action center" data-scan-enter hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/></svg>Ввести вручну</button></div>`;
+  const html=()=>`<div class="sensor-scanner"><div class="sensor-camera" data-scan-camera><video muted playsinline aria-label="Камера для сканування QR"></video><canvas class="sensor-scan-still" data-scan-still hidden role="img" aria-label="Зчитаний QR-код датчика"></canvas><span class="sensor-scan-sweep" aria-hidden="true"></span><svg class="sensor-qr-corners" data-scan-corners viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M27,21V14H34 M66,14H73V21 M73,79V86H66 M34,86H27V79"/></svg><span class="sensor-camera-unavailable" data-camera-unavailable hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v13H4ZM3 3l19 19M10 10a4 4 0 0 0 5 5"/></svg><strong>Камера недоступна</strong></span></div><div data-scan-manual hidden><div class="sensor-code-digits" role="group" aria-label="Шестизначний код датчика">${Array.from({length:6},(_,index)=>`<input class="sensor-code-digit" data-sensor-digit="${index}" id="sensor-code${index?"-"+index:""}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="${index===0?"one-time-code":"off"}" autocapitalize="off" spellcheck="false" aria-label="Цифра ${index+1} з 6">`).join("")}</div></div><p data-scan-message role="status" aria-live="polite"></p><button type="button" class="dialog-action center" data-scan-enter hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/></svg>Ввести вручну</button></div>`;
   return {parse,crop,cornerPath,html,mount,dispose};
 })();

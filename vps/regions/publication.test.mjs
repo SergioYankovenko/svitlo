@@ -30,3 +30,13 @@ test('expired/degraded payload keeps a bounded retry cache instead of causing a 
  let ttl;const db={sourceClaim:async()=>({state:'owner',token:'test'}),sourceFinish:async(...args)=>{ttl=args[4];}};
  const cache=new SharedCategories(db,'test-secret',{now:()=>now,ttl:60000,boundFreshUntil:true});await cache.load(['region-unavailable'],async()=>({freshUntil:now-1,supportState:'degraded'}));assert.equal(ttl,60000);
 });
+
+// PWA-LIVE-41: a new table is not an official cancellation of an emergency.
+test('newer primary publication retains the same-day emergency notice and no effective hourly intervals',()=>{
+ const {value}=snapshot(...cases[1],raw=>raw.fact.update='04.11.2026 17:20');
+ const day=value.lines[0].categories.hourly.days[0];
+ assert(validUniversal(value));assert.equal(day.state,'suspended');assert.equal(day.applicability.reason,'emergency_report_survives_new_plan');
+ assert.deepEqual(day.intervals,[]);assert(day.publication.intervals.length);
+ assert(value.notices.some(n=>n.active&&n.scope==='reported_group_day'&&n.lineIds.includes(value.lines[0].id)));
+ assert.equal(value.provenance[0].reconciliation.days['GPV14.1:'+date].powerState,'unknown');
+});

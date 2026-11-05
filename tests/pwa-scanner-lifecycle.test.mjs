@@ -11,8 +11,8 @@ class Node extends EventTarget {
  focus(){this.focused=true;}select(){}async play(){}getContext(){return{drawImage(){},getImageData(){return{data:new Uint8ClampedArray(16),width:2,height:2};}};}
 }
 function setup(media,decoded){
- const nodes=Object.fromEntries(['video','[data-scan-message]','#sensor-code','[data-scan-manual]','[data-scan-enter]','[data-scan-camera]','[data-scan-corners]','[data-camera-unavailable]'].map(k=>[k,new Node()]));
- nodes['[data-scan-manual]'].hidden=true;nodes['[data-scan-enter]'].hidden=true;nodes['[data-scan-corners]'].path=new Node();
+ const nodes=Object.fromEntries(['video','[data-scan-message]','#sensor-code','[data-scan-manual]','[data-scan-enter]','[data-scan-camera]','[data-scan-corners]','[data-camera-unavailable]','[data-scan-still]'].map(k=>[k,new Node()]));
+ nodes['[data-scan-still]'].hidden=true;nodes['[data-scan-manual]'].hidden=true;nodes['[data-scan-enter]'].hidden=true;nodes['[data-scan-corners]'].path=new Node();
  nodes.video.readyState=2;nodes.video.videoWidth=640;nodes.video.videoHeight=480;
  const digits=[nodes['#sensor-code'],...Array.from({length:5},()=>new Node())];
  const root=new Node();root.querySelector=k=>nodes[k];root.querySelectorAll=()=>digits;
@@ -65,7 +65,7 @@ test('a valid camera frame auto-verifies once and releases the camera',async()=>
  const location={topLeftCorner:{x:0,y:0},topRightCorner:{x:1,y:0},bottomRightCorner:{x:1,y:1},bottomLeftCorner:{x:0,y:1}};
  const {scanner,root,nodes,timers}=setup(media,()=>({data:valid,location})),accepted=[];
  scanner.mount(root,{onCode:x=>accepted.push(x)});await flush();
- assert.deepEqual(accepted,[valid]);assert.equal(stopped,1);assert.equal(timers.size,0);assert.equal(nodes['[data-scan-corners]'].dataset.tracking,'true');scanner.dispose();
+ assert.deepEqual(accepted,[valid]);assert.equal(stopped,1);assert.equal(timers.size,0);assert.equal(nodes['[data-scan-corners]'].dataset.tracking,'true');assert.equal(nodes['[data-scan-still]'].hidden,false);assert.ok(nodes['[data-scan-still]'].width>0);assert.equal(nodes.video.hidden,true);scanner.dispose();assert.equal(nodes['[data-scan-still]'].width,0);assert.equal(nodes['[data-scan-still]'].hidden,true);
 });
 test('unrelated camera QR keeps scanning and exposes manual entry, without accepting it',async()=>{
  let stopped=0;const track=new Node();track.stop=()=>stopped++;

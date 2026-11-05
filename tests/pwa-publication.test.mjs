@@ -90,3 +90,18 @@ test('visible refresh uses the source deadline with a bounded floor and a one-ho
  assert.equal(refreshDeadline({snapshot:{universal:{refreshAfter:now-1}}},now),now+30000);
  assert.equal(refreshDeadline({snapshot:{universal:{refreshAfter:'invalid',freshUntil:now+7200000}}},now),now+3600000);
 });
+
+
+test('provider refresh through API envelope retains emergency context when the primary table is newer',async()=>{
+ const {projectStreet,resolveHouse,dtekSnapshot}=await import('../vps/regions/policy.js');
+ const raw=JSON.parse(await readFile(new URL('../vps/regions/fixtures/kyiv-dehtiarivska-20261104.json',import.meta.url),'utf8'));
+ raw.fact.update='04.11.2026 17:20';const data=projectStreet(raw,now),resolution=resolveHouse(data,'25А/к.1');
+ resolution.lines=resolution.lines.map(l=>({...l,id:'line-'+l.key}));
+ const status={checkedAt:now,updatedAt:now-7200000,groups:{'GPV14.1':{[date]:'EmergencyShutdowns'}},daySchedules:{}};
+ const snapshot=dtekSnapshot({id:'11111111-1111-4111-8111-111111111111',operator_id:'ua-kyiv-dtek',source_ref:{city:'м. Київ',street:'вул. Дегтярівська',house:'25А/к.1'}},resolution,{fromDate:date,toDate:'2026-11-05'},data,status,now);
+ const p=profile(JSON.parse(JSON.stringify(snapshot))),d=scheduleFor(p,date,now),c=contextFor(p,date,now);
+ assert.equal(d.publication,'published');assert(d.referenceAvailable&&d.suspended&&d.referenceOverlay);
+ assert.equal(d.planSummary,null);assert.equal(plannedCountdown(p,date,now),null);assert.equal(c.valueMinutes,null);
+ assert.equal(c.notice.title,'Аварійне відключення');assert.equal(c.label,'Час відновлення уточнюється');
+ assert(d.unknown>0);assert.equal(d.events.length,0);assert.equal(snapshot.notices[0].scope,'reported_group_day');
+});

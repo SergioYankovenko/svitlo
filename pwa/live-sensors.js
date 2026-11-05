@@ -53,7 +53,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
   const hasBinding=()=>!!record();
   const reading=p=>{if(!p)return{label:'Стан невідомий',live:false,state:'unknown'};const s=signal(p);return{...s,live:['on','off'].includes(s.state)};};
   const time=m=>{const date=hubView?hubDate(managed()||{}):ctx.date(),d=live.schedule(date);if(m===d.total)return '24:00';return new Intl.DateTimeFormat('uk-UA',{timeZone:'Europe/Kyiv',hour:'2-digit',minute:'2-digit'}).format(new Date(d.from+m*60000));};
-  const duration=m=>`${Math.floor(m/60)} год${m%60?' '+Math.round(m%60)+' хв':''}`;
+  const duration=value=>{const m=Math.max(0,Math.round(value));return `${Math.floor(m/60)} год${m%60?' '+m%60+' хв':''}`;};
   const save=()=>{for(const p of records.values())preferences[p.readerProfileId]=p.actualSummary;try{localStorage.setItem(prefKey,JSON.stringify(preferences));}catch{}};
   const overviewPrediction=()=>({reason:'Поки немає надійних даних для прогнозу.'});
   const hasForecast=date=>window.SvitloLiveSensors.forecastAvailable(overviewPrediction(date,managed()));
@@ -112,11 +112,11 @@ window.SvitloLiveSensors={forecastAvailable(data){
             : ["offline", "error", "clock"].includes(p.state)
               ? "warning"
               : "waiting",
-        mark = s.live ? "" : tone === "warning" ? "!" : "?",
+        glyph = s.live ? (s.state === "on" ? "powered" : "sensor") : p.state === "offline" ? "offline" : tone === "warning" || tone === "unavailable" ? "warning" : "waiting",
         label = `Датчик: ${s.label}${detail ? ". " + detail : ""}`;
       return {
         label,
-        html: `<span class="sensor-indicator" data-tone="${tone}" role="img" aria-label="${e(label)}" title="${e(label)}">${window.SvitloNativeUI.icon("sensor", "sensor-glyph")}<span class="sensor-indicator-mark" aria-hidden="true">${mark}</span></span>`,
+        html: `<span class="sensor-indicator" data-tone="${tone}" role="img" aria-label="${e(label)}" title="${e(label)}">${window.SvitloNativeUI.sensorIcon(glyph, "sensor-glyph")}</span>`,
       };
     }
 
@@ -149,10 +149,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
             height = 100 * (through - from) / (end - start),
             background = planHalves[Math.floor(((from + through) / 2 - start) / 30)],
             colored = background && background !== "unknown" ? " over-color" : "";
-          // The tick locates a subpixel interval; it never stretches its duration.
-          const tick = height < 3
-            ? `<i class="sensor-short-mark ${kind} ${interval.state}${colored}" style="--sensor-position:${top + height / 2}%" aria-hidden="true"></i>` : "";
-          return `<i class="sensor-trace ${kind} ${interval.state}${colored}" data-start="${from}" data-end="${through}" style="--sensor-top:${top}%;--sensor-bottom:${100 - top - height}%" aria-hidden="true"></i>${tick}`;
+          return `<i class="sensor-trace ${kind} ${interval.state}${colored}" data-start="${from}" data-end="${through}" style="--sensor-top:${top}%;--sensor-bottom:${100 - top - height}%" aria-hidden="true"></i>`;
         });
       }).join("");
       const description = list => list.map(i => `${time(i.start)}–${time(i.end)}: ${i.state === "on" ? "світло є" : "світла немає"}`).join("; ") || "немає даних";
@@ -185,7 +182,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
       const suffix = timeline.transition ? ` · ${timeline.transition.state === "on" ? "Увімкнули" : "Вимкнули"} о ${time(timeline.transition.at)}` : "";
       const rows = timeline.fact.map(i => `<div class="hour-fact-row"><span class="hour-fact-range">${time(i.start)}–${time(i.end)}</span><span class="hour-fact-state ${i.state}">${i.state === "on" ? window.SvitloNativeUI.power(false) : i.state === "off" ? window.SvitloNativeUI.power(true) : window.SvitloNativeUI.icon("clock")}${labels[i.state]}</span></div>`).join("");
       ctx.dialog(`Деталі за год${suffix}`,
-        `<section class="hour-comparison"><div class="hour-time-area">${marker}<div class="hour-combined-band">${track(timeline.plan,"За графіком")}${track(timeline.fact,"За датчиком")}</div><div class="hour-axis"><span>${time(start)}</span><span>${time(end)}</span></div></div><div class="hour-facts">${rows}</div></section>`,
+        `<section class="hour-comparison"><div class="hour-time-area">${marker}<div class="hour-combined-band">${track(timeline.plan,"За графіком")}${track(timeline.fact,"За датчиком")}</div><div class="hour-axis"><span>${time(start)}</span><span>${time(end)}</span></div></div><div class="hour-facts" tabindex="0" role="region" aria-label="Інтервали вимірів за годину">${rows}</div></section>`,
         ctx.button("Зрозуміло", "close", "center"), "", {className:"sensor-hour-dialog",dismissOnBackdrop:true,headerAction:`<button type="button" class="sensor-hour-more" data-action="sensor-hour-overview" data-address="${e(el.dataset.address)}" data-date="${e(date)}" aria-label="Детальніше про графіки датчика">Детальніше</button>`,accessibleLabel:`Деталі години ${time(start)}–${time(end)} за ${date}. ${suffix}`});
     }
     function changeHubDay(nextDate) {
@@ -241,10 +238,11 @@ window.SvitloLiveSensors={forecastAvailable(data){
         ctx.button("Скасувати","close","cancel center"),label,
         {className:"sensor-connect-dialog",footerClass:"sensor-connect-footer",focus:'[data-action="close"]'});
       const root = document.querySelector(".sensor-connect-dialog");
+      const connectionGlyph=(state,label)=>{const el=root.querySelector('.sensor-connection-icon');el.innerHTML=window.SvitloNativeUI.sensorIcon(state);el.setAttribute('aria-label',label);};
       const context=root.querySelector(".dialog-context");
       if(context){context.title=label;context.id="sensor-connect-address";root.setAttribute("aria-describedby",context.id);}
       root.dataset.connectionState='scanning';
-      root.querySelector('.dialog-head').insertAdjacentHTML('afterbegin','<span class="sensor-connection-icon" role="img" aria-label="Код ще не зчитано"></span>');
+      root.querySelector('.dialog-head').insertAdjacentHTML('afterbegin','<span class="sensor-connection-icon" role="img" aria-label="Код ще не зчитано">'+window.SvitloNativeUI.sensorIcon('connect')+'</span>');
       const error=document.createElement('p');error.className='sensor-connect-error';error.hidden=true;error.setAttribute('role','alert');
       root.querySelector('.sensor-scanner').append(error);
       const scanner=window.SvitloSensorScanner.mount(root,{onDispose(){
@@ -253,7 +251,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
         if(state==='ready'||!root.isConnected||pendingBinding?.busy)return;
         if(pendingBinding?.root===root)pendingBinding=null;
         root.dataset.connectionState='scanning';connectFooter(root,false);
-        root.querySelector('.sensor-connection-icon').setAttribute('aria-label','Код ще не зчитано');
+        connectionGlyph('connect','Код ще не зчитано');
       },onCode(code){
         if (!root.isConnected || managedAddressId !== target) return;
         if (ctx.address()?.id !== target || bindingError(target)) {
@@ -274,6 +272,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
       if (ctx.address()?.id !== managedAddressId || bindingError(managedAddressId)) return;
       pendingBinding = {addressId:managedAddressId,sensorId,qr:JSON.parse(code),requestId:crypto.randomUUID(),root,scanner,busy:false};
       root.dataset.connectionState='ready';
+      root.querySelector('.sensor-connection-icon').innerHTML=window.SvitloNativeUI.sensorIcon('connect');
       root.querySelector('.sensor-connection-icon').setAttribute('aria-label','Код зчитано, очікується підтвердження');
       root.querySelector('.sensor-connect-error').hidden=true;
       connectFooter(root,true);
@@ -282,7 +281,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
       if (!true) return "";
       const rows = bindings(), count = rows.length;
       if (!count) listExpanded = false;
-      const control = count < 2 || listExpanded ? `<button class="sensor-add" data-action="sensor-connect" aria-label="${count ? "Підключити ще один датчик" : "Підключити датчик"}"><span aria-hidden="true">+</span></button>` : button(window.SvitloNativeUI.icon("chevron"),"list","sensor-chevron",`aria-label="Список датчиків" aria-expanded="${listExpanded}"`);
+      const control = count < 2 || listExpanded ? `<button class="sensor-add" data-action="sensor-connect" aria-label="${count ? "Підключити ще один датчик" : "Підключити датчик"}"><span aria-hidden="true">${window.SvitloNativeUI.sensorIcon("connect")}</span></button>` : button(window.SvitloNativeUI.icon("chevron"),"list","sensor-chevron",`aria-label="Список датчиків" aria-expanded="${listExpanded}"`);
       const listing = listExpanded ? `<div class="sensor-binding-list">${rows.map(a=>{
         const address = [a.city,a.street].filter(Boolean).join(", "), label = a.name || address;
         return `<div class="sensor-binding-row"><button type="button" class="sensor-binding-info" data-action="sensor-details" data-address="${e(a.id)}" aria-label="${e("Графіки датчика: "+(a.name ? a.name+", " : "")+address)}"><strong>${e(label)}</strong><small>${e(reading(profile(a.id)).label)}</small></button><div class="sensor-binding-actions"><button type="button" class="sensor-icon-action" data-action="sensor-settings" data-address="${e(a.id)}" aria-label="${e("Налаштування датчика: "+label)}">${window.SvitloNativeUI.icon("settings")}</button><button type="button" class="sensor-icon-action" data-action="sensor-sharing" data-address="${e(a.id)}" aria-label="${e("Спільний доступ до датчика: "+label)}">${window.SvitloNativeUI.icon("access")}</button></div></div>`;
@@ -300,7 +299,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
         if(!pendingBinding||pendingBinding.busy)break;const b=pendingBinding;
         if(!b.root.isConnected){pendingBinding=null;break;}
         if(ctx.address()?.id!==b.addressId||bindingError(b.addressId)){pendingBinding=null;ctx.close();ctx.toast('Активна адреса змінилася. Підключи датчик ще раз.');break;}
-        b.busy=true;b.scanner?.setBusy(true);b.root.dataset.connectionState='connecting';connectFooter(b.root,true,true);
+        b.busy=true;b.scanner?.setBusy(true);b.root.dataset.connectionState='connecting';b.root.querySelector('.sensor-connection-icon').innerHTML=window.SvitloNativeUI.sensorIcon('connecting');connectFooter(b.root,true,true);
         b.root.querySelector('.sensor-connect-error').hidden=true;
         try{
           await live.sensor('connect_qr',{requestId:b.requestId,qr:b.qr,profileId:b.addressId});
@@ -310,6 +309,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
         }catch(error){
           if(b.root.isConnected&&pendingBinding===b){
             b.root.dataset.connectionState='error';
+            b.root.querySelector('.sensor-connection-icon').innerHTML=window.SvitloNativeUI.sensorIcon('warning');
             b.root.querySelector('.sensor-connection-icon').setAttribute('aria-label','Підключення не підтверджено');
             const message=b.root.querySelector('.sensor-connect-error');message.textContent=error.message;message.hidden=false;
             b.scanner?.rejected();connectFooter(b.root,true);
