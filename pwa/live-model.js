@@ -124,11 +124,13 @@ export function scheduleFor(profile,date,now=Date.now()) {
   const planSegments=referenceEvents?displayHours(referenceEvents,from,until,true,now).flatMap(h=>h.segments):null;
   const planOut=planSegments?.filter(s=>Object.hasOwn(labels,s.kind)).reduce((n,s)=>n+(s.end-s.start)/60000,0);
   const planSummary=planSegments&&!referenceEvents.some(e=>e.end===null)?{on:total-planOut,off:planOut}:null;
+  const archived=reference?.suspended?historicalReference(profile,date,now):null;
+  const historicalOverlay=archived?{...archived,emergency:/^(?:emergency_report_|reported_emergency_|address_emergency)/.test(reference.suspensionReason||'')}:null;
   return {publication:outside?'unknown':reference?.available?'published':notPublished&&!d.events.length?'unpublished':d.known||d.events.length?'published':'unknown',total,
     events:d.events.map(e=>({start:Math.max(0,(e.start-from)/60000),end:Math.min(total,((e.end??now)-from)/60000),kind:eventKind(e)})),
     out,unknown:sum('unknown'),clear:sum('clear'),planSummary,
     planEvents:referenceEvents?.map(e=>({start:Math.max(0,(e.start-from)/60000),end:e.end===null?null:Math.min(total,(e.end-from)/60000),kind:eventKind(e)}))||null,
-    at,from,until,raw:d,referenceOverlay,historicalOverlay:reference?.suspended?historicalReference(profile,date,now):null,
+    at,from,until,raw:d,referenceOverlay,historicalOverlay,
     suspended:!!reference?.suspended,referenceAvailable:!!reference?.available,referenceStale:!!reference?.stale,referenceOnly:!!referenceEvents&&(reference.stale||!d.known||reference.applicability!=='reported')};
 }
 export function contextFor(profile,date,now=Date.now()) {

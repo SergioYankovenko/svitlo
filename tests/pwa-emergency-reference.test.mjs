@@ -87,6 +87,7 @@ test('archived plan is a separate past-only display layer and cannot alter effec
  const p=profile(s),before=JSON.stringify(p),d=scheduleFor(p,date,now);
  assert.equal(d.historicalOverlay.at(15),'hourly');assert.equal(d.historicalOverlay.at(45),null);assert.equal(d.historicalOverlay.at(75),undefined);
  assert.equal(d.at(15),'unknown');assert.equal(d.at(45),'unknown');assert.equal(d.out,0);assert.equal(d.clear,0);assert.equal(d.planSummary,null);assert.equal(canSharePlan(d),false);
- assert.equal(JSON.stringify(p),before);
+ assert.equal(JSON.stringify(p),before);assert.equal(d.historicalOverlay.emergency,true);
+ line.categories.hourly.days[0].applicability.reason='primary_hides_daily_schedule';assert.equal(scheduleFor(profile(s),date,now).historicalOverlay.emergency,false);
  line.categories.hourly.days[0].historicalPlan.periods[0].end=now+1;assert.equal(scheduleFor(profile(s),date,now).historicalOverlay,null);
 });

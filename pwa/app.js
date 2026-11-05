@@ -324,7 +324,7 @@
           data.at(start + j * 30 + 15, true),
         );
         const historical = halves.map((kind,j)=>kind==='unknown'?data.historicalOverlay?.at(start+j*30+15):undefined);
-        const paint = halves.map((kind,j)=>historical[j]!==undefined?(historical[j]?'emergency':null):kind);
+        const paint = halves.map((kind,j)=>historical[j]!==undefined?(historical[j]?(data.historicalOverlay.emergency?'emergency':historical[j]):null):kind);
         const unique = [...new Set(paint)],
           one = unique.length === 1 ? unique[0] : null,
           unknown = unique.every((k) => k === "unknown");
