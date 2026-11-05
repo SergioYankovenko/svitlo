@@ -5,7 +5,9 @@ const admin=new pg.Client({host:'postgres',user:'svitlo_owner',database:process.
 const a=await runtime(),b=await runtime('worker'),checks=[];let calls=0;
 const check=async(name,fn)=>{await fn();checks.push(name);};
 try{
- await admin.query('truncate public.svitlo_source_cache');
+ // This guarded disposable clone uses a synthetic fetcher. A live upstream
+ // cooldown/lease copied in the backup must not suppress its fixture requests.
+ await admin.query('truncate public.svitlo_source_cache,public.svitlo_provider_leases,public.svitlo_provider_hosts');
  const refs=(await admin.query("select source_ref from svitlo_vps.catalog where kind='address' and operator_id='ua-cherkasy' and svitlo_vps.catalog_allowed(id) order by id limit 2")).rows.map(x=>x.source_ref);assert.equal(refs.length,2);
  const now=Date.now(),date=new Intl.DateTimeFormat('uk-UA',{timeZone:'Europe/Kyiv'}).format(now),time=new Intl.DateTimeFormat('uk-UA',{timeZone:'Europe/Kyiv',hour:'2-digit',minute:'2-digit',hour12:false}).format(now);
  const fixture={DATETIME:time+' '+date,DISCONNECTIONS:refs.map(r=>({ADDRESS:`<strong>${r.city}</strong><br>${r.street} ${r.house}<br>`,DATE_START:'10:00 '+date,DATE_STOP:'11:00 '+date,NAME:'PRIVATE_TEST_PERSON',LS:'12345678901'})),DISCONN_QUEUQ:[]};
