@@ -51,7 +51,7 @@ docker compose --env-file vps/release.env -f vps/compose.yaml run --rm --user 0 
 docker compose --env-file vps/release.env -f vps/compose.yaml stop discovery
 ```
 
-The private report returns budgets, queue progress, outcome counts and up to 100 public-source examples. It is not a public HTTP endpoint. Changing `policy.enabled` is owner-only; never grant the client permission to alter it. A rollback below migration 1016 should stop `discovery`; the additive schema can remain for audit history.
+The private report returns budgets, queue progress, outcome counts and up to 100 public-source examples. It is not a public HTTP endpoint. Changing `policy.enabled` is owner-only; never grant the client permission to alter it. A rollback below migration 1019 should stop `discovery`; the additive schema can remain for audit history.
 
 ## Release validation
 

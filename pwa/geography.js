@@ -48,7 +48,7 @@ window.SvitloGeography = (() => {
     }
     function start(){cancel();if(active()){render(false);queueMicrotask(()=>load());}}
     function html(){
-      const g=current(),crumbs=[g.region?.name,g.community?.name,g.settlement?.name].filter(Boolean);
+      const g=current(),crumbs=[...new Map([g.region,g.community,g.settlement].filter(Boolean).map(x=>[x.code,x.name])).values()];
       return `<section class="onboard-address-flow geo-address-flow" aria-label="Місце нової адреси"><h1>${title()}</h1>${crumbs.length?`<p class="geo-breadcrumb">${crumbs.map(esc).join(' · ')}</p>`:''}<div class="card outlined onboard-card">${g.stage!=='route'?`<label class="onboard-label" for="geo-query">${{region:'Область або місто зі спеціальним статусом',community:'Громада',settlement:'Населений пункт'}[g.stage]}</label><input id="geo-query" class="field" type="search" data-geo-query maxlength="120" autocomplete="off" spellcheck="false" value="${esc(g.query)}" placeholder="Введіть назву">`:''}<div id="geo-results" class="onboard-results geo-results" aria-busy="${view.loading}">${resultsHTML()}</div>${g.stage==='community'?'<button class="action geo-secondary" data-action="geo-skip-community">Не знаю громаду</button>':''}${g.stage!=='region'?'<button class="action geo-secondary" data-action="geo-back">Назад</button>':''}${!get().initial?'<button class="action geo-secondary" data-action="onboard-cancel">Скасувати додавання</button>':''}</div></section>`;
     }
     async function select(key){
