@@ -359,7 +359,7 @@
   function summaryCards() {
     const plan=live.planView(schedule());
     const d = policy.summary(plan, sensor?.observation(), sensor?.preferActual());
-    if (!d) return "";
+    if (!live.summaryVisible(plan,d)) return "";
     const detail =
       d.source === "device_observation"
         ? `, за відомий період ${duration(d.coverage)}, до ${hhmm(d.through)}, решта часу невідома`

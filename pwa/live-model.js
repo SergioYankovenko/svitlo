@@ -8,6 +8,12 @@ export const labels={hourly:'Погодинне відключення',planned:
 export function planView(data){
   return data.planSummary?{...data,out:data.planSummary.off,clear:data.planSummary.on,unknown:0,events:data.planEvents}:data;
 }
+// Hide an incomplete emergency total as one pair; measured coverage stays usable.
+export function summaryVisible(data,summary){
+  if(!summary)return false;
+  const emergency=data.emergencySuspended||data.events.some(e=>e.kind==='emergency');
+  return !emergency||[summary.on,summary.off].every(Number.isFinite);
+}
 export function canSharePlan(data){
   const plan=planView(data);
   return plan.publication==='published'&&plan.unknown===0&&plan.out>0;
@@ -131,6 +137,7 @@ export function scheduleFor(profile,date,now=Date.now()) {
     out,unknown:sum('unknown'),clear:sum('clear'),planSummary,
     planEvents:referenceEvents?.map(e=>({start:Math.max(0,(e.start-from)/60000),end:e.end===null?null:Math.min(total,(e.end-from)/60000),kind:eventKind(e)}))||null,
     at,from,until,raw:d,referenceOverlay,historicalOverlay,
+    emergencySuspended:!!reference?.suspended&&/^(?:emergency_report_|reported_emergency_|address_emergency)/.test(reference.suspensionReason||''),
     suspended:!!reference?.suspended,referenceAvailable:!!reference?.available,referenceStale:!!reference?.stale,referenceOnly:!!referenceEvents&&(reference.stale||!d.known||reference.applicability!=='reported')};
 }
 export function contextFor(profile,date,now=Date.now()) {

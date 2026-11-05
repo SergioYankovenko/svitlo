@@ -2,7 +2,7 @@ import {createBackgroundAddresses} from './core/lib/background-addresses.js';
 import {subscribeWithTimeout} from './live-push.js';
 import {rememberReloadView,takeReloadView} from './reload-state.js';
 import {identity,ensureIdentity,request,universalRequest,sensorRequest,onIdentityChange} from './core/api.js';
-import {scheduleFor,contextFor,profileView,labels,officialSource,refreshDeadline,planView,canSharePlan,planClock} from './live-model.js';
+import {scheduleFor,contextFor,profileView,labels,officialSource,refreshDeadline,planView,summaryVisible,canSharePlan,planClock} from './live-model.js';
 import {dayKey,clock,stamp} from './core/lib/time.js';
 import {sensorSignalView} from './core/lib/map-sensor.js';
 import {messageTitle} from './core/lib/notifications.js';
@@ -125,7 +125,7 @@ export async function createLive(){
     })().finally(()=>{if(pushPending===job)pushPending=null;});pushPending=job;return job;
   }
   async function disablePush(){savePushChoice(false);pushRequest++;pushPending=null;const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner)await mutate('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
-  const api={adopt,enroll,search,geography:(route,data,signal)=>universalRequest(route,data,{signal}),sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,planView,canSharePlan,planClock,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
+  const api={adopt,enroll,search,geography:(route,data,signal)=>universalRequest(route,data,{signal}),sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,planView,summaryVisible,canSharePlan,planClock,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
     rememberView:view=>rememberReloadView(()=>sessionStorage,owner,view),takeView:()=>takeReloadView(()=>sessionStorage,owner),
     onChange:f=>{listeners.add(f);return()=>listeners.delete(f);},
     profile:current,profiles:()=>profiles,owner:()=>owner,sensors:()=>sensors,sensorFetched:()=>sensorFetched,signalView:sensorSignalView,refreshSensors,
