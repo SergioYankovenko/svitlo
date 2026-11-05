@@ -156,8 +156,11 @@
       window.SvitloClock.now(state).date,
       schedule(date).publication === 'published' ? 'published' : 'unpublished',
     );
-  const hasGraph = () =>
-    schedule().publication === "published" && schedule().unknown === 0;
+  const hasGraph = () => {
+    const data=live.planView(schedule());
+    return data.publication === "published" && data.unknown === 0;
+  };
+  const canShare = () => live.canSharePlan(schedule());
   function recordActiveDay() {
     const date = window.SvitloClock.local().date;
     if (document.hidden || state.support.lastDate === date) return;
@@ -343,7 +346,7 @@
       .join("")}</div></div>`;
   }
   function summaryCards() {
-    const data=schedule(),plan=data.planSummary?{...data,out:data.planSummary.off,clear:data.planSummary.on,unknown:0}:data;
+    const plan=live.planView(schedule());
     const d = policy.summary(plan, sensor?.observation(), sensor?.preferActual());
     if (!d) return "";
     const detail =
@@ -418,7 +421,7 @@
       sensorIndicator = sensor?.indicator() || { html: "", label: "" };
     return `<section class="card outlined address-card compact-address"><div class="address-top"><button class="address-trigger" data-action="expand-address" aria-label="${esc("Обрати адресу: " + fullAddress(a) + (sensorIndicator.label ? ", " + sensorIndicator.label : ""))}" aria-expanded="${expanded}"><div><div class="address-primary-row"><div class="address-primary">${esc(addressTitle(a))}</div>${sensorIndicator.html}</div><div class="address-subtitle">${esc(a.name ? fullAddress(a) : a.street)}</div></div>${state.addresses.length > 1 ? icon("chevron", "chevron") : ""}</button>${state.addresses.length === 1 ? '<button class="address-add" data-action="add-address" aria-label="Додати адресу"><span aria-hidden="true">+</span></button>' : ""}</div>${expanded ? addressList(a) : ""}</section>
       ${scheduleCard()}
-      ${summaryCards()}${live.weatherHTML(esc)}<div class="home-bottom">${hasGraph() ? `<button class="action" data-action="share">${icon("share")}Поділитись графіком</button>` : ""}<button class="action" data-action="donate">♡ Подякувати за додаток</button></div>`;
+      ${summaryCards()}${live.weatherHTML(esc)}<div class="home-bottom">${canShare() ? `<button class="action" data-action="share">${icon("share")}Поділитись графіком</button>` : ""}<button class="action" data-action="donate">♡ Подякувати за додаток</button></div>`;
   }
   function addressList(active) {
     return `<div class="address-list"><div class="address-list-rows">${state.addresses.map((x) => `<div class="address-list-row ${x.id === active.id ? "selected" : ""}"><button class="address-row" data-action="select-address" data-id="${esc(x.id)}" aria-pressed="${x.id === active.id}">${x.name ? `<strong>${esc(x.name)}</strong>` : ""}<span>${esc(fullAddress(x))}</span></button><button class="address-edit" data-action="address-actions" data-id="${esc(x.id)}" aria-label="${esc("Редагувати адресу " + (x.name || fullAddress(x)))}">${icon("edit")}</button></div>`).join("")}</div><button class="action address-list-add" data-action="add-address">Додати адресу</button></div>`;
@@ -692,7 +695,7 @@
     );
   }
   function shareText() {
-    const d = schedule(),
+    const d = live.planView(schedule()),
       date = selectedDate();
     if (d.publication === "unpublished")
       return `Графік · ${date.toLocaleDateString("uk-UA", { timeZone: "UTC" })}\nГрафік ще не опубліковано.\nhttps://www.svitlo.guru`;
@@ -710,7 +713,7 @@
         last.end = Math.max(last.end, span.end);
       else merged.push({ ...span });
     }
-    const intervals = merged.map((e) => `${hhmm(e.start)}–${hhmm(e.end)}`);
+    const intervals = merged.map((e) => `${live.planClock(d,e.start)}–${live.planClock(d,e.end)}`);
     return `Графік · ${date.getUTCDate()} ${monthNames[date.getUTCMonth()]}${address().queue ? " · Черга " + address().queue : ""}\n${d.unknown ? "Немає точних даних" : `Зі світлом: ${duration(d.clear)}\nБез світла: ${duration(d.out)}`}\n${intervals.join(", ")}\n-----------------\nВстановити собі\nhttps://www.svitlo.guru`;
   }
   async function action(name, element) {
@@ -984,7 +987,7 @@
     },
     cancelMotion: () => dayPager?.cancel(),
     hasGraph,
-    canShare: hasGraph,
+    canShare,
     hasSummary: hasGraph,
   });
   diagnostics = window.SvitloDiagnostics.create({
