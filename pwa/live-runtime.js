@@ -1,3 +1,4 @@
+import {createBackgroundAddresses} from './core/lib/background-addresses.js';
 import {subscribeWithTimeout} from './live-push.js';
 import {rememberReloadView,takeReloadView} from './reload-state.js';
 import {identity,ensureIdentity,request,universalRequest,sensorRequest,onIdentityChange} from './core/api.js';
@@ -49,8 +50,10 @@ export async function createLive(){
     })().catch(error=>{offline=true;retryAfter=Date.now()+Math.min(900000,30000*2**Math.min(syncFailures++,5));if(error.status===401)clear();emit();throw error;}).finally(()=>{pending=null;pendingProfile=null;if(syncQueued){syncQueued=false;queueMicrotask(()=>sync().catch(()=>{}));}});
     return pending;
   }
+  const backgroundAddresses=createBackgroundAddresses((path,body,signal)=>universalRequest(path,body,{signal}));
   async function search(kind,flow,q,signal,cursor=null){
     if(!['city','street','house'].includes(kind)||kind==='city'&&q.trim().length<2||kind==='street'&&!flow.city?.id||kind==='house'&&!flow.street?.id)return [];
+    if(kind!=='city'&&flow.geography?.routes?.length){const result=await backgroundAddresses.search(kind==='street'?'streets':'houses',flow,q,signal,cursor);return Object.assign(result.items.map(x=>({...x,name:x.label,context:x.districtVerified?x.district:''})),{nextCursor:result.nextCursor||null});}
     const routed=kind!=='city'&&flow.geography?.route&&flow.geography?.settlement;
     const result=await universalRequest(routed?'settlement-search':'search',{kind:{city:'cities',street:'streets',house:'houses'}[kind],q:q.slice(0,120),limit:50,
       ...(routed?{routeId:flow.geography.route.routeId,settlementCode:flow.geography.settlement.code}:{}),
@@ -59,11 +62,12 @@ export async function createLive(){
     return Object.assign(result.items.map(x=>({...x,name:x.label,context:[x.region?.label,x.district?.label,x.context].filter(Boolean).join(' · ')})),{nextCursor:result.nextCursor||null});
   }
   async function enroll(flow,signal){
-    const resolved=await universalRequest('resolve',{addressId:flow.house.id,...(flow.lineId?{lineId:flow.lineId}:{})},{signal});
+    const choice=flow.geography?.routes?.length?await backgroundAddresses.resolve(flow,signal):{resolved:await universalRequest('resolve',{addressId:flow.house.id,...(flow.lineId?{lineId:flow.lineId}:{})},{signal})};
+    if(choice.requiresLine)return choice;const {resolved}=choice;signal?.throwIfAborted();
     if(['disabled','unsupported'].includes(resolved.operator?.supportState))throw Error('Джерело цього регіону недоступне');
     const lines=resolved.resolution?.lines||[],lineId=resolved.selection?.lineId||null;
     if(lines.length>1&&!lineId){if(flow.geography)return {requiresLine:true,lines};throw Error('Потрібен вибір лінії живлення');}
-    const who=await session(true),generation=epoch;
+    const who=await session(true),generation=epoch;signal?.throwIfAborted();
     const result=await request('save',{address:{canonicalAddressId:resolved.address.id,lineId},name:flow.name||'',confirmed:true},{owner:who,signal});
     if(generation!==epoch||who!==owner)throw Error('Сеанс змінився. Спробуйте ще раз');
     dataRevision++;profiles=profiles.filter(p=>p.id!==result.profile.id);profiles.push(result.profile);active=result.profile.id;persist();
