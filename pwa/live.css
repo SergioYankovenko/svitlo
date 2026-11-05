@@ -9,6 +9,12 @@ body.live-pwa{margin:0}
 .live-pwa .schedule-notice .emergency-symbol svg{display:block;width:1em;height:1em}
 .live-pwa .schedule-notice .emergency-copy p{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;overflow-wrap:anywhere}
 .live-pwa .schedule-notice .emergency-copy strong{font-size:calc(16px * var(--scale));white-space:normal;overflow:visible;overflow-wrap:anywhere}
+/* PWA-LIVE-31: no empty prediction pane or future navigation without a forecast. */
+.live-pwa .sensor-hub-overview .dialog-head{grid-template-columns:minmax(0,1fr) auto}
+.live-pwa .sensor-hub-overview .sensor-hub-status{display:flex;grid-area:state;grid-row:1 / span 2;align-self:center;justify-self:end;align-items:center}
+.live-pwa .sensor-hub-overview .sensor-hub-status>span{grid-area:auto;align-self:center;color:inherit;overflow:visible}
+.live-pwa .sensor-hub-status .sensor-indicator{width:30px;height:30px}
+.live-pwa .sensor-hub-status .sensor-glyph{width:28px;height:28px}
 .live-pwa .sensor-qr{display:block;max-width:100%;width:256px;height:auto;margin:16px auto;background:white}
 .live-pwa .reminder-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
 .live-pwa .reminder-copy{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere}

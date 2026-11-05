@@ -1,6 +1,10 @@
 "use strict";
 // UI254 sensor presentation. All ownership, history and invitations come from the server.
-window.SvitloLiveSensors={create(ctx){
+window.SvitloLiveSensors={forecastAvailable(data){
+  return data?.available===true&&Array.isArray(data.segments)&&data.segments.length>0&&
+    data.segments.every(s=>s&&Number.isFinite(s.start)&&Number.isFinite(s.end)&&s.start>=0&&s.end>s.start&&['on','off','unknown'].includes(s.state))&&
+    data.segments.some(s=>s.state==='on'||s.state==='off');
+},create(ctx){
   const live=window.SvitloLive,M=window.SvitloSensorModel,e=ctx.esc,icon=window.SvitloNativeUI.icon;
   let managedAddressId=null,signals=new Map(),views=new Map(),fetched=new Map(),pending=new Map(),generation=0,selectedDate=null,noticePrefs=new Map();
   const prefKey='svitlo.pwa.v2.sensor-preferences';
@@ -52,6 +56,8 @@ window.SvitloLiveSensors={create(ctx){
   const duration=m=>`${Math.floor(m/60)} год${m%60?' '+Math.round(m%60)+' хв':''}`;
   const save=()=>{for(const p of records.values())preferences[p.readerProfileId]=p.actualSummary;try{localStorage.setItem(prefKey,JSON.stringify(preferences));}catch{}};
   const overviewPrediction=()=>({reason:'Поки немає надійних даних для прогнозу.'});
+  const hasForecast=date=>window.SvitloLiveSensors.forecastAvailable(overviewPrediction(date,managed()));
+  const hubDayAllowed=date=>date<=ctx.now().date||hasForecast(date);
   const pruneProfiles=()=>{if(!bindings().length)listExpanded=false;};
   function bindingError(id){if(!ctx.addresses().some(a=>a.id===id)){ctx.toast('Спочатку додай адресу');return true;}if(binding(id)){ctx.toast('До цієї адреси вже підключено датчик');return true;}return false;}
     const shiftDate = (date, offset) => { const d = window.SvitloClock.date(date); d.setUTCDate(d.getUTCDate()+offset); return window.SvitloClock.key(d); };
@@ -64,7 +70,7 @@ window.SvitloLiveSensors={create(ctx){
       return days.sort((a,b) => a.date.localeCompare(b.date));
     }
     function hubDate(p) {
-      return hubDays().some(day => day.date === p.overviewDate) ? p.overviewDate : ctx.now().date;
+      return hubDays().some(day => day.date === p.overviewDate)&&hubDayAllowed(p.overviewDate) ? p.overviewDate : ctx.now().date;
     }
     function hubDialog(title, body, footer, options = {}) {
       const address = managedAddress();
@@ -96,8 +102,7 @@ window.SvitloLiveSensors={create(ctx){
       const example = (name,cls,text) => `<div class="sensor-help-example"><span class="sensor-help-sample ${cls}" aria-hidden="true"></span><div><strong>${name}</strong><small>${text}</small></div></div>`;
       hubDialog("Про датчик",`<section class="sensor-help-summary"><h3>${e(new Intl.DateTimeFormat("uk-UA",{day:"numeric",month:"long",timeZone:"UTC"}).format(window.SvitloClock.date(date)))}</h3>${summary}</section><div class="sensor-help-folds"><details open><summary>Як читати плитку</summary>${example("За графіком","plan","Колір показує офіційний план.")}${example("За датчиком","actual","Зелений означає «є», кораловий «немає».")}<div class="sensor-help-example"><div class="sensor-help-current" aria-hidden="true"><span></span></div><p class="sensor-help-caption">Контур показує історію за хвилинами. Крапка лише на поточній годині показує свіжий стан датчика.</p></div></details><details><summary>Прогноз і невідомий час</summary>${example("Прогноз в огляді датчика","prediction","Пунктир показує орієнтовний прогноз за минулими вимірами.")}${example("Невідомо","unknown","Тут вимірів немає. Це не підтвердження відключення.")}</details><details><summary>Що саме бачить датчик</summary><p class="sensor-help-boundary">Лише свою точку, а не весь будинок. Наприклад, розетка після UPS може показувати резервне живлення.</p></details></div>`,button("До огляду","overview"),{className:"sensor-details-dialog sensor-overview-dialog sensor-help-dialog",dismissOnBackdrop:true});
     }
-    function indicator() {
-      const p = record();
+    function indicator(p = record(), detail = "") {
       if (!p) return { html: "", label: "" };
       const s = reading(p),
         tone = !member(p) || !p.entitled
@@ -108,7 +113,7 @@ window.SvitloLiveSensors={create(ctx){
               ? "warning"
               : "waiting",
         mark = s.live ? "" : tone === "warning" ? "!" : "?",
-        label = `Датчик: ${s.label}`;
+        label = `Датчик: ${s.label}${detail ? ". " + detail : ""}`;
       return {
         label,
         html: `<span class="sensor-indicator" data-tone="${tone}" role="img" aria-label="${e(label)}" title="${e(label)}">${window.SvitloNativeUI.icon("sensor", "sensor-glyph")}<span class="sensor-indicator-mark" aria-hidden="true">${mark}</span></span>`,
@@ -185,7 +190,7 @@ window.SvitloLiveSensors={create(ctx){
     }
     function changeHubDay(nextDate) {
       const p = managed(), days = hubDays();
-      if (!p || !days.some(day => day.date === nextDate) || nextDate === hubDate(p)) return;
+      if (!p || !days.some(day => day.date === nextDate) || !hubDayAllowed(nextDate) || nextDate === hubDate(p)) return;
       const previous = hubDate(p), motion = window.SvitloSensorOverview.capture(document.querySelector(".sensor-hub-overview"));
       p.overviewDate = nextDate; save();
       details({ ...motion, direction:nextDate > previous ? 1 : -1 });
@@ -200,14 +205,13 @@ window.SvitloLiveSensors={create(ctx){
       const signalTime = allowed && current.live ? `Сигнал о ${e(p.signalTime)}`
         : allowed && p.state === "offline" ? p.signalTime ? `Останній сигнал о ${e(p.signalTime)}` : "" : "";
       const days = hubDays();
-      const nav = days.map(day => `<button type="button" data-action="sensor-view-day" data-date="${day.date}" aria-pressed="${date === day.date}">${day.label}</button>`).join("");
+      const nav = days.map(day => `<button type="button" data-action="sensor-view-day" data-date="${day.date}" aria-pressed="${date === day.date}" ${hubDayAllowed(day.date)?'':'disabled aria-disabled="true"'}>${day.label}</button>`).join("");
       const dayOverview=views.get(viewKey(p,date));
       window.SvitloSensorOverview.configure(dayOverview?.dayLengthMinutes,dayOverview?.dayStartUtc);
       let charts = '<p class="sensor-unavailable">Дані датчика недоступні для цього телефона.</p>';
       if (allowed) {
         charts = "";
-        if (date >= today) charts += window.SvitloSensorOverview.chart({title:"Прогноз",kind:"prediction",
-          data:forecast?.segments ? forecast : M.daySeries([],0,actual?.dayLength || 1440), note:forecast?.reason || ""});
+        if (date >= today&&window.SvitloLiveSensors.forecastAvailable(forecast)) charts += window.SvitloSensorOverview.chart({title:"Прогноз",kind:"prediction",data:forecast,note:""});
         if (date <= today) charts += window.SvitloSensorOverview.chart({title:"Історія вимірів",kind:"actual",data:observed,
           note:observed.available ? "" : "Підтверджених вимірів ще немає."});
       }
@@ -216,7 +220,7 @@ window.SvitloLiveSensors={create(ctx){
       hubDialog("Датчик",`<nav class="sensor-day-nav" style="--sensor-days:${days.length}" aria-label="День датчика">${nav}</nav><div class="sensor-day-stage"><div class="sensor-day-pane"><p class="sensor-hub-date">${e(new Intl.DateTimeFormat("uk-UA",{day:"numeric",month:"long",year:"numeric",timeZone:"UTC"}).format(window.SvitloClock.date(date)))}</p><div class="sensor-charts">${charts}</div></div></div>`,
         button("Довідка","help")+ctx.button("Закрити","close","center"),{
           className:"sensor-details-dialog sensor-overview-dialog sensor-hub-overview",dismissOnBackdrop:true,
-          headerAction:`<p class="sensor-hub-status ${current.state || ""}"><strong>${e(current.label)}</strong><span>${signalTime}</span></p>`});
+          headerAction:`<span class="sensor-hub-status ${current.state || ""}">${indicator(p,signalTime).html}</span>`});
       const root=document.querySelector(".sensor-hub-overview"),overview=views.get(viewKey(p,date));root.dataset.dayLength=overview?.dayLengthMinutes||1440;root.dataset.dayStart=overview?.dayStartUtc||"";
       window.SvitloSensorOverview.mount(root,{
         viewport:hubViewport,motion,onViewport:range => { hubViewport = {key,...range}; },
