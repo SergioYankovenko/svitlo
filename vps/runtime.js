@@ -18,6 +18,7 @@ import {pilotPush} from './push.js';
 import {SourceHistory} from './regions/source-history.js';
 import {Geography} from './geography/service.mjs';
 import {DiscoveryCatalog} from './discovery/catalog.mjs';
+import {RegionalDiscoverySources} from './discovery/regional-sources.mjs';
 
 // Accounts remain transient adapter inputs; they never enter the persistent address/profile/catalog.
 export class PrivateSource extends Source {
@@ -41,8 +42,9 @@ export async function runtime(role='api'){
   const options={db,source,...delivery,jobBudgetMs:45000,
     defaultPreferences:{schedule:false,publication:false,change:false,emergency:false,reminder:false,restoration:false,lead:30}};
   const regions=new Regions({db,bridge,secret}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions});
+  const regionalDiscovery=new RegionalDiscoverySources({gate:op=>regions.gate(op),finish:(...args)=>regions.finish(...args)});
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
   const service=new UniversalService({...options,maps},reader);
   const sourceHistory=new SourceHistory({bridge,regions,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
-  return {p,bridge,db,source,service,legacy,reader,maps,regions,sourceHistory,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions}),secret,...delivery};
+  return {p,bridge,db,source,service,legacy,reader,maps,regions,regionalDiscovery,sourceHistory,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions}),secret,...delivery};
 }

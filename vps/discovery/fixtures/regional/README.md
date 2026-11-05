@@ -1,0 +1,1 @@
+Public read-only response excerpts captured05.11.2026 from official Poltava and Kharkiv address dictionary endpoints. No personal accounts or CAPTCHA submissions. Full capture evidence is in work/regional-sources-20261105/probes. Parser fixtures are excerpts, not proof of full regional completeness. House letters/slashes are exact source strings.

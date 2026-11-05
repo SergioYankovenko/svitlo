@@ -14,10 +14,12 @@ export class DiscoveryCollector {
   const q=await this.bridge.query("select source_ref,label from svitlo_vps.catalog where kind=$1 and metadata->>'regionOperator'=$2 and source_ref->>'city'=$3 and ($4::text is null or source_ref->>'street'=$4) order by id limit 5001",[kind,r.operator_id,r.provider_city_name,streetKey??null]);if(q.rows.length>5000)throw sourceError('invalid_source');return q.rows.map(x=>({key:x.source_ref[kind==='street'?'street':'house'],name:x.label}));
  }
  async streets(r){
+  if(this.regionalDiscovery?.handles(r.operator_id))return this.regionalDiscovery.streets(r);
   if(r.operator_id==='ua-cherkasy')return {items:usable(list(await this.source.request({op:'street_list',city_id:r.provider_city_id,search_name:''},AbortSignal.timeout(22000)))),checkedAt:this.now()};
   const data=await this.regions.index(r.operator_id),items=data.cities[r.provider_city_name];if(!Array.isArray(items))throw sourceError('invalid_source');if(items.length>5000)throw sourceError('invalid_source');return {items:usable(items.map(name=>({key:name,name}))),checkedAt:data.checkedAt};
  }
  async houses(r,key){
+  if(this.regionalDiscovery?.handles(r.operator_id))return this.regionalDiscovery.houses(r,key);
   if(r.operator_id==='ua-cherkasy')return {items:list(await this.source.request({op:'house_list',street_id:key,search_name:''},AbortSignal.timeout(22000)),true),checkedAt:this.now()};
   const raw=await this.regions.client(r.operator_id).houses(r.provider_city_name,key),at=this.now();
   if(raw?.data&&typeof raw.data==='object'&&!Array.isArray(raw.data)&&Object.keys(raw.data).length===0)return {items:[],checkedAt:at,data:{checkedAt:at,houses:{}}};
@@ -42,7 +44,7 @@ export class DiscoveryCollector {
   let processed=0;for(const x of subjects.slice(offset,offset+50)){
    if(this.now()-started>45000)break;processed++;
    if(!x.present){events.push({...common,subjectKey:'house:'+job.sourceKey+':'+x.key,kind:'house',house:x.key,outcome:'house_absent',basis:'provider_dictionary',detail:{complete:true}});continue;}
-   const q=resolve?await resolve({department:r.branch_id,cityId:r.provider_city_id,streetId:job.sourceKey,house:x.key,city:r.provider_city_name,street:job.sourceName}):resolveHouse(data.data,x.key);
+   const q=resolve?await resolve({department:r.branch_id,cityId:r.provider_city_id,streetId:job.sourceKey,house:x.key,city:r.provider_city_name,street:job.sourceName}):data.resolution?data.resolution(x.key):resolveHouse(data.data,x.key);
    const groups=q.queue?[q.queue]:(q.lines||[]).map(l=>l.groupCode).filter(Boolean);
    const reviewed=Date.parse(q.addressReviewedAt||''),sourceAt=resolve?(Number.isFinite(reviewed)?new Date(reviewed).toISOString():Number.isFinite(q.checkedAt)?new Date(q.checkedAt).toISOString():null):common.sourceCheckedAt;
    events.push({...common,sourceCheckedAt:sourceAt,subjectKey:'house:'+job.sourceKey+':'+x.key,kind:'house',house:x.key,outcome:queueOutcome(q),basis:resolve?'service_registry':'provider_address',detail:{groups,sourceState:String(q.status||q.state||'unknown').slice(0,40),resolutionState:q.state||'unknown',complete:q.complete===true,...(resolve?{registryVersion:String(q.version||q.addressRegistryVersion||'').slice(0,240),estimated:q.estimated===true,reviewedAt:Number.isFinite(reviewed)?new Date(reviewed).toISOString():null}:{})}});

@@ -1,0 +1,38 @@
+[
+  {
+    "instance_id": 1,
+    "instance_name": "1"
+  },
+  {
+    "instance_id": 2,
+    "instance_name": "10"
+  },
+  {
+    "instance_id": 3,
+    "instance_name": "100"
+  },
+  {
+    "instance_id": 4,
+    "instance_name": "101"
+  },
+  {
+    "instance_id": 5,
+    "instance_name": "102"
+  },
+  {
+    "instance_id": 6,
+    "instance_name": "102G"
+  },
+  {
+    "instance_id": 7,
+    "instance_name": "104"
+  },
+  {
+    "instance_id": 8,
+    "instance_name": "106"
+  },
+  {
+    "instance_id": 9,
+    "instance_name": "106а"
+  }
+]
