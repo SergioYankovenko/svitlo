@@ -8,18 +8,19 @@ class Node extends EventTarget {
  constructor(){super();this.hidden=false;this.value='';this.dataset={};this.isConnected=true;this.clientWidth=300;this.clientHeight=200;this.attrs={};}
  querySelector(){return this.path;}
  setAttribute(k,v){this.attrs[k]=v;}toggleAttribute(k,v){if(v)this.attrs[k]='';else delete this.attrs[k];}
- focus(){}async play(){}getContext(){return{drawImage(){},getImageData(){return{data:new Uint8ClampedArray(16),width:2,height:2};}};}
+ focus(){this.focused=true;}select(){}async play(){}getContext(){return{drawImage(){},getImageData(){return{data:new Uint8ClampedArray(16),width:2,height:2};}};}
 }
 function setup(media,decoded){
  const nodes=Object.fromEntries(['video','[data-scan-message]','#sensor-code','[data-scan-manual]','[data-scan-enter]','[data-scan-camera]','[data-scan-corners]','[data-camera-unavailable]'].map(k=>[k,new Node()]));
  nodes['[data-scan-manual]'].hidden=true;nodes['[data-scan-enter]'].hidden=true;nodes['[data-scan-corners]'].path=new Node();
  nodes.video.readyState=2;nodes.video.videoWidth=640;nodes.video.videoHeight=480;
- const root=new Node();root.querySelector=k=>nodes[k];
+ const digits=[nodes['#sensor-code'],...Array.from({length:5},()=>new Node())];
+ const root=new Node();root.querySelector=k=>nodes[k];root.querySelectorAll=()=>digits;
  const document=new Node();document.createElement=()=>new Node();
  const window=new Node();Object.assign(window,{isSecureContext:true,jsQR:decoded||(()=>null)});
  let id=0;const timers=new Map();
  vm.runInNewContext(source,{window,document,navigator:{mediaDevices:media?{getUserMedia:media}:undefined},AbortController,queueMicrotask,setTimeout:f=>{timers.set(++id,f);return id;},clearTimeout:i=>timers.delete(i),Uint8ClampedArray});
- return{scanner:window.SvitloSensorScanner,root,nodes,document,timers};
+ return{scanner:window.SvitloSensorScanner,root,nodes,digits,document,timers};
 }
 const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
 test('six-digit manual and QR payloads preserve leading zero and legacy kinds',()=>{
@@ -50,7 +51,7 @@ test('no camera reveals only manual fallback and a complete valid manual code is
  nodes['[data-scan-enter]'].dispatchEvent(new Event('click'));
  assert.equal(nodes['[data-scan-manual]'].hidden,false);
  const input=nodes['#sensor-code'];input.value='wrong';input.dispatchEvent(new Event('input'));await flush();assert.equal(accepted.length,0);
- input.value=valid;input.dispatchEvent(new Event('input'));input.dispatchEvent(new Event('input'));await flush();assert.deepEqual(accepted,[valid]);scanner.dispose();
+ input.value='042715';input.dispatchEvent(new Event('input'));input.dispatchEvent(new Event('input'));await flush();assert.deepEqual(accepted,[JSON.stringify({version:1,kind:'phone_code',code:'042715'})]);scanner.dispose();
 });
 test('closing before camera permission resolves stops the late stream and never accepts a code',async()=>{
  let resolve,stopped=0;const media=()=>new Promise(r=>resolve=r),{scanner,root}=setup(media);let accepted=0;
@@ -75,11 +76,24 @@ test('unrelated camera QR keeps scanning and exposes manual entry, without accep
 });
 
 test('manual proof can be corrected after a server refusal, but not while a commit is pending',async()=>{
- const {scanner,root,nodes}=setup(),accepted=[];const handle=scanner.mount(root,{onCode:x=>accepted.push(x)});await flush();
+ const {scanner,root,nodes,digits}=setup(),accepted=[];const handle=scanner.mount(root,{onCode:x=>accepted.push(x)});await flush();
  nodes['[data-scan-enter]'].dispatchEvent(new Event('click'));
- const input=nodes['#sensor-code'];input.value=valid;input.dispatchEvent(new Event('input'));await flush();
- handle.setBusy(true);const updated=valid.replace('a'.repeat(43),'b'.repeat(43));input.value=updated;input.dispatchEvent(new Event('input'));await flush();assert.equal(accepted.length,1);
- handle.setBusy(false);handle.rejected();assert.equal(nodes['[data-scan-enter]'].hidden,false);
- input.dispatchEvent(new Event('input'));await flush();assert.deepEqual(accepted,[valid,updated]);scanner.dispose();
+ const input=nodes['#sensor-code'];input.value='042715';input.dispatchEvent(new Event('input'));await flush();
+ handle.setBusy(true);assert.ok(digits.every(x=>x.disabled));input.value='042716';input.dispatchEvent(new Event('input'));await flush();assert.equal(accepted.length,1);
+ handle.setBusy(false);handle.rejected();assert.equal(nodes['[data-scan-enter]'].hidden,true);
+ input.dispatchEvent(new Event('input'));await flush();assert.deepEqual(accepted.map(x=>JSON.parse(x).code),['042715','042716']);scanner.dispose();assert.ok(digits.every(x=>x.value===''));
+});
+
+test('six inputs accept only ASCII digits, support paste and keyboard correction, and clear stale acceptance',async()=>{
+ const {scanner,root,nodes,digits}=setup(),accepted=[];scanner.mount(root,{onCode:x=>accepted.push(x)});await flush();nodes['[data-scan-enter]'].dispatchEvent(new Event('click'));
+ const event=(type,props)=>{const e=new Event(type,{cancelable:true});for(const [k,v]of Object.entries(props))Object.defineProperty(e,k,{value:v});return e;};
+ for(const data of ['e','+','-','１',' ']){const e=event('beforeinput',{data});digits[0].dispatchEvent(e);assert.equal(e.defaultPrevented,true);}
+ digits[0].value='12a';digits[0].dispatchEvent(new Event('input'));assert.equal(digits[0].value,'');assert.equal(accepted.length,0);
+ digits[0].dispatchEvent(event('paste',{clipboardData:{getData:()=> '042715'}}));await flush();assert.equal(digits.map(x=>x.value).join(''),'042715');assert.equal(JSON.parse(accepted[0]).code,'042715');
+ digits[5].value='';digits[5].dispatchEvent(new Event('input'));assert.equal(root.dataset.scanState,'manual');
+ digits[5].dispatchEvent(event('keydown',{key:'Backspace'}));assert.equal(digits[4].value,'');assert.equal(digits[4].focused,true);
+ digits[0].dispatchEvent(event('paste',{clipboardData:{getData:()=> '12-3456'}}));assert.equal(digits[4].value,'');assert.equal(accepted.length,1);
+ digits[0].dispatchEvent(event('paste',{clipboardData:{getData:()=> '654321'}}));digits[0].value='';digits[0].dispatchEvent(new Event('input'));await flush();assert.equal(accepted.length,1);scanner.dispose();
+ const html=scanner.html();assert.equal((html.match(/data-sensor-digit=/g)||[]).length,6);assert.ok(!html.includes('<textarea'));assert.ok(!html.includes('>Код датчика<'));assert.equal((html.match(/inputmode="numeric"/g)||[]).length,6);
 });
 
