@@ -78,3 +78,6 @@ body.live-pwa{margin:0}
 .live-pwa .sensor-connect-footer button{min-width:0;white-space:normal;overflow-wrap:anywhere;min-height:48px}
 .live-pwa .sensor-connect-primary{background:var(--accent);color:var(--bg)}
 .live-pwa .sensor-connect-error{color:var(--cancel-ink);margin:8px 0 0;font-size:calc(13px * var(--scale));line-height:1.35;text-align:center;overflow-wrap:anywhere}
+
+/* PWA-LIVE-35: shared dialog-action alignment must not shift the disclosure glyph. */
+.live-pwa .sensor-options-header .sensor-chevron{grid-template-columns:1fr;justify-content:center;align-content:center}

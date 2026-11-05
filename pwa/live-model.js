@@ -69,6 +69,15 @@ export function officialSource(profile,preferred){
   }
   return null;
 }
+// A separate history-of-plan layer; it cannot turn archive samples into power facts.
+export function historicalReference(profile,date,now=Date.now()){
+ const s=profile?.snapshot?.universal,line=selectedLine(s,profile?.snapshot?.selectedLineId);
+ const h=line?.categories.hourly?.days.find(d=>d.date===date)?.historicalPlan,from=civil(date),until=Math.min(civil(addDays(date,1)),now);
+ if(h?.version!==1||h.basis!=='archived_official_plan'||!Array.isArray(h.periods)||!h.periods.length||h.periods.length>400)return null;
+ if(h.periods.some((p,i)=>!p||!Number.isFinite(p.start)||!Number.isFinite(p.end)||p.start<from||p.end>until||p.end<=p.start||i&&p.start<h.periods[i-1].end||!Array.isArray(p.intervals)||p.intervals.length>96||p.intervals.some(e=>!e||!Number.isFinite(e.start)||!Number.isFinite(e.end)||e.start<from||e.end>civil(addDays(date,1))||e.end<=e.start)))return null;
+ const periods=h.periods.map(p=>({...p,display:displayHours(p.intervals.map(e=>({...e,category:'hourly'})),from,civil(addDays(date,1)),false,now).flatMap(x=>x.segments)}));
+ return {at(minute){const t=from+minute*60000,p=periods.find(p=>p.start<=t&&t<p.end);if(!p)return undefined;return p.display.some(s=>s.kind==='hourly'&&s.start<=t&&t<s.end)?'hourly':null;}};
+}
 export function scheduleFor(profile,date,now=Date.now()) {
   const from=civil(date),until=civil(addDays(date,1)),total=(until-from)/60000;
   const reference=publishedReference(profile,date,now,true);
@@ -119,7 +128,7 @@ export function scheduleFor(profile,date,now=Date.now()) {
     events:d.events.map(e=>({start:Math.max(0,(e.start-from)/60000),end:Math.min(total,((e.end??now)-from)/60000),kind:eventKind(e)})),
     out,unknown:sum('unknown'),clear:sum('clear'),planSummary,
     planEvents:referenceEvents?.map(e=>({start:Math.max(0,(e.start-from)/60000),end:e.end===null?null:Math.min(total,(e.end-from)/60000),kind:eventKind(e)}))||null,
-    at,from,until,raw:d,referenceOverlay,
+    at,from,until,raw:d,referenceOverlay,historicalOverlay:reference?.suspended?historicalReference(profile,date,now):null,
     suspended:!!reference?.suspended,referenceAvailable:!!reference?.available,referenceStale:!!reference?.stale,referenceOnly:!!referenceEvents&&(reference.stale||!d.known||reference.applicability!=='reported')};
 }
 export function contextFor(profile,date,now=Date.now()) {
@@ -142,7 +151,9 @@ export function contextFor(profile,date,now=Date.now()) {
     text:'Спеціалісти працюють над відновленням.',
     reference:false,stale:false
   }:null;
-  return {kind:category?eventKind(category):null,label:suspensionLabel||planned?.label||c.label||'',valueMinutes:suspensionLabel?null:planned?.minutes??c.minutes??null,warning:false,notice,plannedCountdown:!!planned};
+  const valueMinutes=suspensionLabel?null:planned?.minutes??c.minutes??null;
+  const restorationUnknown=current&&valueMinutes===null&&(emergencySuspension&&!d.referenceStale||active?.category==='emergency');
+  return {kind:category?eventKind(category):null,label:restorationUnknown?'Час відновлення уточнюється':suspensionLabel||planned?.label||c.label||'',valueMinutes,warning:false,notice,plannedCountdown:!!planned};
 }
 export function profileView(p) {
   const a=p.address||{},city=(typeof a.city==='string'?a.city:a.city?.label||a.city?.name)||a.cityName||'', street=(typeof a.street==='string'?a.street:a.street?.label||a.street?.name)||'',house=(typeof a.house==='string'?a.house:a.house?.label||a.house?.name)||'';

@@ -71,3 +71,22 @@ test('an empty or absent publication never draws a fictitious reference grid',()
  line.categories.hourly.days[0].publication.state='not_published';
  assert.equal(scheduleFor(profile(s),date,now).referenceOverlay,null);assert.equal(contextFor(profile(s),date,now).notice,null);
 });
+
+
+test('emergency without a confirmed countdown describes restoration, not outage start',()=>{
+ const {s,line}=setup();
+ assert.equal(contextFor(profile(s),date,now).label,'Час відновлення уточнюється');
+ line.categories.emergency.days[0].intervals=[{start:now-60000,end:null}];
+ const c=contextFor(profile(s),date,now);assert.equal(c.label,'Час відновлення уточнюється');assert.equal(c.valueMinutes,null);
+});
+
+
+test('archived plan is a separate past-only display layer and cannot alter effective facts',()=>{
+ const {s,line}=setup(),from=Date.parse(date+'T00:00:00+02:00');
+ line.categories.hourly.days[0].historicalPlan={version:1,basis:'archived_official_plan',periods:[{start:from,end:from+3600000,intervals:[{start:from,end:from+1800000}]}]};
+ const p=profile(s),before=JSON.stringify(p),d=scheduleFor(p,date,now);
+ assert.equal(d.historicalOverlay.at(15),'hourly');assert.equal(d.historicalOverlay.at(45),null);assert.equal(d.historicalOverlay.at(75),undefined);
+ assert.equal(d.at(15),'unknown');assert.equal(d.at(45),'unknown');assert.equal(d.out,0);assert.equal(d.clear,0);assert.equal(d.planSummary,null);assert.equal(canSharePlan(d),false);
+ assert.equal(JSON.stringify(p),before);
+ line.categories.hourly.days[0].historicalPlan.periods[0].end=now+1;assert.equal(scheduleFor(profile(s),date,now).historicalOverlay,null);
+});

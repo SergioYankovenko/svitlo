@@ -1,3 +1,6 @@
+import {historicalPlan,HISTORICAL_PLAN_VERSION} from './historical-plan.js';
+import {seal} from '../universal/normalize.js';
+import {dayKey} from '../../app/lib/time.js';
 import {SharedCategories} from '../../server/shared-categories.js';
 import {DtekClient,REGIONS,regionError,boundedBody} from './dtek.js';
 import {projectStreet,resolveHouse,dtekSnapshot} from './policy.js';
@@ -5,7 +8,7 @@ import {projectYasno} from './yasno.js';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 export class Regions {
  constructor({db,bridge,secret,fetcher=fetch,now=Date.now}){
-  Object.assign(this,{db,bridge,fetcher,now});this.indexCache=new SharedCategories(db,secret,{ttl:86400000,now});this.streetCache=new SharedCategories(db,secret,{ttl:120000,now});this.snapshotCache=new SharedCategories(db,secret,{ttl:60000,boundFreshUntil:true,now});this.statusCache=new SharedCategories(db,secret,{ttl:120000,now});this.clients=new Map();
+  Object.assign(this,{db,bridge,fetcher,now});this.indexCache=new SharedCategories(db,secret,{ttl:86400000,now});this.streetCache=new SharedCategories(db,secret,{ttl:120000,now});this.snapshotCache=new SharedCategories(db,secret,{ttl:60000,boundFreshUntil:true,now});this.statusCache=new SharedCategories(db,secret,{ttl:120000,now});this.clients=new Map();this.historyCache=new SharedCategories(db,secret,{ttl:60000,now});
  }
  handles(op){return Object.hasOwn(REGIONS,op);}
  async gate(op){const deadline=Date.now()+6000;while(true){const r=(await this.bridge.query('select svitlo_regions.acquire($1) result',[op])).rows[0].result;if(r.granted)return r.ticket;if(r.reason==='cooldown')throw regionError(r.code==='forbidden'?'forbidden':'rate_limited',r.code==='forbidden'?503:429);if(Date.now()>=deadline)throw regionError('rate_limited',429);await pause(Math.min(500,r.waitMs||100));}}
@@ -33,7 +36,16 @@ export class Regions {
    }catch(e){error=e.code||'source_unavailable';throw e;}finally{await this.finish(op,ticket,{status,error,retry}).catch(()=>{});}
   });
  }
- async snapshot(entity,resolution,range){const data=await this.address(entity);let cityStatus=null;if(REGIONS[entity.operator_id]?.city)try{cityStatus=await this.cityStatus();}catch{/* Missing emergency state must not become a confirmed clear schedule. */}return {value:dtekSnapshot(entity,resolution,range,data,cityStatus,this.now())};}
+ async snapshot(entity,resolution,range){const data=await this.address(entity);let cityStatus=null;if(REGIONS[entity.operator_id]?.city)try{cityStatus=await this.cityStatus();}catch{/* Missing emergency state must not become a confirmed clear schedule. */}const value=dtekSnapshot(entity,resolution,range,data,cityStatus,this.now());
+  // Archive absence/failure never grants certainty or blocks the current source.
+  if(REGIONS[entity.operator_id]?.city)for(const line of value.lines)for(const day of line.categories.hourly.days){
+   if(day.state!=='suspended'||day.date>dayKey(this.now())||!/^\d+\.\d+$/.test(line.groupCode||''))continue;
+   try{const packet=await this.historyCache.load([HISTORICAL_PLAN_VERSION,entity.operator_id,line.groupCode,day.date],async()=>{
+    const rows=(await this.bridge.query('select svitlo_source_history.plan_observations($1,$2::date) value',['GPV'+line.groupCode,day.date])).rows[0]?.value;
+    return {history:historicalPlan(rows,day.date,this.now())};});if(packet.history)day.historicalPlan=packet.history;
+   }catch{/* Keep reference hatching; never infer history from an unavailable archive. */}
+  }
+  return {value:seal(value)};}
 }
 export class DtekAdapter {
  constructor(regions){this.regions=regions;}

@@ -73,7 +73,7 @@ for suite in phone history map regions pwa sources subscriptions geography disco
   docker exec -i svitlo-postgres-1 psql -X -q -1 -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" < vps/sql/settlement-directory.sql
   docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('1015_settlement_directory.sql','$hash')"
  else test "$existing" = "$hash";fi
- for spec in 1016_phone_qr_rotation.sql:phone-qr-rotation.sql 1018_expired_phone_qr.sql:expired-phone-qr.sql 1019_geography_discovery.sql:geography-discovery.sql;do
+ for spec in 1016_phone_qr_rotation.sql:phone-qr-rotation.sql 1018_expired_phone_qr.sql:expired-phone-qr.sql 1019_geography_discovery.sql:geography-discovery.sql 1020_historical_plan.sql:historical-plan.sql;do
   name=${spec%%:*};file=${spec#*:}
   existing=$(docker exec svitlo-postgres-1 psql -X -U svitlo_owner -d "$qa" -Atc "select sha256 from svitlo_vps.migrations where name='$name'")
   hash=$(sed 's/\r$//' "vps/sql/$file" | sha256sum | cut -d' ' -f1)

@@ -7,6 +7,7 @@ import {Catalog,apiError} from './store.js';
 import {adapterFor} from './adapters.js';
 import {degraded,normalizeLegacy,retainPartial} from './normalize.js';
 import {RECONCILIATION_VERSION} from '../regions/reconcile.js';
+import {HISTORICAL_PLAN_VERSION} from '../regions/historical-plan.js';
 import {DTEK_SNAPSHOT_VERSION} from '../regions/policy.js';
 export class UniversalReader {
  constructor({db,bridge,legacy,source,secret,regions}){Object.assign(this,{db,bridge,legacy,source,secret,regions});this.catalog=new Catalog(bridge,regions);this.shared=new SharedCategories(db,secret,{ttl:300000});}
@@ -39,7 +40,7 @@ export class UniversalReader {
   const entity=await this.catalog.entity(addressId);if(entity.kind!=='address')throw apiError(400,'not_an_address');
   const operator=await this.catalog.operator(entity.operator_id),adapter=operator&&adapterFor(operator,this);
   const scope=['universal-snapshot-v1',entity.operator_id,entity.id,range.fromDate,range.toDate];
-  if(this.regions?.handles(entity.operator_id))scope.push(RECONCILIATION_VERSION,DTEK_SNAPSHOT_VERSION);
+  if(this.regions?.handles(entity.operator_id))scope.push(RECONCILIATION_VERSION,DTEK_SNAPSHOT_VERSION,HISTORICAL_PLAN_VERSION);
   const key=createHmac('sha256',this.secret).update(JSON.stringify(scope)).digest('hex');
   const old=async()=>{const r=(await this.bridge.query('select value from public.svitlo_source_cache where key=$1',[key])).rows[0]?.value;return validUniversal(r)&&r.addressId===entity.id?r:null;};
   if(!adapter||operator.state==='disabled')return degraded(entity,range,await old(),!adapter?'adapter_unsupported':'operator_disabled',Date.now(),!adapter?'unsupported':'disabled');

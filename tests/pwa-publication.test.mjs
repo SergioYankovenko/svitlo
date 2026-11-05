@@ -19,7 +19,7 @@ for(const entry of index.scenarios)test(`published/reference contract: ${entry.f
  }
  if(entry.scenario==='emergency'){
   assert.equal(d.suspended,true);assert.equal(d.referenceOnly,false);assert.equal(d.raw.known,false);assert.equal(c.valueMinutes,null);assert.notEqual(c.kind,'emergency');
-  assert.equal(c.label,'Аварійний режим у черзі');assert.equal(d.planSummary,null);
+  assert.equal(c.label,'Час відновлення уточнюється');assert.equal(d.planSummary,null);
   assert.equal(d.events.filter(e=>e.kind==='hourly').length,0);
   assert.ok(d.unknown>0);assert.notEqual(d.clear,d.total);assert.equal(c.warning,false);
  }
