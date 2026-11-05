@@ -33,7 +33,7 @@ async function privateVps(route,data,{owner,signal}={}){
 export const mapSearch=(data,options)=>privateVps('map-search',data,options);
 export const sensorRequest=(action,data={},options)=>privateVps('sensors',{action,...data},options);
 export async function universalRequest(route,data={}, {signal}={}){
-  if(!universalEnabled||!['capabilities','search','resolve','legacy-resolve','snapshots'].includes(route))throw Error('Універсальний API недоступний');
+  if(!universalEnabled||!['capabilities','search','resolve','legacy-resolve','snapshots','settlements','settlement-routes','settlement-catalog','settlement-search'].includes(route))throw Error('Універсальний API недоступний');
   return post('/api/v1/'+route,{method:route==='capabilities'?'GET':'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',cache:'no-store',signal:signal||AbortSignal.timeout(30000),
     ...(route==='capabilities'?{}:{body:JSON.stringify({schemaVersion:1,...data})})});
 }

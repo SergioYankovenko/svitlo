@@ -16,6 +16,7 @@ import {DepartmentSchedules} from './department-cache.js';
 import {pilotPush} from './push.js';
 import {SourceHistory} from './regions/source-history.js';
 import {Geography} from './geography/service.mjs';
+import {DiscoveryCatalog} from './discovery/catalog.mjs';
 
 // Accounts remain transient adapter inputs; they never enter the persistent address/profile/catalog.
 export class PrivateSource extends Source {
@@ -42,5 +43,5 @@ export async function runtime(role='api'){
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
   const service=new UniversalService({...options,maps},reader);
   const sourceHistory=new SourceHistory({bridge,regions,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
-  return {p,bridge,db,source,service,legacy,reader,maps,regions,sourceHistory,geography:new Geography(bridge),secret,...delivery};
+  return {p,bridge,db,source,service,legacy,reader,maps,regions,sourceHistory,geography:new Geography(bridge),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions}),secret,...delivery};
 }

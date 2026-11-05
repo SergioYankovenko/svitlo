@@ -42,6 +42,7 @@ const publicKeys={search:['schemaVersion','kind','parentId','q','cursor','limit'
 const profileKeys={bootstrap:[],sync:['id','reason','subscription'],resolve_queue:['id','address'],dictionary:['kind','parent'],preview:['address'],save:['confirmed','address','name'],refresh:['id'],weather:['id'],delete:['id'],rename:['id','name'],preferences:['id','preferences'],subscribe:['id','subscription'],unsubscribe:['endpoint'],erase:[]};
 export const knownRoutes=new Set(['/api','/api/session','/api/v1/catalog','/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/map-search','/api/v1/sensors','/api/v1/sensor-events','/api/v1/sensor-devices/register','/api/v1/sensor-devices/control','/api/v1/diagnostic-reports','/diagnostic-reports']);
 knownRoutes.add('/api/v1/settlements');knownRoutes.add('/api/v1/settlement-routes');
+knownRoutes.add('/api/v1/settlement-catalog');knownRoutes.add('/api/v1/settlement-search');
 export const routeTag=path=>knownRoutes.has(path)?path:'unknown_api';
 export function validateRequest(route,p){
  const op=route.split('/').at(-1);

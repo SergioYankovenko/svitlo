@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import {readFile,readdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 const root=new URL('../pwa/',import.meta.url),source=JSON.parse(await readFile(new URL('UI254-PROVENANCE.json',root),'utf8'));
+const geo=JSON.parse(await readFile(new URL('GEO02-PROVENANCE.json',root),'utf8'));
 const normalized=s=>s.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
 const sha=s=>createHash('sha256').update(normalized(s)).digest('hex');
 test('UI254 base styles remain exact; approved live-only follow-ups stay scoped',async()=>{
  const names=(await readdir(root)).filter(n=>n.endsWith('.css')&&n!=='live.css');
  assert.ok(names.length>=15);
- for(const name of names)assert.equal(sha(await readFile(new URL(name,root),'utf8')),source.files[name],name);
+ for(const name of names){const expected=source.files[name]??geo.files[name];assert.ok(expected,'Unreviewed stylesheet: '+name);assert.equal(sha(await readFile(new URL(name,root),'utf8')),expected,name);}
+ assert.equal(geo.id,'GEO-02');assert.deepEqual(Object.keys(geo.files),['geography.css']);
  const host=await readFile(new URL('live.css',root),'utf8');assert.doesNotMatch(host,/(?:^|\})\s*(?:html|:root|\.phone|\.dialog|\.action|\.hour-tile|\.bottom-nav|\.preview-stage)\s*\{/);
 });
 test('approved policies, tutorial, typography fitter and pager are copied exactly',async()=>{

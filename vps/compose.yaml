@@ -48,6 +48,18 @@ services:
     secrets: [owner_password]
     restart: "no"
     healthcheck: {disable: true}
+  discovery:
+    <<: *runtime
+    environment:
+      <<: *environment
+      SVITLO_PILOT_PUSH: disabled
+      DISCOVERY_ENABLED: 'true'
+    command: [node,--use-system-ca,vps/discovery/worker.mjs]
+    secrets: [worker_password,session_secret]
+    healthcheck: {disable: true}
+    mem_limit: 256m
+    cpus: 0.25
+    stop_grace_period: 75s
   registry:
     <<: *runtime
     profiles: [scheduled]

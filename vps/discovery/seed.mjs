@@ -1,0 +1,4 @@
+// Migration owner only. Repeated startup/import retains existing progress and leases.
+export async function seedDiscovery(c){return (await c.query(`insert into svitlo_discovery.jobs(route_id,kind,source_name,priority)
+ select r.id,'city',r.provider_city_name,case when exists(select 1 from svitlo_geo.route_places l where l.route_id=r.id and l.settlement_code='UA71060230010046648') then case when r.branch_id='18' then 301 else 300 end when exists(select 1 from svitlo_geo.route_places l where l.route_id=r.id and l.settlement_code='UA71060230260024910') then 299 when r.operator_id='ua-kyiv-dtek' then 200 when exists(select 1 from svitlo_geo.route_places l where l.route_id=r.id and l.settlement_code='UA32060050010081797') then 190 else 10 end
+ from svitlo_geo.routes r where r.active and r.operator_id in ('ua-cherkasy','ua-kyiv-dtek','ua-kyiv-region-dtek') on conflict(route_id,kind,source_key) do nothing returning id`)).rowCount;}

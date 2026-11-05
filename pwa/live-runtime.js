@@ -50,16 +50,18 @@ export async function createLive(){
   }
   async function search(kind,flow,q,signal,cursor=null){
     if(!['city','street','house'].includes(kind)||kind==='city'&&q.trim().length<2||kind==='street'&&!flow.city?.id||kind==='house'&&!flow.street?.id)return [];
-    const result=await universalRequest('search',{kind:{city:'cities',street:'streets',house:'houses'}[kind],q:q.slice(0,120),limit:50,
+    const routed=kind!=='city'&&flow.geography?.route&&flow.geography?.settlement;
+    const result=await universalRequest(routed?'settlement-search':'search',{kind:{city:'cities',street:'streets',house:'houses'}[kind],q:q.slice(0,120),limit:50,
+      ...(routed?{routeId:flow.geography.route.routeId,settlementCode:flow.geography.settlement.code}:{}),
       ...(kind==='street'?{parentId:flow.city.id}:kind==='house'?{parentId:flow.street.id}:{}),...(cursor?{cursor}:{})},{signal});
     // Render a page immediately, then continue on scroll. Never hide a large city's list behind a page budget.
     return Object.assign(result.items.map(x=>({...x,name:x.label,context:[x.region?.label,x.district?.label,x.context].filter(Boolean).join(' · ')})),{nextCursor:result.nextCursor||null});
   }
   async function enroll(flow,signal){
-    const resolved=await universalRequest('resolve',{addressId:flow.house.id},{signal});
+    const resolved=await universalRequest('resolve',{addressId:flow.house.id,...(flow.lineId?{lineId:flow.lineId}:{})},{signal});
     if(['disabled','unsupported'].includes(resolved.operator?.supportState))throw Error('Джерело цього регіону недоступне');
     const lines=resolved.resolution?.lines||[],lineId=resolved.selection?.lineId||null;
-    if(lines.length>1&&!lineId)throw Error('Потрібен вибір лінії живлення');
+    if(lines.length>1&&!lineId){if(flow.geography)return {requiresLine:true,lines};throw Error('Потрібен вибір лінії живлення');}
     const who=await session(true),generation=epoch;
     const result=await request('save',{address:{canonicalAddressId:resolved.address.id,lineId},name:flow.name||'',confirmed:true},{owner:who,signal});
     if(generation!==epoch||who!==owner)throw Error('Сеанс змінився. Спробуйте ще раз');
@@ -118,7 +120,7 @@ export async function createLive(){
     })().finally(()=>{if(pushPending===job)pushPending=null;});pushPending=job;return job;
   }
   async function disablePush(){savePushChoice(false);pushRequest++;pushPending=null;const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner)await mutate('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
-  const api={adopt,enroll,search,sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,planView,canSharePlan,planClock,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
+  const api={adopt,enroll,search,geography:(route,data,signal)=>universalRequest(route,data,{signal}),sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,planView,canSharePlan,planClock,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
     rememberView:view=>rememberReloadView(()=>sessionStorage,owner,view),takeView:()=>takeReloadView(()=>sessionStorage,owner),
     onChange:f=>{listeners.add(f);return()=>listeners.delete(f);},
     profile:current,profiles:()=>profiles,owner:()=>owner,sensors:()=>sensors,sensorFetched:()=>sensorFetched,signalView:sensorSignalView,refreshSensors,

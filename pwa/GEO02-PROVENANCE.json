@@ -1,0 +1,9 @@
+{
+  "id": "GEO-02",
+  "date": "2026-11-05",
+  "authorization": "Direct human request: KATOTTG hierarchy for new test-PWA addresses only",
+  "scope": "New-address geography screen; UI254 base styles remain unchanged",
+  "files": {
+    "geography.css": "c4f7fea75c064c450cf8a34ab23ac583c72f65899e57cfb73d4cff98eab389e0"
+  }
+}

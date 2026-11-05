@@ -26,6 +26,8 @@ window.SvitloOnboarding = {
         house: flow.house?.id || null,
         queries: { ...flow.queries },
         selected: Object.fromEntries(['city','street','house'].map(kind=>[kind,flow[kind]||null])),
+        geography: flow.geography || null,
+        lineId: flow.lineId || null,
         name: flow.name,
         remind: flow.remind,
         permission: flow.permission,
@@ -80,6 +82,8 @@ window.SvitloOnboarding = {
         additionalEditing: !draft.initial && !!draft.additionalEditing,
         editing: ["city", "street", "house"].includes(draft.editing) ? draft.editing : null,
       };
+      if(draft.geography){flow.geography=window.SvitloGeography?.restore(draft.geography);if(!flow.geography){flow=null;delete state().onboardingDraft;return false;}}
+      if(/^[a-f0-9-]{36}$/i.test(draft.lineId||''))flow.lineId=draft.lineId;
       for (const kind of ["city", "street", "house"]) {
         if (!draft[kind]) continue;
         const record=draft.selected?.[kind];
@@ -123,7 +127,7 @@ window.SvitloOnboarding = {
       ) {
         flow.request = { kind: stage, phase: "error", reason: failure.reason };
       }
-      if(flow.phase==='address'&&!flow.house)queueMicrotask(()=>beginRequest(stage));
+      if(flow.phase==='address'&&!flow.house)queueMicrotask(()=>geography?.active()?geography.start():beginRequest(stage));
       return true;
     }
     const after = (delay, callback) => {
@@ -160,6 +164,9 @@ window.SvitloOnboarding = {
         .replace(/\s+/g, " ")
         .trim();
     const eligibleQuery=(kind,query)=>kind==='submit'||kind==='city'&&normalize(query||'').length>=2||kind==='street'&&!!flow?.city||kind==='house'&&!!flow?.street;
+    const geography=window.SvitloGeography?.create({get:()=>flow,render:ctx.render,remember,
+      onCity:record=>{cancelRequest();flow.city=record;flow.street=null;flow.house=null;flow.queries={city:'',street:'',house:''};flow.editing=flow.inlineReview?'street':null;delete flow.editBackup;flow.started=true;ctx.render(false);beginRequest('street');},
+      onLegacy:name=>{flow.geography=null;flow.city=null;flow.street=null;flow.house=null;flow.inlineReview=false;flow.additionalEditing=false;flow.editing=null;flow.queries={city:name,street:'',house:''};ctx.render(false);beginRequest('city');}});
     const latin = {
       а: "a",
       б: "b",
@@ -362,6 +369,7 @@ window.SvitloOnboarding = {
         : window.SvitloLive.search(kind,flow,query,abortRequest.signal,cursor);
       task.then(result=>{
         if(!current())return;
+        if(kind==='submit'&&result.requiresLine){cancelRequest();flow.lineChoices=result.lines;flow.lineId=null;ctx.render(false);return;}
         if(kind==="submit") flow.savedProfile=result;
         else {
           flow.results[kind]=more?[...new Map([...flow.results[kind],...result].map(r=>[r.id,r])).values()]:result;
@@ -535,6 +543,8 @@ window.SvitloOnboarding = {
       }).join('')}</div>`;
     }
     function addressScreen() {
+      if(geography?.active())return geography.html();
+      if(flow.lineChoices?.length)return `<section class="onboard-address-flow" aria-label="Лінія нової адреси">${selectedAddress(true)}<div class="card outlined onboard-card geo-line-options"><h1>У будинку є кілька ліній живлення</h1><p class="onboard-support">Оберіть свою лінію, щоб показати відповідний графік.</p>${flow.lineChoices.map(line=>`<button class="action" data-action="onboard-line" data-line="${e(line.id)}">${e(line.label||line.groupCode||'Лінія живлення')}</button>`).join('')}<button class="action" data-action="onboard-clear" data-kind="house">Змінити будинок</button></div></section>`;
       const submitting=flow.request?.kind==='submit'&&pending(),review=!!flow.house,additional=!flow.initial;
       const inline=flow.initial&&(flow.inlineReview||review),editingAdditional=additional&&flow.additionalEditing;
       if(review)window.SvitloMascot?.warmSubmit();
@@ -552,7 +562,9 @@ window.SvitloOnboarding = {
       const enabled=review&&!pending()&&(editingAdditional||!flow.editing);
       const actions=(review||inline||editingAdditional)&&!submitting?`<div class="onboard-review-actions ${inline?'first-review-actions':''}"><button class="action onboard-primary" ${enabled?'':'disabled'} data-action="${flow.request?.kind==='submit'&&flow.request.phase==='error'?'onboard-retry':'onboard-continue'}" data-kind="submit">${flow.request?.kind==='submit'&&flow.request.phase==='error'?'Спробувати ще':inline||editingAdditional?'Продовжити':'Показати графік'}</button></div>`:'';
       const content=submitting?status:inline?`${fields}${status}${actions}`:`<div class="card outlined onboard-card">${fields}${status}${actions}</div>`;
-      return `<section class="onboard-address-flow ${submitting?'is-submitting fullbody-pending':''} ${inline?'first-address-review':''} ${editingAdditional?'additional-address-edit':''} ${additional&&review&&!editingAdditional?'additional-address-review':''}" aria-label="Налаштування адреси">${mascotGreeting()}${content}</section>${errorFooter()}`;
+      const place=flow.geography?.settlement,route=flow.geography?.route;
+      const location=place?`<div class="geo-selection-summary">${e([flow.geography.region?.name,flow.geography.community?.name,route?.branch?.name||route?.operator?.label].filter(Boolean).join(' · '))}</div>`:'';
+      return `<section class="onboard-address-flow ${submitting?'is-submitting fullbody-pending':''} ${inline?'first-address-review':''} ${editingAdditional?'additional-address-edit':''} ${additional&&review&&!editingAdditional?'additional-address-review':''}" aria-label="Налаштування адреси">${mascotGreeting()}${location}${content}</section>${errorFooter()}`;
     }
 
     function preferenceScreen() {
@@ -602,9 +614,11 @@ window.SvitloOnboarding = {
         started: false,
         revisiting: null,
       };
+      if(!resume&&state().target==='pwa'&&geography&&window.SvitloLive?.geography){flow.geography=window.SvitloGeography.fresh();queueMicrotask(()=>geography.start());}
       ctx.render(false);
     }
     function close() {
+      geography?.cancel();
       cancelRequest();
       flow = null;
       delete state().onboardingDraft;
@@ -658,8 +672,11 @@ window.SvitloOnboarding = {
       ctx.syncLab();
     }
     function handleAction(action, element) {
+      if(geography?.handleAction(action,element))return true;
       if (!action.startsWith("onboard-")) return false;
       switch (action) {
+        case 'onboard-line':
+          if(flow?.lineChoices?.some(x=>x.id===element.dataset.line)){flow.lineId=element.dataset.line;flow.lineChoices=null;beginRequest('submit');ctx.render(false);}break;
         case "onboard-report":
           if (
             flow &&
@@ -688,6 +705,7 @@ window.SvitloOnboarding = {
           if (flow) {
             const kind = element.dataset.kind;
             if (!["city","street","house"].includes(kind)) break;
+            if(kind==='city'&&flow.geography){cancelRequest();flow.city=null;flow.street=null;flow.house=null;flow.lineId=null;flow.lineChoices=null;flow.geography=window.SvitloGeography.fresh();flow.inlineReview=false;flow.additionalEditing=false;flow.editing=null;delete flow.editBackup;geography.start();break;}
             if (flow.inlineReview && flow.editing === kind && flow.editBackup) {
               Object.assign(flow, flow.editBackup);
               delete flow.editBackup;
@@ -740,6 +758,7 @@ window.SvitloOnboarding = {
           }
           const fields = ["city", "street", "house"];
           flow[kind] = record;
+          flow.lineId=null;flow.lineChoices=null;
           flow.queries[kind] = "";
           flow.started = true;
           flow.revisiting = null;
@@ -778,6 +797,8 @@ window.SvitloOnboarding = {
             flow.results[key] = [];
           }
           cancelRequest();
+          flow.lineId=null;flow.lineChoices=null;
+          if(kind==='city'&&flow.geography){flow.geography=window.SvitloGeography.fresh();flow.inlineReview=false;flow.additionalEditing=false;flow.editing=null;geography.start();break;}
           ctx.render();
           document
             .getElementById("onboard-" + kind)
@@ -850,6 +871,7 @@ window.SvitloOnboarding = {
     }
     function handleInput(event) {
       if (!flow) return;
+      if(geography?.handleInput(event))return;
       if (event.target.hasAttribute("data-onboard-name")) {
         flow.name = event.target.value;
         remember();
@@ -908,6 +930,7 @@ window.SvitloOnboarding = {
       close,
       restore,
       suspend: () => {
+        geography?.cancel();
         remember();
         cancelRequest();
         flow = null;

@@ -1,0 +1,8 @@
+// Private operator command, never an HTTP endpoint. Returns public source addresses and aggregates only.
+import pg from 'pg';import {readFile} from 'node:fs/promises';
+const args=process.argv.slice(2);if(args.some(x=>!['--all'].includes(x)))throw Error('Only --all is supported');
+const c=new pg.Client({host:process.env.PGHOST||'postgres',database:process.env.PGDATABASE||'svitlo_staging',user:'svitlo_owner',password:(await readFile('/run/secrets/owner_password','utf8')).trim(),options:'-c statement_timeout=10000'});await c.connect();
+try{const policy=(await c.query('select * from svitlo_discovery.policy')).rows[0],state=(await c.query('select * from svitlo_discovery.state')).rows[0],jobs=(await c.query("select kind,count(*)::int total,count(*) filter(where completed_at is not null)::int completed,count(*) filter(where last_error is not null)::int with_error from svitlo_discovery.jobs group by kind order by kind")).rows,outcomes=(await c.query('select outcome,basis,count(*)::int addresses,sum(observations)::int observations from svitlo_discovery.events group by outcome,basis order by outcome,basis')).rows;
+ const examples=(await c.query(`select e.first_seen_at,e.last_seen_at,r.operator_id,r.branch_id,r.branch_name,r.provider_city_name,e.street_key,e.street_name,e.house,e.outcome,e.basis,e.source_checked_at,e.detail from svitlo_discovery.events e join svitlo_geo.routes r on r.id=e.route_id ${args.includes('--all')?'':"where e.outcome not in ('streets_listed','houses_listed','queue_confirmed','queue_not_in_schedule')"} order by e.last_seen_at desc,e.id limit 100`)).rows;
+ console.log(JSON.stringify({schemaVersion:1,scope:'public_provider_diagnostics',policy,state,jobs,outcomes,examples,noRepairsPerformed:true},null,2));
+}finally{await c.end();}
