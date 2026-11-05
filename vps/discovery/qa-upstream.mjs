@@ -4,8 +4,14 @@ if(!/^svitlo_discovery_qa_\d+$/.test(process.env.PGDATABASE||''))throw Error('Di
 // fetch alone does not isolate it. Replace only this module in the explicit QA
 // child process; production TLS/CA handling is left byte-for-byte unchanged.
 const {registerHooks}=await import('node:module');
+const {readFileSync}=await import('node:fs');
 const operatorModule=new URL('../operator-fetch.js',import.meta.url).href;
-registerHooks({load(url,context,nextLoad){return url===operatorModule?{format:'module',source:'export const operatorFetch=(...args)=>globalThis.fetch(...args);',shortCircuit:true}:nextLoad(url,context);}});
+const httpModule=new URL('../http.mjs',import.meta.url).href;
+registerHooks({load(url,context,nextLoad){
+ if(url===operatorModule)return {format:'module',source:'export const operatorFetch=(...args)=>globalThis.fetch(...args);',shortCircuit:true};
+ if(url===httpModule){const source=readFileSync(new URL(url),'utf8').replace('}catch(e){const status=e.status||','}catch(e){console.error(JSON.stringify({event:"qa_http_error",code:e.code||"unexpected",frames:String(e.stack||"").split("\\n").slice(1,5)}));const status=e.status||');return {format:'module',source,shortCircuit:true};}
+ return nextLoad(url,context);
+}});
 const realFetch=globalThis.fetch;const {loadBundle}=await import('../geography/bundle.mjs');const {data}=await loadBundle();
 globalThis.fetch=async(input,options={})=>{
  const url=new URL(typeof input==='string'?input:input.url||String(input));if(['127.0.0.1','localhost'].includes(url.hostname))return realFetch(input,options);
