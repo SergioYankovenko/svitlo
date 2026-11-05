@@ -1,3 +1,4 @@
+import {RECONCILIATION_VERSION} from './reconcile.js';
 import pg from 'pg';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -71,7 +72,7 @@ try{
  });
  await check('Kyiv emergency suspends applicability while keeping dated plan in provenance',async()=>{
   const value=await rt.reader.snapshot(address,range);assert(validUniversal(value));assert.equal(value.lines[0].categories.hourly.days[0].state,'suspended');
-  const decision=value.provenance[0].reconciliation.days[decisionKey];assert.equal(decision.policy,'kyiv-sources-v3');assert.equal(decision.powerState,'unknown');assert(Array.isArray(decision.publishedIntervals));
+  const decision=value.provenance[0].reconciliation.days[decisionKey];assert.equal(decision.policy,RECONCILIATION_VERSION);assert.equal(decision.powerState,'unknown');assert(Array.isArray(decision.publishedIntervals));
  });
  await check('explicit line saves one private profile, duplicate is stable and foreign owner cannot read it',async()=>{
   const result=await rt.reader.resolve({addressId:brovary}),lineId=result.resolution.lines[0].id;
