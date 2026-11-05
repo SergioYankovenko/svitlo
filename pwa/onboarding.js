@@ -563,7 +563,7 @@ window.SvitloOnboarding = {
       const content=submitting?status:inline?`${fields}${status}${actions}`:`<div class="card outlined onboard-card">${fields}${status}${actions}</div>`;
       const place=flow.geography?.settlement,route=flow.geography?.route;
       const location=place&&flow.house?`<div class="geo-selection-summary">${e([flow.geography.region?.name,flow.geography.community?.name,route?.branch?.name||route?.operator?.label].filter(Boolean).join(' · '))}</div>`:'';
-      return `<section class="onboard-address-flow ${submitting?'is-submitting fullbody-pending':''} ${inline?'first-address-review':''} ${editingAdditional?'additional-address-edit':''} ${additional&&review&&!editingAdditional?'additional-address-review':''}" aria-label="Налаштування адреси">${mascotGreeting()}${location}${content}</section>${errorFooter()}`;
+      return `<section class="onboard-address-flow ${submitting?'is-submitting fullbody-pending':''} ${inline?'first-address-review':''} ${editingAdditional?'additional-address-edit':''} ${additional&&review&&!editingAdditional?'additional-address-review':''}" aria-label="Налаштування адреси">${mascotGreeting()}${content}${location}</section>${errorFooter()}`;
     }
 
     function preferenceScreen() {
