@@ -1,3 +1,6 @@
-/* No component overrides. UI254 owns product geometry, typography and motion. */
+/* UI254 base; scoped approved PWA-LIVE-06 reminder alignment below. */
 body.live-pwa{margin:0}
 .live-pwa .sensor-qr{display:block;max-width:100%;width:256px;height:auto;margin:16px auto;background:white}
+.live-pwa .reminder-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
+.live-pwa .reminder-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.live-pwa .reminder-copy .reminder-caption{margin:0;padding:0;grid-column:auto;line-height:1.3}

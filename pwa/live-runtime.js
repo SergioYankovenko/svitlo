@@ -10,7 +10,7 @@ const safeRead=()=>{try {const raw=localStorage.getItem(KEY);if(!raw||raw.length
 const weatherType=code=>code===0?['☀️','Ясно']:code<3?['🌤️','Мінлива хмарність']:code===3?['☁️','Хмарно']:code<50?['🌫️','Туман']:code<70?['🌧️','Дощ']:code<80?['🌨️','Сніг']:code<95?['🌦️','Злива']:['⛈️','Гроза'];
 export async function createLive(){
   let old=safeRead(),owner=old?.owner||null,profiles=old?.profiles||[],weather=old?.weather||{},active=old?.active||null;
-  let epoch=0,dataRevision=0,pending=null,lastSync=0,ui=null,offline=false,pushSubscribed=false,vapid='',sensors=[],sensorFetched=0,sensorPending=null,pushBinding=null,pushRestore=null,pushRequest=0,pushPending=null,identityConfirmed=false,syncFailures=0,retryAfter=0;
+  let epoch=0,dataRevision=0,pending=null,pendingProfile=null,syncQueued=false,lastSync=0,ui=null,offline=false,pushSubscribed=false,vapid='',sensors=[],sensorFetched=0,sensorPending=null,pushBinding=null,pushRestore=null,pushRequest=0,pushPending=null,identityConfirmed=false,syncFailures=0,retryAfter=0;
   const PUSH_CHOICE='svitlo.pwa.v2.push-choice';
   const pushChoice=()=>{try{return JSON.parse(localStorage.getItem(PUSH_CHOICE)||'null');}catch{return null;}};
   const savePushChoice=(enabled,subject=owner)=>{try{localStorage.setItem(PUSH_CHOICE,JSON.stringify({owner:subject,enabled}));}catch{}};
@@ -29,7 +29,8 @@ export async function createLive(){
   // Read only. A failed session refresh never creates a new anonymous owner.
   try{await session(false);}catch{offline=true;}
   async function sync(reason='visible'){
-    if(pending)return pending;
+    if(pending){if(pendingProfile!==active)syncQueued=true;return pending;}
+    pendingProfile=active;
     pending=(async()=>{
       const who=await session(false);if(!who){emit();return;}
       const generation=epoch,revision=dataRevision,id=active;
@@ -39,9 +40,10 @@ export async function createLive(){
       active=profiles.some(p=>p.id===active)?active:result.active||profiles[0]?.id||null;
       vapid=result.vapid||'';
       restorePush().catch(()=>{});
-      if(result.weather&&id===active||result.weather&&!id)weather[active]=result.weather;
+      const weatherId=result.active||id,weatherProfile=current(weatherId);
+      if(result.weather&&weatherProfile&&result.weather.city===profileView(weatherProfile).city)weather[weatherId]=result.weather;
       lastSync=Date.now();syncFailures=0;retryAfter=0;offline=false;persist();emit();
-    })().catch(error=>{offline=true;retryAfter=Date.now()+Math.min(900000,30000*2**Math.min(syncFailures++,5));if(error.status===401)clear();emit();throw error;}).finally(()=>pending=null);
+    })().catch(error=>{offline=true;retryAfter=Date.now()+Math.min(900000,30000*2**Math.min(syncFailures++,5));if(error.status===401)clear();emit();throw error;}).finally(()=>{pending=null;pendingProfile=null;if(syncQueued){syncQueued=false;queueMicrotask(()=>sync().catch(()=>{}));}});
     return pending;
   }
   async function search(kind,flow,q,signal){
@@ -87,7 +89,7 @@ export async function createLive(){
     const job=(preferenceJobs.get(id)||Promise.resolve()).catch(()=>{}).then(()=>mutate('preferences',{id,preferences:patch})).then(r=>{dataRevision++;if(preferenceRevisions.get(id)===revision){profiles=profiles.map(p=>p.id===id?r.profile:p);persist();}});
     preferenceJobs.set(id,job);return job;
   }
-  function weatherHTML(e){const w=weather[active];if(!w||!Number.isFinite(w.temperature))return '';
+  function weatherHTML(e){const w=weather[active];if(!w||!Number.isFinite(w.temperature)||w.city!==profileView(current()||{}).city)return '';
     const [glyph,description]=weatherType(w.code),temp=t=>(t>0?'+':'')+Math.round(t)+'°';
     return `<section class="card outlined weather-card"><div class="muted weather-today" style="font-size:calc(12px * var(--scale))">СЬОГОДНІ</div><div class="weather-top"><div class="weather-temp">${temp(w.temperature)}</div><div><div class="weather-city">${e(profileView(current()).city)}</div><div class="weather-condition"><span class="weather-glyph" aria-hidden="true">${glyph}</span> ${description}</div></div></div><div class="weather-strip" aria-label="Погодинний прогноз">${(w.hours||[]).map(h=>`<div class="weather-hour"><span class="weather-clock">${clock(h.time)}</span><span class="weather-symbol weather-glyph" aria-hidden="true">${weatherType(h.code)[0]}</span><strong>${temp(h.temp)}</strong></div>`).join('')}</div><div class="attribution"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a></div></section>`;
   }

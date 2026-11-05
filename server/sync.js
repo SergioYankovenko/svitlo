@@ -8,9 +8,9 @@ export class SyncService {
     const {db,source,now}=this.service, key=cityKey(address), old=this.weather.get(key);
     if(old && now()-old.checkedAt<3600000) return old;
     if(this.weatherPending.has(key))return this.weatherPending.get(key);
-    if(!this.shared && db.sourceClaim) this.shared=new SharedCategories(db,'svitlo-public-weather-v1',{now,ttl:3600000});
-    const load=()=>source.weather(address.city);
-    const pending=(this.shared ? this.shared.load(['weather-v1',key],load) : load()).then(value=>{this.weather.set(key,value);return value;}).finally(()=>this.weatherPending.delete(key));
+    if(!this.shared && db.sourceClaim) this.shared=new SharedCategories(db,'svitlo-public-weather-v2',{now,ttl:3600000});
+    const load=()=>source.weather(address.city,{operatorId:address.operatorId});
+    const pending=(this.shared ? this.shared.load(['weather-v2',key],load) : load()).then(value=>{this.weather.set(key,value);return value;}).finally(()=>this.weatherPending.delete(key));
     this.weatherPending.set(key,pending);return pending;
   }
   run(owner, body, list) {

@@ -342,7 +342,8 @@
       .join("")}</div></div>`;
   }
   function summaryCards() {
-    const d = policy.summary(schedule(), sensor?.observation(), sensor?.preferActual());
+    const data=schedule(),plan=data.planSummary?{...data,out:data.planSummary.off,clear:data.planSummary.on,unknown:0}:data;
+    const d = policy.summary(plan, sensor?.observation(), sensor?.preferActual());
     if (!d) return "";
     const detail =
       d.source === "device_observation"
@@ -373,8 +374,8 @@
       date > window.SvitloClock.now(state).date,
       fixtureContext(date),
     );
-    if (missing)
-      return journey.unpublished(
+    if (missing || data.publication === 'unknown') {
+      const placeholder = journey.unpublished(
         date === window.SvitloClock.tomorrow(state),
         date === window.SvitloClock.now(state).date
           ? "сьогодні"
@@ -385,6 +386,12 @@
             }),
         state,
       );
+      if (missing) return placeholder;
+      const template = document.createElement('template');
+      template.innerHTML = placeholder;
+      template.content.querySelector('.schedule-empty-speech p').textContent = 'Дані графіка уточнюються';
+      return template.innerHTML;
+    }
     return `${data.referenceOnly ? '<div class="schedule-note">Дані графіка уточнюються</div>' : ''}${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div><div class="actions one schedule-feedback"><button class="action mismatch-action" disabled aria-disabled="true">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
   }
   function scheduleCard(demo = false) {
@@ -490,7 +497,7 @@
       )
       .join(
         "",
-      )}</section><section class="card outlined"><div class="settings-title"><h2>Сповіщення</h2><button class="bell ${state.permission ? "" : "blocked"}" data-action="permission" aria-label="Стан дозволу на сповіщення">${icon(state.permission ? "bell" : "bell-off")}</button></div>${flags.slice(0, 2).map(switchRow).join("")}<div class="reminder-row"><div>Нагадувати за</div><button class="action reminder-value" data-action="reminder" ${!state.switches.before && !state.switches.restore ? "disabled" : ""}>${state.reminder} хв ▾</button><div class="reminder-caption">${state.switches.before || state.switches.restore ? "Оберіть час нагадування" : "Увімкніть нагадування, щоб вибрати час"}</div></div><hr class="divider">${flags.slice(2, 5).map(switchRow).join("")}${state.target === "pwa" ? "" : `<hr class="divider">${switchRow(flags[5])}`}</section>${state.target === "pwa" ? `<section class="card outlined"><h2>Твої дані</h2><p>Адреси й підписка зберігаються на сервері «Світло». На пристрої зберігається офлайн-копія.</p></section>` : `<section class="card outlined"><h2>Віджети</h2><div class="actions"><button class="action" data-action="widget" data-type="detailed">Детальний · 4×4</button><button class="action" data-action="widget" data-type="compact">Компактний · 4×2</button></div></section>`}${prototypeOptions()}<hr class="divider"><section class="full-legend"><h2>Умовні позначення</h2>${[
+      )}</section><section class="card outlined"><div class="settings-title"><h2>Сповіщення</h2><button class="bell ${state.permission ? "" : "blocked"}" data-action="permission" aria-label="Стан дозволу на сповіщення">${icon(state.permission ? "bell" : "bell-off")}</button></div>${flags.slice(0, 2).map(switchRow).join("")}<div class="reminder-row"><div class="reminder-copy"><div>Нагадувати за</div><div class="reminder-caption">${state.switches.before || state.switches.restore ? "Оберіть час нагадування" : "Увімкніть нагадування, щоб вибрати час"}</div></div><button class="action reminder-value" data-action="reminder" ${!state.switches.before && !state.switches.restore ? "disabled" : ""}>${state.reminder} хв ▾</button></div><hr class="divider">${flags.slice(2, 5).map(switchRow).join("")}${state.target === "pwa" ? "" : `<hr class="divider">${switchRow(flags[5])}`}</section>${state.target === "pwa" ? `<section class="card outlined"><h2>Твої дані</h2><p>Адреси й підписка зберігаються на сервері «Світло». На пристрої зберігається офлайн-копія.</p></section>` : `<section class="card outlined"><h2>Віджети</h2><div class="actions"><button class="action" data-action="widget" data-type="detailed">Детальний · 4×4</button><button class="action" data-action="widget" data-type="compact">Компактний · 4×2</button></div></section>`}${prototypeOptions()}<hr class="divider"><section class="full-legend"><h2>Умовні позначення</h2>${[
       ["hourly", "Погодинне відключення"],
       ["planned", "Планові роботи"],
       ["unplanned", "Позапланове відключення"],
@@ -732,6 +739,7 @@
         break;
       case "select-address":
         state.active = id;
+        live.adopt(state);
         expanded = false;
         render();
         break;

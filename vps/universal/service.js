@@ -14,7 +14,6 @@ export function repairSnapshot(old,now){
 }
 export class UniversalService extends Service {
  constructor(options,reader){super(options);this.reader=reader;this.maps=options.maps;
-  const oldWeather=this.sync.weatherFor.bind(this.sync);this.sync.weatherFor=a=>a.canonicalAddressId&&a.operatorId!=='ua-cherkasy'?Promise.reject(Error('weather_not_supported')):oldWeather(a);
  }
  async canonicalAddress(body){const r=await this.reader.resolve(body),a=r.address;
   if(['disabled','unsupported'].includes(r.operator.supportState))throw new ApiError(503,'Джерело цього регіону тимчасово недоступне');

@@ -5,12 +5,13 @@ import {selectedLine} from './core/lib/universal-contract.js';
 export const labels={hourly:'Погодинне відключення',planned:'Планові роботи',unplanned:'Позапланове відключення',emergency:'Аварійне відключення'};
 export function refreshDeadline(profile,lastSync){
   const s=profile?.snapshot?.universal;
+  if(Number.isFinite(s?.freshUntil)&&s.freshUntil<=lastSync&&s.refreshAfter>lastSync)return Math.max(lastSync+30000,s.refreshAfter);
   const source=[s?.refreshAfter,s?.freshUntil].filter(t=>Number.isFinite(t)&&t>0);
   return Math.max(lastSync+30000,Math.min(lastSync+3600000,...source));
 }
 // A published table is a display source, never a replacement for effective events,
 // current-power certainty, countdowns, sensor observations or delivery policy.
-export function publishedReference(profile,date,now=Date.now()){
+export function publishedReference(profile,date,now=Date.now(),saved=false){
   const s=profile?.snapshot?.universal,line=selectedLine(s,profile?.snapshot?.selectedLineId);
   if(!line||!s.resolution.complete||!['available','degraded'].includes(s.supportState))return null;
   const category=line.categories.hourly,day=category?.days.find(d=>d.date===date),publication=day?.publication;
@@ -19,14 +20,15 @@ export function publishedReference(profile,date,now=Date.now()){
   const fresh=[s,category,publication].every(x=>stamp(x.checkedAt)&&x.checkedAt<=now+300000&&stamp(x.freshUntil)&&x.freshUntil>now&&
     (x.sourceUpdatedAt===null||stamp(x.sourceUpdatedAt)&&x.sourceUpdatedAt<=now+300000));
   if(publication.state==='not_published')return {available:false,notPublished:fresh};
-  if(publication.state!=='published'||!fresh||!Array.isArray(publication.intervals)||publication.intervals.length>2000||
+  const savedPlan=saved&&date<=dayKey(now)&&[s,category,publication].every(x=>stamp(x.checkedAt)&&x.checkedAt<=now+300000&&now-x.checkedAt<=7*86400000&&(x.sourceUpdatedAt===null||stamp(x.sourceUpdatedAt)&&x.sourceUpdatedAt<=now+300000));
+  if(publication.state!=='published'||!fresh&&!savedPlan||!Array.isArray(publication.intervals)||publication.intervals.length>2000||
     publication.intervals.some(e=>!e||!stamp(e.start)||!stamp(e.end)||e.start<from||e.end>until||e.end<=e.start))return {available:false};
   const positive=line.supportedCategories.filter(k=>k!=='hourly').flatMap(k=>{
     const c=line.categories[k];
     if(c.evidenceMode!=='positive_only'||c.freshUntil<=now||c.checkedAt>now+300000||c.sourceUpdatedAt>now+300000)return [];
     return (c.days.find(d=>d.date===date)?.intervals||[]).filter(e=>e.start<until&&(e.end===null||e.end>from)).map(e=>({...e,category:k==='unplanned'?'planned':k,...(k==='unplanned'?{unplanned:true}:{})}));
   });
-  return {available:true,applicability:day.applicability?.state||'unconfirmed',events:publication.intervals.map(e=>({...e,category:'hourly'})),positive};
+  return {available:true,stale:!fresh,applicability:day.applicability?.state||'unconfirmed',events:publication.intervals.map(e=>({...e,category:'hourly'})),positive};
 }
 export function plannedCountdown(profile,date,now=Date.now()){
   const ref=publishedReference(profile,date,now);
@@ -56,7 +58,7 @@ export function scheduleFor(profile,date,now=Date.now()) {
   const from=civil(date),until=civil(addDays(date,1)),total=(until-from)/60000;
   const d=dayState(profile?.snapshot||{},date,now);
   const exact=d.hours.flatMap(h=>h.segments), displayed=d.displayHours.flatMap(h=>h.segments);
-  const reference=publishedReference(profile,date,now);
+  const reference=publishedReference(profile,date,now,true);
   const referenceEvents=reference?.available?[...reference.events,...reference.positive]:null;
   const referenceDisplay=referenceEvents?displayHours(referenceEvents,from,until,false,now).flatMap(h=>h.segments):null;
   const sum=kind=>exact.filter(s=>s.kind===kind).reduce((n,s)=>n+(s.end-s.start)/60000,0);
@@ -72,10 +74,14 @@ export function scheduleFor(profile,date,now=Date.now()) {
   };
   const notPublished=reference?!!reference.notPublished:!d.stale&&d.line?.categories.hourly?.days.find(x=>x.date===date)?.state==='not_published';
   const coverage=profile?.snapshot?.universal?.coverage,outside=coverage&&(date<coverage.fromDate||date>coverage.toDate);
-  return {publication:outside?'unknown':reference?.available?'published':notPublished&&!d.events.length?'unpublished':d.available||d.known||d.events.length?'published':'unknown',total,
+  // This is a total of the published plan, never a claim about actual power.
+  const planSegments=referenceEvents?displayHours(referenceEvents,from,until,true,now).flatMap(h=>h.segments):null;
+  const planOut=planSegments?.filter(s=>Object.hasOwn(labels,s.kind)).reduce((n,s)=>n+(s.end-s.start)/60000,0);
+  const planSummary=planSegments&&!referenceEvents.some(e=>e.end===null)?{on:total-planOut,off:planOut}:null;
+  return {publication:outside?'unknown':reference?.available?'published':notPublished&&!d.events.length?'unpublished':d.known||d.events.length?'published':'unknown',total,
     events:d.events.map(e=>({start:Math.max(0,(e.start-from)/60000),end:Math.min(total,((e.end??now)-from)/60000),kind:eventKind(e)})),
-    out,unknown:sum('unknown'),clear:sum('clear'),at,from,until,raw:d,
-    referenceAvailable:!!reference?.available,referenceOnly:!!reference?.available&&(!d.known||reference.applicability!=='reported')};
+    out,unknown:sum('unknown'),clear:sum('clear'),planSummary,at,from,until,raw:d,
+    referenceAvailable:!!reference?.available,referenceStale:!!reference?.stale,referenceOnly:!!reference?.available&&(reference.stale||!d.known||reference.applicability!=='reported')};
 }
 export function contextFor(profile,date,now=Date.now()) {
   const d=scheduleFor(profile,date,now),current=date===dayKey(now),c=current?countdown(profile?.snapshot||{},now):{};
@@ -86,7 +92,7 @@ export function contextFor(profile,date,now=Date.now()) {
   return {kind:category?eventKind(category):null,label:planned?.label||c.label||'',valueMinutes:planned?.minutes??c.minutes??null,warning:false,plannedCountdown:!!planned};
 }
 export function profileView(p) {
-  const a=p.address||{},city=a.city?.label||a.city?.name||a.cityName||'', street=a.street?.label||a.street?.name||'',house=a.house?.label||a.house?.name||'';
+  const a=p.address||{},city=(typeof a.city==='string'?a.city:a.city?.label||a.city?.name)||a.cityName||'', street=(typeof a.street==='string'?a.street:a.street?.label||a.street?.name)||'',house=(typeof a.house==='string'?a.house:a.house?.label||a.house?.name)||'';
   const label=a.label||[city,street,house].filter(Boolean).join(', ');
   const first=label.indexOf(',');
   return {id:p.id,name:typeof p.name==='string'?p.name:'',city:city||label.slice(0,first<0?undefined:first),street:[street,house].filter(Boolean).join(', ')|| (first<0?'':label.slice(first+1).trim()),queue:p.snapshot?.queue||'',catalogKey:p.id};

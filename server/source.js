@@ -384,14 +384,16 @@ export class Source {
       checkedAt: now,
     };
   }
-  async weather(city) {
+  async weather(city,{operatorId='ua-cherkasy'}={}) {
     const name = city
       .replace(/^(м\.|с\.|смт\.?|с-ще|місто|село|селище)\s*/i, "")
       .trim();
     let location;
-    if (name.toLowerCase() === "христинівка" && /^(м\.|місто)/i.test(city))
+      const kyiv=operatorId==='ua-kyiv-dtek'||operatorId==='ua-kyiv-region-dtek';
+      if(kyiv&&name.toLowerCase()==='київ')location={latitude:50.4501,longitude:30.5234};
+    if (!kyiv && name.toLowerCase() === "христинівка" && /^(м\.|місто)/i.test(city))
       location = { latitude: 48.81282, longitude: 29.96885 };
-    if (name.toLowerCase() === "христинівка" && /^(с\.|село)/i.test(city))
+    if (!kyiv && name.toLowerCase() === "христинівка" && /^(с\.|село)/i.test(city))
       location = { latitude: 48.84958, longitude: 29.96641 };
     if (!location) {
       for (const query of [...new Set([name, latin(name)])]) {
@@ -408,7 +410,7 @@ export class Source {
         const exact = (geo.results || []).filter(
           (x) =>
             x.country_code === "UA" &&
-            /Cherkasy|Черкаськ/i.test(x.admin1 || "") &&
+              (kyiv?/Kyiv|Kiev|Київськ/i:/Cherkasy|Черкаськ/i).test(x.admin1 || "") &&
             latin(x.name) === latin(name),
         );
         const unique = [
