@@ -26,6 +26,7 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       - run: npm ci --ignore-scripts
+      - run: bash -n vps/ops/release.sh
       - run: npm test
       - run: node --test vps/*.test.mjs vps/sensors/*.test.mjs vps/maps/*.test.mjs vps/regions/*.test.mjs vps/universal/*.test.mjs vps/telemetry/*.test.mjs
       - run: node vps/regions/source-history-ci.mjs
