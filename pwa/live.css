@@ -51,7 +51,9 @@ body.live-pwa{margin:0}
 .live-pwa .sensor-camera-unavailable strong{font-weight:500}
 .live-pwa .sensor-scanner [data-scan-enter]{gap:8px;border:1px solid var(--track)}
 .live-pwa .sensor-scanner [data-scan-enter] svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.live-pwa .sensor-scanner textarea.field{resize:vertical;min-height:128px;line-height:1.4}
+.live-pwa .sensor-code-digits{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;min-width:0;padding:8px 0}
+.live-pwa .sensor-code-digits .sensor-code-digit{appearance:none;box-sizing:border-box;width:100%;min-width:0;min-height:64px;margin:0;padding:8px 0;border:1px solid var(--input-border);border-radius:12px;background:var(--input-bg);color:var(--ink);font-family:inherit;font-weight:500;font-size:calc(26px * var(--scale));line-height:1.2;text-align:center;caret-color:var(--accent)}
+.live-pwa .sensor-code-digits .sensor-code-digit:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
 /* PWA-LIVE-26 r2: scan and explicit confirmation share one dialog. */
 .live-pwa .sensor-connect-dialog .dialog-head::before{display:none}
