@@ -1,6 +1,7 @@
 import pg from 'pg';
 import {readFile,readdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {importGeography} from './geography/import.mjs';
 const password=(await readFile('/run/secrets/owner_password','utf8')).trim();
 const c=new pg.Client({host:'postgres',user:'svitlo_owner',database:'svitlo_staging',password});
 await c.connect();
@@ -33,6 +34,7 @@ try{
   migrations.push(['1012_source_history.sql',await readFile('vps/sql/source-history.sql','utf8')]);
   migrations.push(['1013_pilot_push.sql',await readFile('vps/sql/pilot-push.sql','utf8')]);
   migrations.push(['1014_main_app_subscription.sql',await readFile('vps/sql/main-app-subscription.sql','utf8')]);
+  migrations.push(['1015_settlement_directory.sql',await readFile('vps/sql/settlement-directory.sql','utf8')]);
   for(const [name,sql] of migrations){
     const hash=createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex');
     const old=(await c.query('select sha256 from svitlo_vps.migrations where name=$1',[name])).rows[0];
@@ -41,4 +43,5 @@ try{
     catch(e){await c.query('rollback');throw e;}
     console.log(JSON.stringify({migration:name,status:'applied'}));
   }
+  console.log(JSON.stringify({geographyImport:await importGeography(c)}));
 }finally{await c.end();}

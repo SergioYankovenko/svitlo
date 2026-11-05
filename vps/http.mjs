@@ -40,6 +40,7 @@ const server=http.createServer(async(req,res)=>{
       const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1011_operations.sql') and exists(select 1 from svitlo_vps.migrations where name='1010_kyiv_regions.sql') and exists(select 1 from svitlo_vps.migrations where name='1008_map_addresses.sql') and exists(select 1 from svitlo_vps.migrations where name='1007_sensor_history.sql') and exists(select 1 from pg_proc where pronamespace='svitlo_sensors'::regnamespace and proname='phone_ingest') as universal_ready from svitlo_vps.release_state where id");
       if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled'||!r.rows[0].universal_ready)throw Error('Schema or delivery mode mismatch');
       if(!(await rt.p.query("select exists(select 1 from svitlo_vps.migrations where name='1014_main_app_subscription.sql') and to_regprocedure('svitlo_sensors.main_app_entitlement()') is not null ok")).rows[0]?.ok)throw Error('Main app subscription readiness mismatch');
+      if(!await rt.geography.ready())throw Error('Settlement directory readiness mismatch');
       if(rt.delivery==='pilot-enabled'&&!(await rt.p.query("select pilot_push_enabled and exists(select 1 from svitlo_vps.migrations where name='1013_pilot_push.sql') ok from svitlo_vps.release_state where id")).rows[0]?.ok)throw Error('Pilot push readiness mismatch');
       return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:rt.delivery,productionReady:false});
     }
@@ -57,7 +58,8 @@ const server=http.createServer(async(req,res)=>{
     }
     if(path.startsWith('/api')||path==='/diagnostic-reports'){
       const trace=telemetry.requestIds.issue();res.telemetryMeta={path:routeTag(path),correlationId:trace.id};res.setHeader('X-Svitlo-Request-ID',trace.token);
-      const publicReader=path.startsWith('/api/v1/')&&['/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots'].includes(path);
+      const publicReader=path.startsWith('/api/v1/')&&['/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/settlements','/api/v1/settlement-routes'].includes(path);
+      if(['/api/v1/settlements','/api/v1/settlement-routes'].includes(path)&&req.method!=='POST')return json(res,405,{error:'Method not allowed'});
       if(req.method!=='GET'&&req.headers.origin!==origin&&(!publicReader||req.headers.origin))return json(res,403,{error:'Origin rejected'});
       if(req.method!=='GET'&&req.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json')return json(res,415,{error:'JSON required'});
       let s=await sessions.read(req);if(s?.renewed)res.setHeader('Set-Cookie',sessions.cookie(s.token));
@@ -79,6 +81,10 @@ const server=http.createServer(async(req,res)=>{
       if(publicReader&&req.method==='POST'){
         if(path.endsWith('/capabilities'))return json(res,405,{error:'Method not allowed'});
         const data=await body(req);validateRequest(path,data);rt.reader.checkVersion(data);
+        if(path==='/api/v1/settlements'||path==='/api/v1/settlement-routes'){
+          if(url.search)throw problem(400,'settlement_query_not_allowed');
+          return json(res,200,path==='/api/v1/settlements'?await rt.geography.search(data):await rt.geography.routes(data));
+        }
         const result=path.endsWith('/search')?await rt.reader.catalog.search(data):path.endsWith('/resolve')?await rt.reader.resolve(data):path.endsWith('/legacy-resolve')?await rt.reader.catalog.legacy(data.legacy):path.endsWith('/snapshots')?await rt.reader.batch(data):null;
         return json(res,200,result);
       }

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "bundleVersion": "geo-20261105-v1",
+  "editionDate": "2026-07-07",
+  "sourceUrl": "https://mininfra.gov.ua/storage/app/sites/1/uploaded-files/kodifikator-07-07.xlsx",
+  "sourceSha256": "5c5317759b2b90208e9b00338bc3db3c5e694272a166acf73f1543b3e18ecbea",
+  "sha256": "4f1fe5eca6c768cdb43838359c80dc55abd056b852cfaa33202ed6d0361b14ed",
+  "compressedSha256": "d1d08ba72b2bb862d452bd3c63e72b9ce56741ae17ffaaa2c731dbb46ff95fa2",
+  "nodeCount": 31744,
+  "settlementCount": 29703,
+  "routeCount": 2196,
+  "linkCount": 2276,
+  "sourceSummary": {
+    "cherkasyBranches": 22,
+    "cherkasySourceCities": 1061,
+    "kyivProvinceSourceCities": 1201,
+    "kyivCitySourceCities": 1
+  },
+  "authorityScope": "Official administrative directory. Provider city matches are routing candidates requiring address verification; no physical coverage or queue inference."
+}
