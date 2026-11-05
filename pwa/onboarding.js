@@ -117,7 +117,7 @@ window.SvitloOnboarding = {
       if (
         flow.phase === "address" &&
         failure?.kind === stage &&
-        ["temporary", "timeout", "offline"].includes(failure.reason)
+        ["temporary", "timeout", "offline"].includes(failure.reason) && eligibleQuery(stage,flow.queries[stage])
       ) {
         flow.request = { kind: stage, phase: "error", reason: failure.reason };
       }
@@ -157,6 +157,7 @@ window.SvitloOnboarding = {
         .replace(/^(?:с\.?|м\.?|вул\.?|улица|вулиця)\s+/, "")
         .replace(/\s+/g, " ")
         .trim();
+    const eligibleQuery=(kind,query)=>kind==='submit'||normalize(query||'').length>=(kind==='city'?2:1);
     const latin = {
       а: "a",
       б: "b",
@@ -233,7 +234,7 @@ window.SvitloOnboarding = {
       )
         return null;
       const kind = flow.street ? "house" : flow.city ? "street" : "city";
-      if (kind === "city" && normalize(flow.queries[kind]).length < 2)
+      if (!eligibleQuery(kind,flow.queries[kind]))
         return null;
       return Array.isArray(flow.results[kind]) && !flow.results[kind].length
         ? kind
@@ -309,7 +310,7 @@ window.SvitloOnboarding = {
       cancelRequest();
       if (!flow) return;
       const query = kind === "submit" ? "" : flow.queries[kind];
-      if (kind === "city" && normalize(query).length < 2) {
+      if (!eligibleQuery(kind,query)) {
         flow.results[kind] = [];
         flow.request = { kind, phase: "ready" };
         paintRequest();
@@ -373,6 +374,8 @@ window.SvitloOnboarding = {
       return `<div class="onboard-selected onboard-address-summary ${confirmed ? "onboard-confirmation-address" : ""}"><div><strong id="onboard-selected-address" title="${e(full)}">${e(display)}</strong><small>${e([flow.city.context,district].filter(Boolean).join(" · "))}</small></div>${flow.initial && flow.house ? "" : `<button class="onboard-clear" data-action="${flow.house ? "onboard-edit-address" : "onboard-clear"}" data-kind="city" aria-label="Змінити адресу">${flow.house ? ctx.icon("edit") : "×"}</button>`}</div>`;
     }
     function resultHTML(kind) {
+      if (!eligibleQuery(kind,flow.queries[kind]))
+        return kind==='city'?'<div class="onboard-search-hint">Введіть щонайменше 2 літери</div>':"";
       const request = flow.request;
       if (request && request.kind === kind && request.phase !== "ready")
         return requestHTML(request);
@@ -849,7 +852,7 @@ window.SvitloOnboarding = {
       flow.results[kind] = [];
       // The city minimum already belongs to beginRequest; don't flash a
       // pending/search scene during debounce for an ineligible query.
-      if (kind === "city" && normalize(flow.queries[kind]).length < 2) {
+      if (!eligibleQuery(kind,flow.queries[kind])) {
         beginRequest(kind);
         return;
       }
