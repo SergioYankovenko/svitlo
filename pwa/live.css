@@ -4,8 +4,6 @@ body.live-pwa{margin:0}
 .live-pwa .tile-reference{position:absolute;inset:0;display:flex;flex-direction:column;z-index:1;pointer-events:none}
 .live-pwa .tile-reference i{display:block;flex:1;min-height:0}
 .live-pwa .tile-reference .reference-segment{background-color:color-mix(in srgb,var(--track) 82%,var(--emergency));background-image:repeating-linear-gradient(135deg,transparent,transparent 5px,color-mix(in srgb,var(--emergency) 70%,var(--track)) 5px,color-mix(in srgb,var(--emergency) 70%,var(--track)) 6px)}
-.live-pwa .legend-reference{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:calc(12px * var(--scale));margin-top:8px}
-.live-pwa .reference-key-sample{display:inline-block;flex:none;width:20px;height:20px;background-color:color-mix(in srgb,var(--track) 82%,var(--emergency));background-image:repeating-linear-gradient(135deg,transparent,transparent 5px,color-mix(in srgb,var(--emergency) 70%,var(--track)) 5px,color-mix(in srgb,var(--emergency) 70%,var(--track)) 6px);border-radius:5px}
 .live-pwa .schedule-notice{padding:0 0 16px;align-items:flex-start}
 .live-pwa .schedule-notice .emergency-symbol{padding-top:2px}
 .live-pwa .schedule-notice .emergency-symbol svg{display:block;width:1em;height:1em}

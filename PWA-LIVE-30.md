@@ -1,6 +1,6 @@
 # PWA-LIVE-30: suspended hourly reference and compact emergency notice
 
-Approved 5 November 2026 for the isolated test PWA. The latest user correction replaces the proposed dashed outline with **gray diagonal hatching tinted coral**. Reference styling never draws a contour, so sensor observation contours and the current-hour outline remain independent.
+Approved 5 November 2026 for the isolated test PWA. The latest user correction replaces the proposed dashed outline with **gray diagonal hatching tinted coral**. No extra reference key is added to the legend; the upper notice explains the state. Reference styling never draws a contour, so sensor observation contours and the current-hour outline remain independent.
 
 - A validated saved publication for a suspended day supplies only a decorative half-hour reference layer. Its intervals never enter effective events, timers, summaries, reminders or sharing. Confirmed address intervals retain priority; reference hatching is painted only over otherwise unknown segments.
 - The active emergency notice uses the approved short copy: «Аварійне відключення» / «Спеціалісти працюють над відновленням.» Queue scope does not become an address interval. A stale suspension is labeled «Збережений графік» and never promoted into a fresh queue status.
