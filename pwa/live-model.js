@@ -3,6 +3,20 @@ import {civil,addDays,dayKey,parts} from './core/lib/time.js';
 import {eventKind,categoryPriority} from './core/lib/outage-types.js';
 import {selectedLine} from './core/lib/universal-contract.js';
 export const labels={hourly:'Погодинне відключення',planned:'Планові роботи',unplanned:'Позапланове відключення',emergency:'Аварійне відключення'};
+// Presentation only: sharing and summary cards describe the displayed plan,
+// without promoting it to effective events or current-power evidence.
+export function planView(data){
+  return data.planSummary?{...data,out:data.planSummary.off,clear:data.planSummary.on,unknown:0,events:data.planEvents}:data;
+}
+export function canSharePlan(data){
+  const plan=planView(data);
+  return plan.publication==='published'&&plan.unknown===0&&plan.out>0;
+}
+export function planClock(data,minute){
+  if(minute===data.total)return '24:00';
+  const p=parts(data.from+minute*60000);
+  return `${p.hour}:${p.minute}`;
+}
 export function refreshDeadline(profile,lastSync){
   const s=profile?.snapshot?.universal;
   if(Number.isFinite(s?.freshUntil)&&s.freshUntil<=lastSync&&s.refreshAfter>lastSync)return Math.max(lastSync+30000,s.refreshAfter);
@@ -80,7 +94,9 @@ export function scheduleFor(profile,date,now=Date.now()) {
   const planSummary=planSegments&&!referenceEvents.some(e=>e.end===null)?{on:total-planOut,off:planOut}:null;
   return {publication:outside?'unknown':reference?.available?'published':notPublished&&!d.events.length?'unpublished':d.known||d.events.length?'published':'unknown',total,
     events:d.events.map(e=>({start:Math.max(0,(e.start-from)/60000),end:Math.min(total,((e.end??now)-from)/60000),kind:eventKind(e)})),
-    out,unknown:sum('unknown'),clear:sum('clear'),planSummary,at,from,until,raw:d,
+    out,unknown:sum('unknown'),clear:sum('clear'),planSummary,
+    planEvents:referenceEvents?.map(e=>({start:Math.max(0,(e.start-from)/60000),end:e.end===null?null:Math.min(total,(e.end-from)/60000),kind:eventKind(e)}))||null,
+    at,from,until,raw:d,
     referenceAvailable:!!reference?.available,referenceStale:!!reference?.stale,referenceOnly:!!reference?.available&&(reference.stale||!d.known||reference.applicability!=='reported')};
 }
 export function contextFor(profile,date,now=Date.now()) {
