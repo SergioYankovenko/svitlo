@@ -41,7 +41,7 @@ const server=http.createServer(async(req,res)=>{
       if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled'||!r.rows[0].universal_ready)throw Error('Schema or delivery mode mismatch');
       if(!(await rt.p.query("select exists(select 1 from svitlo_vps.migrations where name='1014_main_app_subscription.sql') and to_regprocedure('svitlo_sensors.main_app_entitlement()') is not null ok")).rows[0]?.ok)throw Error('Main app subscription readiness mismatch');
       if(!await rt.geography.ready())throw Error('Settlement directory readiness mismatch');
-      if(!(await rt.p.query("select exists(select 1 from svitlo_vps.migrations where name='1016_geography_discovery.sql') and to_regprocedure('svitlo_discovery.catalog_entry(text,text,text,uuid,text,text)') is not null ok")).rows[0]?.ok)throw Error('Settlement discovery readiness mismatch');
+      if(!(await rt.p.query("select exists(select 1 from svitlo_vps.migrations where name='1019_geography_discovery.sql') and to_regprocedure('svitlo_discovery.catalog_entry(text,text,text,uuid,text,text)') is not null ok")).rows[0]?.ok)throw Error('Settlement discovery readiness mismatch');
       if(rt.delivery==='pilot-enabled'&&!(await rt.p.query("select pilot_push_enabled and exists(select 1 from svitlo_vps.migrations where name='1013_pilot_push.sql') ok from svitlo_vps.release_state where id")).rows[0]?.ok)throw Error('Pilot push readiness mismatch');
       return json(res,200,{status:'ready',scope:'isolated-staging',release,schema:1,delivery:rt.delivery,productionReady:false});
     }

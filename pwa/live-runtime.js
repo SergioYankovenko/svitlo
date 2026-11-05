@@ -6,6 +6,7 @@ import {dayKey,clock,stamp} from './core/lib/time.js';
 import {sensorSignalView} from './core/lib/map-sensor.js';
 import {messageTitle} from './core/lib/notifications.js';
 import {visibleMessages} from './live-messages.js';
+import {sensorConnectError} from './core/lib/sensor-errors.js';
 const KEY='svitlo.pwa.v2.cache',MAX_CACHE=1500000;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeRead=()=>{try {const raw=localStorage.getItem(KEY);if(!raw||raw.length>MAX_CACHE)return null;const v=JSON.parse(raw);return v.version===1&&typeof v.owner==='string'&&Array.isArray(v.profiles)&&v.profiles.length<=10&&v.profiles.every(p=>p&&typeof p.id==='string'&&p.address&&typeof p.address==='object'&&!Array.isArray(p.address)&&p.snapshot&&typeof p.snapshot==='object')&&v.weather&&typeof v.weather==='object'&&!Array.isArray(v.weather)?v:null;}catch{return null;}};
@@ -124,7 +125,7 @@ export async function createLive(){
     rememberView:view=>rememberReloadView(()=>sessionStorage,owner,view),takeView:()=>takeReloadView(()=>sessionStorage,owner),
     onChange:f=>{listeners.add(f);return()=>listeners.delete(f);},
     profile:current,profiles:()=>profiles,owner:()=>owner,sensors:()=>sensors,sensorFetched:()=>sensorFetched,signalView:sensorSignalView,refreshSensors,
-    sensor:async(action,data,options={})=>{const who=await session(true);return sensorRequest(action,data,{owner:who,...options});},
+    sensor:async(action,data,options={})=>{const who=await session(true);try{return await sensorRequest(action,data,{owner:who,...options});}catch(error){if(action==='connect_qr')error.message=sensorConnectError(error);throw error;}},
     capabilities:()=>cap,elapsedMinutes:()=>{const d=scheduleFor(current(),dayKey());return (Date.now()-d.from)/60000;},
     openSource(preferred){const url=officialSource(current(),preferred);if(url)window.open(url,'_blank','noopener');},
     async diagnostic(packet,signal){const who=await session(true);const response=await fetch('/api/session',{credentials:'same-origin',cache:'no-store',signal});const body=await response.json();if(body.session?.user?.id!==who)throw Error('Сеанс змінився');const r=await fetch('/api/v1/diagnostic-reports',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Svitlo-CSRF':body.session.csrf_token,'X-Svitlo-Diagnostic-Consent':packet.reportId},body:JSON.stringify(packet),signal});if(!r.ok)throw Error('Не вдалося надіслати звіт');return r.json();},

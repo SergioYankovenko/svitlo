@@ -53,11 +53,17 @@ try{
   const url='http://127.0.0.1:8080',post=(path,body,headers={})=>fetch(url+path,{method:'POST',headers:{'Content-Type':'application/json',...headers},body:typeof body==='string'?body:JSON.stringify(body)});
   assert.equal((await post('/api/v1/sensor-devices/register',{schemaVersion:1,registrationToken:token('sr')},{Origin:url})).status,403);
   const d=await (await post('/api/v1/sensor-devices/register',{schemaVersion:1,registrationToken:token('sr')})).json();assert.ok(d.controlToken);
-  const q=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'owner_qr',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();assert.ok(q.qr.proof);sensitive.push(d.controlToken,q.qr.proof);
+  let q=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'owner_qr',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();assert.ok(q.qr.proof);sensitive.push(d.controlToken,q.qr.proof);
+  const oldManual=q.manualCode;assert.ok(/^[0-9]{6}$/.test(oldManual));
+  const rotatePacket={schemaVersion:1,action:'rotate_owner_qr',sensorId:d.sensorId,requestId:randomUUID()},rotatedResponse=await post('/api/v1/sensor-devices/control',rotatePacket,{Authorization:'Bearer '+d.controlToken});assert.equal(rotatedResponse.status,200);
+  const rotated=await rotatedResponse.json();sensitive.push(rotated.qr.proof);assert.ok(rotated.qr.proof!==q.qr.proof,'HTTP rotation replaces proof');
+  const retried=await (await post('/api/v1/sensor-devices/control',rotatePacket,{Authorization:'Bearer '+d.controlToken})).json();assert.ok(retried.qr.proof===rotated.qr.proof&&retried.expiresAt===rotated.expiresAt,'HTTP retry is idempotent');q=rotated;
   assert.equal((await post('/api/v1/sensors',{schemaVersion:1,action:'list'},{Origin:url})).status,401);
   const sr=await post('/api/session',{}, {Origin:url}),session=await sr.json(),cookie=sr.headers.get('set-cookie').split(';')[0],headers={Origin:url,Cookie:cookie,'X-Svitlo-CSRF':session.session.csrf_token},profileId=await profile(session.session.user.id);
   await enableQaSubscriptions(admin,[session.session.user.id]);
-  const connected=await post('/api/v1/sensors',{schemaVersion:1,action:'connect_qr',requestId:randomUUID(),qr:q.qr,profileId},headers);assert.equal(connected.status,200);const point=(await connected.json()).sensor;
+  assert.ok(q.manualCode!==oldManual&&retried.manualCode===q.manualCode);
+  assert.equal((await post('/api/v1/sensors',{schemaVersion:1,action:'connect_qr',requestId:randomUUID(),qr:{version:1,kind:'phone_code',code:oldManual},profileId},headers)).status,404);
+  const connected=await post('/api/v1/sensors',{schemaVersion:1,action:'connect_qr',requestId:randomUUID(),qr:{version:1,kind:'phone_code',code:q.manualCode},profileId},headers);assert.equal(connected.status,200);const point=(await connected.json()).sensor;
   const ik=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'ingest_credentials',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();
   sensitive.push(ik.ingestToken);const e=event(1,{observedAt:new Date().toISOString(),elapsedRealtimeMs:1,bootId:randomUUID(),monitorId:randomUUID()}),batch=packet([e],ik),sent=await post('/api/v1/sensor-events',batch,{Authorization:'Bearer '+ik.ingestToken});assert.equal(sent.status,200);assert.equal((await sent.json()).acknowledged[0].eventId,e.eventId);
   const live=await post('/api/v1/sensors',{schemaVersion:1,action:'signal',...ref(point)},headers);assert.equal(live.status,200);assert.equal(live.headers.get('cache-control'),'no-store');assert.equal((await live.json()).signal.powerState,'on');
@@ -68,5 +74,18 @@ try{
   assert.equal((await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'status',sensorId:d.sensorId},{Authorization:'Bearer '+key.ingestToken})).status,401);
  });
  await check('reader DTO, audit and HTTP diagnostics contain no QR/ingest/control secrets',async()=>{for(const raw of sensitive)assert.equal(logs.includes(raw),false);const rows=(await admin.query("select coalesce(string_agg(to_jsonb(a)::text,''),'') s from svitlo_sensors.audit a")).rows[0].s;for(const raw of sensitive)assert.equal(rows.includes(raw),false);assert.ok(!/privateCipher|qr_cipher|qr_hash|control_hash/.test(JSON.stringify(await control(device,'status'))));});
+ await check('expired QR cleanup skips a busy sensor, preserves identity and allows reissue',async()=>{
+  const d=await reg();await control(d,'owner_qr');
+  await admin.query("update svitlo_sensors.phone_devices set qr_expires_at=now()-interval '1 minute' where sensor_id=$1",[d.sensorId]);
+  const wc=await worker.connect();await admin.query('begin');
+  try{
+   await admin.query('select sensor_id from svitlo_sensors.devices where sensor_id=$1 for update',[d.sensorId]);
+   await wc.query("set statement_timeout='3s'");await wc.query('select svitlo_sensors.expired_phone_qr_cleanup()');
+   assert.equal((await admin.query('select qr_hash is not null ok from svitlo_sensors.phone_devices where sensor_id=$1',[d.sensorId])).rows[0].ok,true);
+  }finally{await admin.query('rollback');try{await wc.query('reset statement_timeout');}finally{wc.release();}}
+  await worker.query('select svitlo_sensors.expired_phone_qr_cleanup()');
+  assert.equal((await admin.query('select qr_hash is null and qr_cipher is null ok from svitlo_sensors.phone_devices where sensor_id=$1',[d.sensorId])).rows[0].ok,true);
+  assert.ok((await control(d,'owner_qr')).qr.proof);assert.equal((await control(d,'status')).bound,false);
+ });
  console.log(JSON.stringify({scope:'phone-sensor-isolated-postgres-http',passed:checks.length,checks,secretsLogged:false,physicalAndroidTested:false}));
 }finally{if(child&&child.exitCode===null){child.kill('SIGTERM');await Promise.race([new Promise(r=>child.once('exit',r)),new Promise(r=>setTimeout(r,4000))]);if(child.exitCode===null)child.kill('SIGKILL');}await Promise.all([rt.p.end(),sp.end(),worker.end(),admin.end()]);}

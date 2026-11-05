@@ -73,17 +73,21 @@ for suite in phone history map regions pwa sources subscriptions geography disco
   docker exec -i svitlo-postgres-1 psql -X -q -1 -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" < vps/sql/settlement-directory.sql
   docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('1015_settlement_directory.sql','$hash')"
  else test "$existing" = "$hash";fi
- existing=$(docker exec svitlo-postgres-1 psql -X -U svitlo_owner -d "$qa" -Atc "select sha256 from svitlo_vps.migrations where name='1016_geography_discovery.sql'")
- hash=$(sed 's/\r$//' vps/sql/geography-discovery.sql | sha256sum | cut -d' ' -f1)
- if test -z "$existing";then
-  docker exec -i svitlo-postgres-1 psql -X -q -1 -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" < vps/sql/geography-discovery.sql
-  docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('1016_geography_discovery.sql','$hash')"
- else test "$existing" = "$hash";fi
+ for spec in 1016_phone_qr_rotation.sql:phone-qr-rotation.sql 1018_expired_phone_qr.sql:expired-phone-qr.sql 1019_geography_discovery.sql:geography-discovery.sql;do
+  name=${spec%%:*};file=${spec#*:}
+  existing=$(docker exec svitlo-postgres-1 psql -X -U svitlo_owner -d "$qa" -Atc "select sha256 from svitlo_vps.migrations where name='$name'")
+  hash=$(sed 's/\r$//' "vps/sql/$file" | sha256sum | cut -d' ' -f1)
+  if test -z "$existing";then
+   docker exec -i svitlo-postgres-1 psql -X -q -1 -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" < "vps/sql/$file"
+   docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('$name','$hash')"
+  else test "$existing" = "$hash";fi
+ done
  docker run --rm --network svitlo_backend --user 0 -e PGDATABASE="$qa" "${mounts[@]}" --entrypoint node "$image" vps/geography/prepare-qa.mjs
  if test "$suite" = phone;then docker exec svitlo-postgres-1 psql -X -q -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" -c 'truncate svitlo_sensors.phone_ranges';fi
  if test "$suite" = regions;then docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c 'truncate public.svitlo_source_cache';fi
  case "$suite" in phone) script=vps/sensors/phone-integration.mjs;;history) script=vps/sensors/history-integration.mjs;;map) script=vps/maps/integration.mjs;;regions) script=vps/regions/integration.mjs;;pwa) script=vps/department-integration.mjs;;sources) script=vps/regions/source-history-integration.mjs;;subscriptions) script=vps/sensors/subscription-integration.mjs;;geography) script=vps/geography/integration.mjs;;discovery) script=vps/discovery/integration.mjs;;esac
  docker run --rm --network svitlo_backend --user 0 -e PGDATABASE="$qa" "${mounts[@]}" --entrypoint node "$image" "$script"
+ if test "$suite" = phone;then docker run --rm --network svitlo_backend --user 0 -e PGDATABASE="$qa" "${mounts[@]}" --entrypoint node "$image" vps/sensors/qr-rotation-integration.mjs;fi
  docker exec svitlo-postgres-1 dropdb -U svitlo_owner "$qa"
  trap - EXIT
 done

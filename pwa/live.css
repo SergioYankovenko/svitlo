@@ -52,3 +52,12 @@ body.live-pwa{margin:0}
 .live-pwa .sensor-scanner [data-scan-enter]{gap:8px;border:1px solid var(--track)}
 .live-pwa .sensor-scanner [data-scan-enter] svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .live-pwa .sensor-scanner textarea.field{resize:vertical;min-height:128px;line-height:1.4}
+
+/* PWA-LIVE-26 r2: scan and explicit confirmation share one dialog. */
+.live-pwa .sensor-connect-dialog .dialog-head::before{display:none}
+.live-pwa .sensor-connect-dialog .sensor-connection-icon{grid-column:1;grid-row:1 / span 2;align-self:center;width:28px;height:28px;background:var(--cancel-ink);mask:url("assets/sensor-unlinked.svg") center/contain no-repeat;-webkit-mask:url("assets/sensor-unlinked.svg") center/contain no-repeat}
+.live-pwa .sensor-connect-dialog[data-connection-state=ready] .sensor-connection-icon,.live-pwa .sensor-connect-dialog[data-connection-state=connecting] .sensor-connection-icon{background:var(--accent);mask-image:url("assets/sensor-linked.svg");-webkit-mask-image:url("assets/sensor-linked.svg")}
+.live-pwa .sensor-connect-footer.sensor-connect-paired{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.live-pwa .sensor-connect-footer button{min-width:0;white-space:normal;overflow-wrap:anywhere;min-height:48px}
+.live-pwa .sensor-connect-primary{background:var(--accent);color:var(--bg)}
+.live-pwa .sensor-connect-error{color:var(--cancel-ink);margin:8px 0 0;font-size:calc(13px * var(--scale));line-height:1.35;text-align:center;overflow-wrap:anywhere}

@@ -22,6 +22,17 @@ function setup(media,decoded){
  return{scanner:window.SvitloSensorScanner,root,nodes,document,timers};
 }
 const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
+test('six-digit manual and QR payloads preserve leading zero and legacy kinds',()=>{
+ const {scanner}=setup(),code='042715',q=scanner.parse(code);assert.equal(JSON.parse(q).code,code);assert.equal(scanner.parse(q),q);
+ for(const raw of ['12345','1234567','１２３４５６','12 3456',JSON.stringify({version:1,kind:'phone_code',code:123456}),JSON.stringify({version:1,kind:'phone_code',code,extra:1})])assert.equal(scanner.parse(raw),null);
+ for(const [kind,prefix] of [['phone_owner','sp_'],['factory_owner','so_'],['viewer_invite','si_']])assert.ok(scanner.parse(JSON.stringify({version:1,kind,sensorId:'11111111-1111-4111-8111-111111111111',proof:prefix+'a'.repeat(43)})));
+});
+test('six-digit camera and manual input deliver identical normalized payload',async()=>{
+ const expected=JSON.stringify({version:1,kind:'phone_code',code:'042715'}),manual=setup(),received=[];
+ manual.scanner.mount(manual.root,{onCode:x=>received.push(x)});await flush();manual.nodes['#sensor-code'].value='042715';manual.nodes['#sensor-code'].dispatchEvent(new Event('input'));await flush();assert.deepEqual(received,[expected]);manual.scanner.dispose();
+ const track=new Node();track.stop=()=>{};const location={topLeftCorner:{x:0,y:0},topRightCorner:{x:1,y:0},bottomRightCorner:{x:1,y:1},bottomLeftCorner:{x:0,y:1}};
+ const camera=setup(async()=>({getTracks:()=>[track],getVideoTracks:()=>[track]}),()=>({data:'042715',location})),scanned=[];camera.scanner.mount(camera.root,{onCode:x=>scanned.push(x)});await flush();assert.deepEqual(scanned,[expected]);camera.scanner.dispose();
+});
 test('cover projection crops landscape and portrait source to the visible preview',()=>{
  const {scanner}=setup();
  assert.deepEqual(JSON.parse(JSON.stringify(scanner.crop(1280,720,300,200))),{x:100,y:0,width:1080,height:720});
@@ -61,5 +72,14 @@ test('unrelated camera QR keeps scanning and exposes manual entry, without accep
  const {scanner,root,nodes,timers}=setup(async()=>({getTracks:()=>[track],getVideoTracks:()=>[track]}),()=>({data:'https://example.invalid',location}));
  let accepted=0;scanner.mount(root,{onCode:()=>accepted++});await flush();
  assert.equal(accepted,0);assert.equal(root.dataset.scanState,'invalid');assert.equal(nodes['[data-scan-enter]'].hidden,false);assert.equal(timers.size,1);assert.equal(stopped,0);scanner.dispose();assert.equal(stopped,1);
+});
+
+test('manual proof can be corrected after a server refusal, but not while a commit is pending',async()=>{
+ const {scanner,root,nodes}=setup(),accepted=[];const handle=scanner.mount(root,{onCode:x=>accepted.push(x)});await flush();
+ nodes['[data-scan-enter]'].dispatchEvent(new Event('click'));
+ const input=nodes['#sensor-code'];input.value=valid;input.dispatchEvent(new Event('input'));await flush();
+ handle.setBusy(true);const updated=valid.replace('a'.repeat(43),'b'.repeat(43));input.value=updated;input.dispatchEvent(new Event('input'));await flush();assert.equal(accepted.length,1);
+ handle.setBusy(false);handle.rejected();assert.equal(nodes['[data-scan-enter]'].hidden,false);
+ input.dispatchEvent(new Event('input'));await flush();assert.deepEqual(accepted,[valid,updated]);scanner.dispose();
 });
 
