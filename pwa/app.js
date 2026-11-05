@@ -63,7 +63,8 @@
   }
   state.target="pwa"; state.entryMode="smart"; state.clockMode="live"; state.scenario="live"; state.proposed=false;
   live.adopt(state);
-  let tab = "home",
+  const reloadView=live.takeView();
+  let tab = reloadView?.tab || "home",
     day = window.SvitloClock.weekday(window.SvitloClock.selected(state)),
     expanded = false,
     wizard = null,
@@ -997,7 +998,7 @@
     state: () => state,
     address,
     addresses: () => state.addresses,
-    selectAddress: id => { if (state.addresses.some(a => a.id === id)) { state.active = id; save(); tab = "home"; render(false); } },
+    selectAddress: id => { if (state.addresses.some(a => a.id === id)) { state.active = id; live.adopt(state); save(); tab = "home"; render(false); } },
     esc,
     date: () => window.SvitloClock.selected(state),
     now: () => window.SvitloClock.now(state),
@@ -1080,7 +1081,7 @@
       if(previous)updatePending=true;
       previous=navigator.serviceWorker.controller;
     });
-    setInterval(()=>{if(updatePending&&!document.hidden&&!modal&&!onboarding.active()){save();location.reload();}},1000);
+    setInterval(()=>{if(updatePending&&!document.hidden&&!modal&&!onboarding.active()){updatePending=false;save();live.rememberView({tab,scroll:$("page-scroll").scrollTop,focusAction:document.activeElement?.dataset?.action});location.reload();}},1000);
     if(document.readyState==='complete')registerWorker();
     else window.addEventListener('load',registerWorker,{once:true});
   }
@@ -1139,6 +1140,7 @@
   live.onChange(() => { live.adopt(state); if(state.sessionReset){state.sessionReset=false;onboarding.close();closeDialog();tab='home';} sensor?.sync(); if (!modal && !onboarding.active()) render(); });
   onboarding.restore();
   render(false);
+  if(reloadView)requestAnimationFrame(()=>{if(reloadView.focusAction)app.querySelector(`[data-action="${CSS.escape(reloadView.focusAction)}"]`)?.focus({preventScroll:true});$("page-scroll").scrollTop=reloadView.scroll;});
   live.start();
 })();
 
