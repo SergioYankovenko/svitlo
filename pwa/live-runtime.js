@@ -5,6 +5,7 @@ import {scheduleFor,contextFor,profileView,labels,officialSource,refreshDeadline
 import {dayKey,clock,stamp} from './core/lib/time.js';
 import {sensorSignalView} from './core/lib/map-sensor.js';
 import {messageTitle} from './core/lib/notifications.js';
+import {visibleMessages} from './live-messages.js';
 const KEY='svitlo.pwa.v2.cache',MAX_CACHE=1500000;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeRead=()=>{try {const raw=localStorage.getItem(KEY);if(!raw||raw.length>MAX_CACHE)return null;const v=JSON.parse(raw);return v.version===1&&typeof v.owner==='string'&&Array.isArray(v.profiles)&&v.profiles.length<=10&&v.profiles.every(p=>p&&typeof p.id==='string'&&p.address&&typeof p.address==='object'&&!Array.isArray(p.address)&&p.snapshot&&typeof p.snapshot==='object')&&v.weather&&typeof v.weather==='object'&&!Array.isArray(v.weather)?v:null;}catch{return null;}};
@@ -48,6 +49,7 @@ export async function createLive(){
     return pending;
   }
   async function search(kind,flow,q,signal){
+    if(!q.trim()||kind==='city'&&q.trim().length<2)return [];
     const items=[];let cursor=null,pages=0;
     do {
       const result=await universalRequest('search',{kind:{city:'cities',street:'streets',house:'houses'}[kind],q:q.slice(0,120),limit:50,
@@ -94,7 +96,7 @@ export async function createLive(){
     const [glyph,description]=weatherType(w.code),temp=t=>(t>0?'+':'')+Math.round(t)+'°';
     return `<section class="card outlined weather-card"><div class="muted weather-today" style="font-size:calc(12px * var(--scale))">СЬОГОДНІ</div><div class="weather-top"><div class="weather-temp">${temp(w.temperature)}</div><div><div class="weather-city">${e(profileView(current()).city)}</div><div class="weather-condition"><span class="weather-glyph" aria-hidden="true">${glyph}</span> ${description}</div></div></div><div class="weather-strip" aria-label="Погодинний прогноз">${(w.hours||[]).map(h=>`<div class="weather-hour"><span class="weather-clock">${clock(h.time)}</span><span class="weather-symbol weather-glyph" aria-hidden="true">${weatherType(h.code)[0]}</span><strong>${temp(h.temp)}</strong></div>`).join('')}</div><div class="attribution"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a></div></section>`;
   }
-  function messagesHTML(e){const p=current(),messages=p?.messages||[];return messages.map(m=>`<article class="card outlined notification-card schedule-message"><div class="notification-meta">Оновлено · ${e(m.publishedAt?stamp(m.publishedAt):'')}</div><div class="notification-title">${e(messageTitle(m)||m.title||'')}</div><div class="notification-body">${e(m.scope==='region'?'В області':p.snapshot?.queue?'Черга '+p.snapshot.queue:m.body||'')}</div><div class="actions"><button class="action" data-action="view-schedule">Переглянути графік</button><button class="action" data-action="source" data-source-url="${e(m.url||'')}">Джерело</button></div></article>`).join('');}
+  function messagesHTML(e){const p=current(),messages=visibleMessages(p?.messages||[]);return messages.map(m=>`<article class="card outlined notification-card schedule-message"><div class="notification-meta">Оновлено · ${e(m.publishedAt?stamp(m.publishedAt):'')}</div><div class="notification-title">${e(messageTitle(m)||m.title||'')}</div><div class="notification-body">${e(m.scope==='region'?'В області':p.snapshot?.queue?'Черга '+p.snapshot.queue:m.body||'')}</div><div class="actions"><button class="action" data-action="view-schedule">Переглянути графік</button><button class="action" data-action="source" data-source-url="${e(m.url||'')}">Джерело</button></div></article>`).join('');}
   async function refreshSensors(){if(sensorPending)return sensorPending;if(!owner)return[];const who=owner,g=epoch;return sensorPending=sensorRequest('list',{}, {owner:who}).then(r=>{if(g===epoch){sensors=r.sensors||[];sensorFetched=Date.now();emit();}return sensors;}).finally(()=>sensorPending=null);}
   async function restorePush(){
     if(pushRestore)return pushRestore;const choice=pushChoice();if(choice?.owner!==owner||choice?.enabled!==true)return;if(!owner||!vapid||globalThis.Notification?.permission!=='granted'||!navigator.serviceWorker)return;

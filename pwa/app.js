@@ -543,7 +543,7 @@
     );
   }
   function prototypeOptions() {
-    return `${sensor?.optionsHTML() || ""}<section class="card outlined prototype-options"><div class="prototype-option-actions"><button class="action" data-action="guide-start">${state.guideTour.status === "completed" ? "Повторити навчання" : "Як користуватися додатком"}</button>${isPrototypeInstalled() ? "" : '<button class="action" data-action="prototype-install">Додати на головний екран</button>'}</div></section>`;
+    return `${sensor?.optionsHTML() || ""}${isPrototypeInstalled() ? "" : '<section class="card outlined prototype-options"><div class="prototype-option-actions"><button class="action" data-action="prototype-install">Додати на головний екран</button></div></section>'}`;
   }
 
   function setup() { return ""; }

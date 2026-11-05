@@ -254,7 +254,7 @@ window.SvitloLiveSensors={create(ctx){
         const address = [a.city,a.street].filter(Boolean).join(", "), label = a.name || address;
         return `<div class="sensor-binding-row"><button type="button" class="sensor-binding-info" data-action="sensor-details" data-address="${e(a.id)}" aria-label="${e("Графіки датчика: "+(a.name ? a.name+", " : "")+address)}"><strong>${e(label)}</strong><small>${e(reading(profile(a.id)).label)}</small></button><div class="sensor-binding-actions"><button type="button" class="sensor-icon-action" data-action="sensor-settings" data-address="${e(a.id)}" aria-label="${e("Налаштування датчика: "+label)}">${window.SvitloNativeUI.icon("settings")}</button><button type="button" class="sensor-icon-action" data-action="sensor-sharing" data-address="${e(a.id)}" aria-label="${e("Спільний доступ до датчика: "+label)}">${window.SvitloNativeUI.icon("access")}</button></div></div>`;
       }).join("")}</div>` : "";
-      const title = `<strong>Датчики</strong><small>${count} із 10 · один на адресу</small>`;
+      const title = `<strong>Датчики</strong>${count ? `<small>${count} із 10 · один на адресу</small>` : ""}`;
       return `<section class="card outlined sensor-options"><div class="sensor-options-header">${count ? `<button class="sensor-list-toggle" data-action="sensor-list" aria-expanded="${listExpanded}">${title}</button>` : `<div class="sensor-list-title">${title}</div>`}${control}</div>${listing}</section>`;
     }
 
