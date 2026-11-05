@@ -1,6 +1,7 @@
 import {createHash,createHmac,randomUUID} from 'node:crypto';
 import {problem} from '../telemetry/validation.js';
 import {buildDayOverview} from './history.js';
+import {entitlementAction} from './entitlement-handler.mjs';
 export const sensorLimits={maxSensors:10,inviteSeconds:900,maxPending:5,maxViewers:20};
 export const sensorCapabilities={schemaVersion:1,available:true,foundationOnly:true,testOnly:true,requiresSession:true,requiresOwnedServerProfile:true,limits:sensorLimits,ingest:true,signal:true,observations:true,overview:true,prediction:false,transfer:false,recovery:false};
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -24,6 +25,7 @@ export class SensorAccess {
  inviteToken(owner,data,nonce){return 'si_'+createHmac('sha256',this.secret).update(JSON.stringify(['sensor-viewer-invite-v1',owner,data.sensorId,data.bindingEpoch,data.requestId,nonce])).digest('base64url');}
  async handle(owner,input){
   if(!owner)throw problem(401,'sensor_session_required','owner');
+  if(input?.action==='entitlement')return entitlementAction(this.bridge,owner,input,problem);
   if(this.phone&&['connect_qr','owner_qr','relocate'].includes(input?.action)){const value=await this.phone.reader(owner,input);if(value.viewerInvite){if(!value.profileId)throw problem(409,'viewer_requires_profile');const inspection=await this.handle(owner,{schemaVersion:1,action:'invite_inspect',inviteToken:value.viewerInvite});if(inspection.invitation.sensorId!==value.viewerSensorId)throw problem(409,'viewer_sensor_mismatch');return this.handle(owner,{schemaVersion:1,action:'invite_accept',requestId:value.requestId,profileId:value.profileId,inviteToken:value.viewerInvite});}return value;}
   if(this.phone&&input?.action==='history')return {schemaVersion:1,overview:await this.phone.history(input)};
   if(this.phone&&input?.action==='overview'){const s=await this.handle(owner,{schemaVersion:1,action:'get',sensorId:input.sensorId,bindingEpoch:input.bindingEpoch});if(['phone','factory'].includes(s.sensor.sourceKind))return {schemaVersion:1,overview:await this.phone.history({...input,action:'history'})};}
