@@ -3,6 +3,10 @@ import {runtime} from './runtime.js';import {providerTransport} from '../server/
 if(!/^svitlo_pwa_qa_\d+$/.test(process.env.PGDATABASE||''))throw Error('Disposable PWA QA database required');
 const admin=new pg.Client({host:'postgres',user:'svitlo_owner',database:process.env.PGDATABASE,password:(await readFile('/run/secrets/owner_password','utf8')).trim()});await admin.connect();
 const a=await runtime(),b=await runtime('worker'),checks=[];let calls=0;
+// This restored QA database shares login connection limits with the live services.
+// One connection per independent role still exercises concurrent cross-process
+// claims without exhausting the worker role's global four-connection budget.
+a.p.options.max=1;b.p.options.max=1;
 const check=async(name,fn)=>{await fn();checks.push(name);};
 try{
  // This guarded disposable clone uses a synthetic fetcher. A live upstream
