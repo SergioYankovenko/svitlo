@@ -3,7 +3,7 @@
 -- A takeover may create the incoming reader's profile. Its existing invoker
 -- triggers need only push ownership metadata and that reader's reminder task.
 -- Do not expose push subscription payloads or elevate the global triggers.
-grant execute on function public.svitlo_has_push(public.svitlo_profiles) to svitlo_sensor_owner;
+grant execute on function public.svitlo_has_push(public.svitlo_profiles),public.svitlo_channel_enabled(jsonb,text) to svitlo_sensor_owner;
 grant select(owner,profile_id) on public.svitlo_subscriptions to svitlo_sensor_owner;
 create policy sensor_push_owner_lookup on public.svitlo_subscriptions
  for select to svitlo_sensor_owner using(owner=auth.uid());

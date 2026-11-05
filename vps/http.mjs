@@ -123,7 +123,7 @@ const server=http.createServer(async(req,res)=>{
     const info=await stat(file);if(!info.isFile())return json(res,404,{error:'Not found'});
     res.writeHead(200,{'content-type':mime[extname(file)]||'application/octet-stream','cache-control':'no-cache','content-length':info.size});
     res.end(req.method==='HEAD'?undefined:await readFile(file));
-  }catch(e){const status=e.status||(e.code==='ENOENT'?404:503);if(e.retryAfter)res.setHeader('Retry-After',String(e.retryAfter));json(res,status,{error:status===503?'Сервіс тимчасово недоступний':e.message,code:status===503?'temporarily_unavailable':e.code||'request_rejected'},e instanceof SourceError?'upstream':e.reason);
+  }catch(e){const status=e.status||(e.code==='ENOENT'?404:503);if(e.retryAfter)res.setHeader('Retry-After',String(e.retryAfter));const unavailableCode=path==='/api/v1/sensors'&&e.code==='subscription_check_unavailable'?'subscription_check_unavailable':'temporarily_unavailable';json(res,status,{error:status===503?'Сервіс тимчасово недоступний':e.message,code:status===503?unavailableCode:e.code||'request_rejected'},e instanceof SourceError?'upstream':e.reason);
     if(status>=500)console.error(JSON.stringify({event:'request_failed',route:routeTag(path),code:'service_error'}));
   }finally{leave();if(res.telemetryMeta)console.log(JSON.stringify({event:'request',route:routeTag(path),status:res.statusCode,ms:Date.now()-start}));}
 });
