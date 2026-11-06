@@ -2,6 +2,7 @@
 // This consumer does no network I/O: it coalesces catalogue changes into a
 // durable search inbox. External indexing is a separate bounded consumer.
 export async function projectCatalogChanges(pool,{stopping=()=>false}={}){
+ await pool.query("select svitlo_events.cycle('attempt',0)");
  const {rows}=await pool.query('select id,token from svitlo_events.claim($1)',[20]);
  let completed=0,failed=0;
  for(const job of rows){
@@ -10,6 +11,7 @@ export async function projectCatalogChanges(pool,{stopping=()=>false}={}){
   catch{failed++;await pool.query('select svitlo_events.fail($1,$2,$3)',[job.id,job.token,'worker_error']).catch(()=>{});}
  }
  await pool.query('select svitlo_events.cleanup()');
+ await pool.query('select svitlo_events.cycle($1,$2)',[failed?'failure':'ok',completed]);
  return {claimed:rows.length,completed,failed};
 }
 

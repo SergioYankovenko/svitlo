@@ -12,6 +12,7 @@ import {SensorAccess,sensorCapabilities} from './sensors/service.js';
 import {SensorIngest,ingestCapabilities} from './sensors/ingest.js';
 import {PhoneSensors,phoneCapabilities} from './sensors/phone.js';
 import {HttpAdmission,clientKey} from './admission.js';
+import {metrics,permitsMetrics} from './observability/metrics.js';
 const rt=await runtime(),sessionPool=pool('session',2),sessions=new Sessions(sessionPool,rt.secret);
 const telemetry=new Telemetry(rt.bridge,rt.secret);
 const sensorSecret=(await readFile('/run/secrets/sensor_access_secret','utf8')).trim();
@@ -33,9 +34,15 @@ const server=http.createServer(async(req,res)=>{
   res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Cross-Origin-Resource-Policy','same-origin');
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
   const start=Date.now();let path,leave=()=>{};
+  res.once('finish',()=>metrics.http(path,res.statusCode,(Date.now()-start)/1000));
   try{
     if(req.headers.host!==new URL(origin).host)return json(res,421,{error:'Host is not allowed'});
     const url=new URL(req.url,origin);path=url.pathname;
+    if(path==='/internal/metrics'){
+      if(req.method!=='GET'||url.search||!permitsMetrics(req.headers.authorization,rt.secret))return json(res,404,{error:'Not found'});
+      metrics.operations((await rt.p.query('select svitlo_events.summary() value')).rows[0].value);
+      res.writeHead(200,{'Content-Type':metrics.registry.contentType,'Cache-Control':'no-store'});return res.end(await metrics.registry.metrics());
+    }
     const target=redirectTarget(path);if(target&&['GET','HEAD'].includes(req.method)){res.writeHead(302,{Location:target,'Cache-Control':'no-store'});return res.end();}
     if(path==='/healthz')return json(res,200,{status:'ok',scope:'isolated-staging',release});
     if(path==='/readyz'){

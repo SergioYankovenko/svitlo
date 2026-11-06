@@ -10,6 +10,7 @@
     "keys": "node scripts/keys.mjs"
   },
   "dependencies": {
+    "@prometheus-io/client": "0.16.1",
     "@supabase/supabase-js": "2.106.1",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",

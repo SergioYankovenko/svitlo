@@ -35,6 +35,7 @@ jobs:
       - run: node --test vps/discovery/*.test.mjs
       - run: node vps/regions/source-history-ci.mjs
       - run: node --test vps/events/*.test.mjs
+      - run: node --test vps/observability/*.test.mjs
       - run: node vps/events/ci.mjs
       - name: Build once outside VPS; no server credentials or deployment
         run: |

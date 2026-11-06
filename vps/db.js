@@ -1,6 +1,7 @@
 import pg from 'pg';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {readFileSync} from 'node:fs';
+import {observeClient} from './observability/metrics.js';
 
 export const ownerContext = new AsyncLocalStorage();
 const ident = value => {
@@ -15,6 +16,7 @@ export function pool(role='api', max=4) {
   const p=new pg.Pool({host:process.env.PGHOST||'postgres',database:process.env.PGDATABASE||'svitlo_staging',user,
     password:readFileSync('/run/secrets/'+role+'_password','utf8').trim(),max,connectionTimeoutMillis:5000,idleTimeoutMillis:30000,
     application_name:'svitlo-stage-'+role,options:'-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000 -c lock_timeout=5000'});
+  p.on('connect',client=>observeClient(client,role));
   p.on('error',e=>console.error(JSON.stringify({event:'db_idle_error',code:e.code||'unknown'})));
   return p;
 }
