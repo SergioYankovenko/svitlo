@@ -1,3 +1,4 @@
+import {sensorSignalView} from '../../app/lib/map-sensor.js';
 import pg from 'pg';import {readFile} from 'node:fs/promises';import {randomUUID,randomBytes,createHash} from 'node:crypto';import {spawn} from 'node:child_process';import assert from 'node:assert/strict';
 import {runtime} from '../runtime.js';import {ownerContext,pool} from '../db.js';import {PhoneSensors,externalPower} from './phone.js';import {SensorAccess,tokenHash} from './service.js';import {Sessions} from '../session.js';
 import {enableQaSubscriptions} from './qa-entitlements.mjs';
@@ -66,7 +67,7 @@ try{
   const connected=await post('/api/v1/sensors',{schemaVersion:1,action:'connect_qr',requestId:randomUUID(),qr:{version:1,kind:'phone_code',code:q.manualCode},profileId},headers);assert.equal(connected.status,200);const point=(await connected.json()).sensor;
   const ik=await (await post('/api/v1/sensor-devices/control',{schemaVersion:1,action:'ingest_credentials',sensorId:d.sensorId},{Authorization:'Bearer '+d.controlToken})).json();
   sensitive.push(ik.ingestToken);const e=event(1,{observedAt:new Date().toISOString(),elapsedRealtimeMs:1,bootId:randomUUID(),monitorId:randomUUID()}),batch=packet([e],ik),sent=await post('/api/v1/sensor-events',batch,{Authorization:'Bearer '+ik.ingestToken});assert.equal(sent.status,200);assert.equal((await sent.json()).acknowledged[0].eventId,e.eventId);
-  const live=await post('/api/v1/sensors',{schemaVersion:1,action:'signal',...ref(point)},headers);assert.equal(live.status,200);assert.equal(live.headers.get('cache-control'),'no-store');assert.equal((await live.json()).signal.powerState,'on');
+  const live=await post('/api/v1/sensors',{schemaVersion:1,action:'signal',...ref(point)},headers);assert.equal(live.status,200);assert.equal(live.headers.get('cache-control'),'no-store');const actualSignal=(await live.json()).signal;assert.equal(actualSignal.powerState,'on');assert.equal(actualSignal.clockQuality,'synchronized');assert.equal(sensorSignalView(actualSignal).state,'on');
   const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Kyiv',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());const day=await post('/api/v1/sensors',{schemaVersion:1,action:'overview',...ref(point),date},headers);assert.equal(day.status,200);assert.equal((await day.json()).overview.horizon.historyDays,90);
   assert.equal((await post('/api/v1/sensors',{schemaVersion:1,action:'owner_qr',requestId:randomUUID(),...ref(point)},{...headers,'X-Svitlo-CSRF':'x'})).status,403);
 

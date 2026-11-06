@@ -83,7 +83,7 @@ for suite in lines regions map phone history pwa sources subscriptions geography
   docker exec -i svitlo-postgres-1 psql -X -q -1 -v ON_ERROR_STOP=1 -U svitlo_owner -d "$qa" < vps/sql/settlement-directory.sql
   docker exec svitlo-postgres-1 psql -X -q -U svitlo_owner -d "$qa" -c "insert into svitlo_vps.migrations(name,sha256) values('1015_settlement_directory.sql','$hash')"
  else test "$existing" = "$hash";fi
- for spec in 1016_phone_qr_rotation.sql:phone-qr-rotation.sql 1018_expired_phone_qr.sql:expired-phone-qr.sql 1019_geography_discovery.sql:geography-discovery.sql 1020_historical_plan.sql:historical-plan.sql 1021_discovery_throughput.sql:discovery-throughput.sql 1022_discovery_territory.sql:discovery-territory.sql 1023_collector_sources.sql:collector-sources.sql 1024_address_lines.sql:address-lines.sql;do
+ for spec in 1016_phone_qr_rotation.sql:phone-qr-rotation.sql 1018_expired_phone_qr.sql:expired-phone-qr.sql 1019_geography_discovery.sql:geography-discovery.sql 1020_historical_plan.sql:historical-plan.sql 1021_discovery_throughput.sql:discovery-throughput.sql 1022_discovery_territory.sql:discovery-territory.sql 1023_collector_sources.sql:collector-sources.sql 1024_address_lines.sql:address-lines.sql 1025_phone_signal_clock.sql:phone-signal-clock.sql;do
   name=${spec%%:*};file=${spec#*:}
   existing=$(docker exec svitlo-postgres-1 psql -X -U svitlo_owner -d "$qa" -Atc "select sha256 from svitlo_vps.migrations where name='$name'")
   hash=$(sed 's/\r$//' "vps/sql/$file" | sha256sum | cut -d' ' -f1)
