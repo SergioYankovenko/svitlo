@@ -15,7 +15,14 @@ const token=prefix=>{const v=prefix+'_'+randomBytes(32).toString('base64url');se
 const as=(actor,fn)=>ownerContext.run(actor,fn),cmd=(actor,action,data={})=>as(actor,()=>access.handle(actor,{schemaVersion:1,action,...data}));
 const write=(actor,action,data={})=>cmd(actor,action,{requestId:randomUUID(),...data}),ref=s=>({sensorId:s.sensorId,bindingEpoch:s.bindingEpoch});
 const grant=(actor,from=-60,until=3600,revoked=false,client=admin)=>client.query("insert into svitlo_sensors.main_app_subscriptions(subject,source,valid_from,valid_until,revoked_at) values($1,'private_test',clock_timestamp()+$2*interval '1 second',clock_timestamp()+$3*interval '1 second',case when $4 then clock_timestamp() else null end) on conflict(subject) do update set valid_from=excluded.valid_from,valid_until=excluded.valid_until,revoked_at=excluded.revoked_at",[actor,from,until,revoked]);
-const profile=async(actor,addressId=null)=>{const id=randomUUID(),address=addressId||(await admin.query("select id from svitlo_vps.catalog where kind='address' and operator_id='qa-grid' order by label limit 1")).rows[0].id;await admin.query("insert into public.svitlo_profiles(id,owner,address,name) values($1,$2,$3,'Subscription QA')",[id,actor,JSON.stringify({canonicalAddressId:address,operatorId:'qa-grid',department:'universal:qa-grid',house:'1'})]);return id;};
+// Fixture profiles obey the same one-profile-per-canonical-line identity as the app.
+const profile=async(actor,addressId=null)=>{
+ const free=(await admin.query("select p.id from public.svitlo_profiles p where p.owner=$1 and ($2::uuid is null or p.address->>'canonicalAddressId'=$2::text) and not exists(select 1 from svitlo_sensors.reader_links l where l.profile_id=p.id) order by p.created_at,p.id limit 1",[actor,addressId])).rows[0];
+ if(free)return free.id;
+ const address=addressId||(await admin.query("select c.id from svitlo_vps.catalog c where c.kind='address' and c.operator_id='qa-grid' and not exists(select 1 from public.svitlo_profiles p where p.owner=$1 and p.address->>'canonicalAddressId'=c.id::text) order by c.label,c.id limit 1",[actor])).rows[0]?.id;
+ assert.ok(address,'An unused QA home is required for this independent sensor');
+ const id=randomUUID();await admin.query("insert into public.svitlo_profiles(id,owner,address,name) values($1,$2,$3,'Subscription QA')",[id,actor,JSON.stringify({canonicalAddressId:address,operatorId:'qa-grid',department:'universal:qa-grid',house:'1'})]);return id;
+};
 const device=async()=>{const d=await phone.register({schemaVersion:1,registrationToken:token('sr')});secrets.push(d.controlToken);return d;};
 const ownerQr=async d=>{const q=await phone.control('Bearer '+d.controlToken,{schemaVersion:1,action:'owner_qr',sensorId:d.sensorId});secrets.push(q.qr.proof);return q.qr;};
 const connect=async(actor,qr,profileId,requestId=randomUUID())=>(await as(actor,()=>rt.bridge.query('select svitlo_sensors.phone_command($1,$2::jsonb) result',['connect',JSON.stringify({requestId,sensorId:qr.sensorId,kind:qr.kind,qrHash:tokenHash(qr.proof),...(profileId?{profileId}:{})})]))).rows[0].result;
