@@ -1,0 +1,42 @@
+/* LIVE46–60: scoped to the private PWA; preserve approved native/prototype UI. */
+.live-pwa .reminder-row{position:relative;overflow:visible}
+.live-pwa .reminder-value{border:1px solid var(--track);min-height:48px}
+.live-pwa .reminder-value[aria-expanded=true]{border-color:var(--accent)}
+.live-pwa .reminder-dropdown{position:absolute;right:0;top:calc(100% + 4px);z-index:15;min-width:145px;padding:5px;background:var(--bg);border:1px solid var(--track);border-radius:13px;box-shadow:0 8px 22px #0004}
+.live-pwa .reminder-dropdown[data-side=above]{top:auto;bottom:calc(100% + 4px)}
+.live-pwa .reminder-dropdown button{display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;min-height:44px;padding:10px 12px;border:0;border-radius:8px;background:transparent;color:var(--ink);font-size:calc(15px * var(--scale))}
+.live-pwa .reminder-dropdown button[aria-selected=true]{background:var(--input-bg);color:var(--accent)}
+.live-pwa .sensor-summary-cards{display:flex;flex-direction:column;gap:9px;border:0;margin:0;padding:0;min-width:0}
+.live-pwa .sensor-summary-cards legend{font-size:clamp(14px,calc(15px * var(--scale)),22px);font-weight:600;margin:0 0 12px;padding:0}
+.live-pwa .sensor-summary-card{display:flex;align-items:center;gap:13px;min-height:78px;padding:14px 12px;background:var(--bg);border:1px solid var(--track);border-radius:14px}
+.live-pwa .sensor-summary-card:has(input:checked){background:var(--input-bg);border-color:var(--accent)}
+.live-pwa .sensor-summary-card input{width:19px;height:19px;flex-shrink:0;accent-color:var(--accent);margin:0}
+.live-pwa .sensor-summary-card strong{display:block;font-size:calc(15px * var(--scale));line-height:1.3}
+.live-pwa .sensor-summary-card small{display:block;font-size:calc(13px * var(--scale));color:var(--muted);margin-top:4px;line-height:1.4}
+.live-pwa .sensor-delete-action{width:100%;justify-content:center;color:var(--emergency);background:transparent;border:0;min-height:48px}
+.live-pwa .sensor-help-fold{border-bottom:1px solid var(--track)}
+.live-pwa .sensor-help-fold-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:62px;padding:14px 0;border:0;background:transparent;color:var(--ink);font-size:clamp(14px,calc(16px * var(--scale)),24px);font-weight:600;text-align:left}
+.live-pwa .sensor-help-chevron{display:flex;flex-shrink:0;color:var(--accent);transition:transform 220ms ease}
+.live-pwa .sensor-help-chevron svg{width:20px;height:20px}
+.live-pwa .sensor-help-fold-toggle[aria-expanded=true] .sensor-help-chevron{transform:rotate(180deg)}
+.live-pwa .sensor-help-fold-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows 240ms ease}
+.live-pwa .sensor-help-fold-body[data-open=true]{grid-template-rows:1fr}
+.live-pwa .sensor-help-fold-body>div{overflow:hidden;min-height:0}
+.live-pwa .sensor-help-fold-copy{padding:3px 0 16px}
+.live-pwa .sensor-hour-heading{display:flex;flex-direction:column;gap:3px;min-width:0}
+.live-pwa .sensor-hour-heading small{font-size:clamp(13px,calc(14px * var(--scale)),20px);font-weight:400;color:var(--muted)}
+.live-pwa .sensor-hour-heading strong{font-size:clamp(14px,calc(16px * var(--scale)),23px);line-height:1.3}
+.live-pwa .sensor-hour-dialog .dialog-head{align-items:center}
+.live-pwa .sensor-connect-dialog[data-scan-state=manual] .sensor-camera{display:none}
+.live-pwa .sensor-connect-dialog [data-scan-enter]{display:none!important}
+.live-pwa .sensor-connect-dialog[data-connection-state=subscription] .sensor-scanner{display:none}
+.live-pwa .sensor-subscription-state{display:flex;align-items:center;gap:12px;padding:10px 0}
+.live-pwa .sensor-subscription-state img{width:34%;height:auto;object-fit:contain}
+.live-pwa .sensor-subscription-state p{font-size:calc(16px * var(--scale));line-height:1.4}
+.live-pwa .sensor-scan-sweep{top:14%;height:72%;background:transparent;box-shadow:none}
+.live-pwa .sensor-scan-sweep::before{inset:0;height:2px;background:var(--accent);box-shadow:0 0 10px 3px color-mix(in srgb,var(--accent) 55%,transparent);animation:sensor-scan-travel 2.4s ease-in-out infinite alternate;will-change:transform}
+.live-pwa [data-scan-state=scanning] .sensor-scan-sweep,.live-pwa [data-scan-state=invalid] .sensor-scan-sweep{animation:none;opacity:.75}
+@keyframes sensor-scan-travel{from{transform:translateY(0)}to{transform:translateY(calc(var(--scan-height,220px) * .72))}}
+.live-pwa .sensor-scan-sweep::after{content:"";position:absolute;left:0;right:0;top:-24px;height:24px;background:linear-gradient(transparent,color-mix(in srgb,var(--accent) 20%,transparent));animation:sensor-scan-travel 2.4s ease-in-out infinite alternate;will-change:transform}
+.live-pwa .onboard-unresolved-actions{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+@media(prefers-reduced-motion:reduce){.live-pwa .sensor-help-fold-body,.live-pwa .sensor-help-chevron{transition:none}.live-pwa .sensor-scan-sweep::before,.live-pwa .sensor-scan-sweep::after{animation:none;transform:translateY(65px)}}

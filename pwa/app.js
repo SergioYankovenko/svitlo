@@ -409,7 +409,7 @@
       template.content.querySelector('.schedule-empty-speech p').textContent = 'Дані графіка уточнюються';
       return banner+template.innerHTML;
     }
-    return `${banner}${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div><div class="actions one schedule-feedback"><button class="action mismatch-action" disabled aria-disabled="true">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
+    return `${banner}${grid(false, date)}<div class="legend"><span class="legend-item"><span class="legend-sample">${power()}</span>Світло є</span><span class="legend-item"><span class="legend-sample off" style="background:var(--${dayContext.kind || "hourly"})">${power(true)}</span>Світла немає</span><span class="legend-item"><span class="legend-sample now${sensor?.hasBinding() ? " sensor-current" : ""}"></span>Поточна година</span></div><div class="actions one schedule-feedback"><button class="action mismatch-action" data-action="${sensor?.hasBinding() ? "sensor-info" : "schedule-help"}">${sensor?.hasBinding() ? "Придбати ще один датчик" : "Не співпадає графік?"}</button></div>`;
   }
   function scheduleCard(demo = false) {
     const date = window.SvitloClock.selected(state);
@@ -837,12 +837,13 @@
 
         break;
       case "reminder":
-        reminderDialog();
+        window.SvitloNextUI.reminder(element,state.reminder);
         break;
       case "set-reminder":
+        if (![5,15,30,60].includes(Number(element.dataset.minutes))) break;
         state.reminder = Number(element.dataset.minutes);
         await live.preferences(state);
-        closeDialog();
+        window.SvitloNextUI.closeReminder();
         render();
         break;
       case "permission": pwaPermission(); break;
@@ -853,24 +854,13 @@
         closeDialog(); render(); break;
       case "pwa-deny": await live.disablePush();live.adopt(state);closeDialog();render();break;
       case "source": live.openSource(element?.dataset.sourceUrl); break;
-      case "share":
-        dialog(
-          "Поділитись графіком",
-          `<div class="share-copy" id="share-copy">${esc(shareText())}</div>`,
-          dialogButton("Скопіювати", "copy-share", "center") +
-            dialogButton("Закрити", "close", "center"),
-          "",
-          { footerClass: "stack-large" },
-        );
+      case "schedule-help": window.SvitloNextUI.redirect('schedule'); break;
+      case "sensor-info": window.SvitloNextUI.redirect('sensor'); break;
+      case "share": {
+        const result=await window.SvitloNextUI.share(shareText());
+        if(result==='copied')toast('Текст скопійовано');
         break;
-      case "copy-share":
-        if (navigator.clipboard?.writeText)
-          navigator.clipboard
-            .writeText(shareText())
-            .then(() => toast("Текст скопійовано"))
-            .catch(() => toast("Виділіть і скопіюйте текст повідомлення"));
-        else toast("Виділіть і скопіюйте текст повідомлення");
-        break;
+      }
       case "support-dismiss":
         supportPreview = false;
         supportHint.hide(true);

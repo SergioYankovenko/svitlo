@@ -369,7 +369,7 @@ window.SvitloOnboarding = {
         : window.SvitloLive.search(kind,flow,query,abortRequest.signal,cursor);
       task.then(result=>{
         if(!current())return;
-        if(kind==='submit'&&result.requiresLine){cancelRequest();flow.lineChoices=result.lines;flow.lineId=null;ctx.render(false);return;}
+        if(kind==='submit'&&result.requiresLine){cancelRequest();flow.lineChoices=result.lines;flow.queueUnresolved=true;flow.lineId=null;ctx.render(false);return;}
         if(kind==="submit") flow.savedProfile=result;
         else {
           flow.results[kind]=more?[...new Map([...flow.results[kind],...result].map(r=>[r.id,r])).values()]:result;
@@ -544,7 +544,7 @@ window.SvitloOnboarding = {
     }
     function addressScreen() {
       if(geography?.active())return geography.html();
-      if(flow.lineChoices?.length)return `<section class="onboard-address-flow" aria-label="Лінія нової адреси">${selectedAddress(true)}<div class="card outlined onboard-card geo-line-options"><h1>У будинку є кілька ліній живлення</h1><p class="onboard-support">Оберіть свою лінію, щоб показати відповідний графік.</p>${flow.lineChoices.map(line=>`<button class="action" data-action="onboard-line" data-line="${e(line.id)}">${e(line.label||line.groupCode||'Лінія живлення')}</button>`).join('')}<button class="action" data-action="onboard-clear" data-kind="house">Змінити будинок</button></div></section>`;
+      if(flow.queueUnresolved)return `<section class="onboard-address-flow" aria-label="Уточнення нової адреси">${selectedAddress(true)}<div class="card outlined onboard-card geo-line-options"><h1>${flow.lineChoices?.length>1?'Уточнимо адресу':'Адресу обрано'}</h1><p class="onboard-support">${flow.lineChoices?.length>1?'Для цього будинку є кілька ліній. Спробуй уточнити номер або корпус. Якщо це не допомагає, можна продовжити без черги.':'Твоєї черги поки немає в нашій базі. Можеш продовжити й стежити за світлом за допомогою датчика.'}</p><div class="onboard-unresolved-actions">${flow.lineChoices?.length>1?'<button class="action" data-action="onboard-clear" data-kind="house">Уточнити будинок</button>':''}<button class="action" data-action="onboard-without-queue">Продовжити без черги</button><button class="action" data-action="onboard-sensor-info">Що таке датчик?</button></div></div></section>`;
       const submitting=flow.request?.kind==='submit'&&pending(),review=!!flow.house,additional=!flow.initial;
       const inline=flow.initial&&(flow.inlineReview||review),editingAdditional=additional&&flow.additionalEditing;
       if(review)window.SvitloMascot?.warmSubmit();
@@ -675,6 +675,8 @@ window.SvitloOnboarding = {
       if(geography?.handleAction(action,element))return true;
       if (!action.startsWith("onboard-")) return false;
       switch (action) {
+        case 'onboard-sensor-info':window.SvitloNextUI.redirect('sensor');break;
+        case 'onboard-without-queue':if(flow?.queueUnresolved){flow.continueWithoutQueue=true;flow.queueUnresolved=false;flow.lineChoices=null;beginRequest('submit');ctx.render(false);}break;
         case 'onboard-line':
           if(flow?.lineChoices?.some(x=>x.id===element.dataset.line)){flow.lineId=element.dataset.line;flow.lineChoices=null;beginRequest('submit');ctx.render(false);}break;
         case "onboard-report":
@@ -705,7 +707,7 @@ window.SvitloOnboarding = {
           if (flow) {
             const kind = element.dataset.kind;
             if (!["city","street","house"].includes(kind)) break;
-            if(kind==='city'&&flow.geography){cancelRequest();flow.city=null;flow.street=null;flow.house=null;flow.lineId=null;flow.lineChoices=null;flow.geography=window.SvitloGeography.fresh();flow.inlineReview=false;flow.additionalEditing=false;flow.editing=null;delete flow.editBackup;geography.start();break;}
+            if(kind==='city'&&flow.geography){cancelRequest();flow.city=null;flow.street=null;flow.house=null;flow.lineId=null;flow.lineChoices=null;flow.queueUnresolved=false;flow.continueWithoutQueue=false;flow.geography=window.SvitloGeography.fresh();flow.inlineReview=false;flow.additionalEditing=false;flow.editing=null;delete flow.editBackup;geography.start();break;}
             if (flow.inlineReview && flow.editing === kind && flow.editBackup) {
               Object.assign(flow, flow.editBackup);
               delete flow.editBackup;
@@ -758,7 +760,7 @@ window.SvitloOnboarding = {
           }
           const fields = ["city", "street", "house"];
           flow[kind] = record;
-          flow.lineId=null;flow.lineChoices=null;
+          flow.lineId=null;flow.lineChoices=null;flow.queueUnresolved=false;flow.continueWithoutQueue=false;
           flow.queries[kind] = "";
           flow.started = true;
           flow.revisiting = null;
@@ -797,7 +799,7 @@ window.SvitloOnboarding = {
             flow.results[key] = [];
           }
           cancelRequest();
-          flow.lineId=null;flow.lineChoices=null;
+          flow.lineId=null;flow.lineChoices=null;flow.queueUnresolved=false;flow.continueWithoutQueue=false;
           if(kind==='city'&&flow.geography){flow.geography=window.SvitloGeography.fresh();flow.inlineReview=false;flow.additionalEditing=false;flow.editing=null;geography.start();break;}
           ctx.render();
           document

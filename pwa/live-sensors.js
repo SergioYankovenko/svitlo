@@ -24,7 +24,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
     try{const [r,v]=await Promise.all([live.sensor('signal',{sensorId:s.sensorId,bindingEpoch:s.bindingEpoch}),live.sensor('overview',{sensorId:s.sensorId,bindingEpoch:s.bindingEpoch,date})]);
       if(g!==generation||!live.sensors().some(x=>key(x)===key(s)))return;
       signals.set(key(s),{data:r.signal,at:Date.now()});views.set(k,v.overview);fetched.set(k,Date.now());ctx.render();
-    }catch{/* No extrapolation from a failed/stale read. */signals.delete(key(s));views.delete(k);fetched.set(k,Date.now());}finally{pending.delete(k);}
+    }catch(error){/* Preserve history on transport failures, never after access revocation. */signals.delete(key(s));if([401,403,404].includes(error.status))views.delete(k);fetched.set(k,Date.now());}finally{pending.delete(k);}
     })();pending.set(k,job);return job;
   }
   function observation(date=ctx.date(),id=ctx.address().id){const s=binding(typeof id==="object"?id.readerProfileId:id),o=s&&views.get(viewKey(s,date));if(!o||o.observation?.semantics!=='explicit_coverage_only')return null;
@@ -78,12 +78,12 @@ window.SvitloLiveSensors={forecastAvailable(data){
         className:"sensor-details-dialog sensor-overview-dialog",footerClass:"sensor-hub-footer",...options});
     }
     function settings() {
-      const p = managed(); if (!p) return connect();
-      hubView = "settings";
-      hubDialog("Налаштування датчика",member(p) && p.entitled
-        ? `<fieldset class="sensor-summary-choice"><legend>Підсумки дня</legend><div role="group" aria-label="Джерело підсумків дня">${[["plan","За графіком"],["actual","За датчиком"]].map(([source,label])=>`<button type="button" data-action="sensor-summary-source" data-source="${source}" aria-pressed="${p.actualSummary === (source === "actual")}">${label}</button>`).join("")}</div><p>Якщо графіка немає, покажу доступні виміри датчика.</p></fieldset><div class="sensor-settings-rows"><label class="switch-row"><span>Сповіщення про світло та зв’язок</span><input type="checkbox" data-sensor-layer="notifications" aria-label="Сповіщення про світло та зв’язок" ${p.notificationReaders?.[reader] ? "checked" : ""}></label></div>`
-        : "<p>Налаштування недоступні без чинного доступу до датчика.</p>",
-        button("До огляду","overview"));
+      const p=managed();if(!p)return connect();hubView='settings';
+      const choices=[['plan','За графіком','Підсумки з офіційного плану'],['actual','За датчиком','Підсумки з доступних вимірів']];
+      hubDialog('Налаштування датчика',member(p)&&p.entitled
+        ? `<fieldset class="sensor-summary-cards"><legend>Звідки брати підсумки дня</legend>${choices.map(([value,title,note])=>`<label class="sensor-summary-card"><input type="radio" name="sensor-summary" data-sensor-summary="${value}" ${p.actualSummary===(value==='actual')?'checked':''}><span><strong>${title}</strong><small>${note}</small></span></label>`).join('')}</fieldset><div class="sensor-settings-rows"><label class="switch-row"><span>Сповіщення про світло та зв’язок</span><input type="checkbox" data-sensor-layer="notifications" aria-label="Сповіщення про світло та зв’язок" ${noticePrefs.get(key(p))?'checked':''}></label></div>`
+        : '<p>Налаштування недоступні без чинного доступу до датчика.</p>',
+        (owner(p)?button('Видалити датчик','disconnect','sensor-delete-action'):'')+button('До огляду','overview'),{dismissOnBackdrop:true});
     }
     function sharing() {
       const p = managed(); if (!p) return connect();
@@ -99,8 +99,9 @@ window.SvitloLiveSensors={forecastAvailable(data){
       const summary = allowed && actual?.available
         ? `<div class="sensor-help-totals">${[["Зі світлом",actual.on],["Без світла",actual.off],["Невідомо",actual.unknown]].map(([label,value])=>`<div><small>${label}</small><strong>${duration(value)}</strong></div>`).join("")}</div>`
         : `<p>${!allowed ? "Виміри недоступні для цього телефона." : date > ctx.now().date ? "За майбутній день вимірів ще немає." : "Підтверджених вимірів ще немає."}</p>`;
+      const fold=window.SvitloNextUI.fold;
       const example = (name,cls,text) => `<div class="sensor-help-example"><span class="sensor-help-sample ${cls}" aria-hidden="true"></span><div><strong>${name}</strong><small>${text}</small></div></div>`;
-      hubDialog("Про датчик",`<section class="sensor-help-summary"><h3>${e(new Intl.DateTimeFormat("uk-UA",{day:"numeric",month:"long",timeZone:"UTC"}).format(window.SvitloClock.date(date)))}</h3>${summary}</section><div class="sensor-help-folds"><details open><summary>Як читати плитку</summary>${example("За графіком","plan","Колір показує офіційний план.")}${example("За датчиком","actual","Зелений означає «є», кораловий «немає».")}<div class="sensor-help-example"><div class="sensor-help-current" aria-hidden="true"><span></span></div><p class="sensor-help-caption">Контур показує історію за хвилинами. Крапка лише на поточній годині показує свіжий стан датчика.</p></div></details><details><summary>Прогноз і невідомий час</summary>${example("Прогноз в огляді датчика","prediction","Пунктир показує орієнтовний прогноз за минулими вимірами.")}${example("Невідомо","unknown","Тут вимірів немає. Це не підтвердження відключення.")}</details><details><summary>Що саме бачить датчик</summary><p class="sensor-help-boundary">Лише свою точку, а не весь будинок. Наприклад, розетка після UPS може показувати резервне живлення.</p></details></div>`,button("До огляду","overview"),{className:"sensor-details-dialog sensor-overview-dialog sensor-help-dialog",dismissOnBackdrop:true});
+      hubDialog("Про датчик",`<section class="sensor-help-summary"><h3>${e(new Intl.DateTimeFormat("uk-UA",{day:"numeric",month:"long",timeZone:"UTC"}).format(window.SvitloClock.date(date)))}</h3>${summary}</section><div class="sensor-help-folds">${fold("Як читати плитку",`${example("За графіком","plan","Колір показує офіційний план.")}${example("За датчиком","actual","Зелений означає «є», кораловий «немає».")}<div class="sensor-help-example"><div class="sensor-help-current" aria-hidden="true"><span></span></div><p class="sensor-help-caption">Контур показує історію за хвилинами. Крапка лише на поточній годині показує свіжий стан датчика.</p></div>`,true)}${fold("Прогноз і невідомий час",`${example("Прогноз в огляді датчика","prediction","Пунктир показує орієнтовний прогноз за минулими вимірами.")}${example("Невідомо","unknown","Тут вимірів немає. Це не підтвердження відключення.")}`)}${fold("Що саме бачить датчик",`<p class="sensor-help-boundary">Лише свою точку, а не весь будинок. Наприклад, розетка після UPS може показувати резервне живлення.</p>` )}</div>`,button("До огляду","overview"),{className:"sensor-details-dialog sensor-overview-dialog sensor-help-dialog",dismissOnBackdrop:true});
     }
     function indicator(p = record(), detail = "") {
       if (!p) return { html: "", label: "" };
@@ -181,9 +182,11 @@ window.SvitloLiveSensors={forecastAvailable(data){
       const marker = ratio === null ? "" : `<div class="hour-now ${ratio<10?"edge-start":ratio>90?"edge-end":""}" style="--hour-now:${ratio}%"><span>${time(timeline.now)}</span></div>`;
       const suffix = timeline.transition ? ` · ${timeline.transition.state === "on" ? "Увімкнули" : "Вимкнули"} о ${time(timeline.transition.at)}` : "";
       const rows = timeline.fact.map(i => `<div class="hour-fact-row"><span class="hour-fact-range">${time(i.start)}–${time(i.end)}</span><span class="hour-fact-state ${i.state}">${i.state === "on" ? window.SvitloNativeUI.power(false) : i.state === "off" ? window.SvitloNativeUI.power(true) : window.SvitloNativeUI.icon("clock")}${labels[i.state]}</span></div>`).join("");
-      ctx.dialog(`Деталі за год${suffix}`,
+      ctx.dialog('Деталі за годину',
         `<section class="hour-comparison"><div class="hour-time-area">${marker}<div class="hour-combined-band">${track(timeline.plan,"За графіком")}${track(timeline.fact,"За датчиком")}</div><div class="hour-axis"><span>${time(start)}</span><span>${time(end)}</span></div></div><div class="hour-facts" tabindex="0" role="region" aria-label="Інтервали вимірів за годину">${rows}</div></section>`,
         ctx.button("Зрозуміло", "close", "center"), "", {className:"sensor-hour-dialog",dismissOnBackdrop:true,headerAction:`<button type="button" class="sensor-hour-more" data-action="sensor-hour-overview" data-address="${e(el.dataset.address)}" data-date="${e(date)}" aria-label="Детальніше про графіки датчика">Детальніше</button>`,accessibleLabel:`Деталі години ${time(start)}–${time(end)} за ${date}. ${suffix}`});
+      const title=document.querySelector('.sensor-hour-dialog .dialog-title');
+      if(title){title.classList.add('sensor-hour-heading');title.innerHTML=`<small>Деталі за годину</small><strong>${e(timeline.transition?`${timeline.transition.state==='on'?'Увімкнули':'Вимкнули'} о ${time(timeline.transition.at)}`:`${time(start)}–${time(end)}`)}</strong>`;}
     }
     function changeHubDay(nextDate) {
       const p = managed(), days = hubDays();
@@ -259,12 +262,13 @@ window.SvitloLiveSensors={forecastAvailable(data){
         }
         confirmConnection(code,root,scanner);
       }});
+      root.sensorScanner=scanner;connectFooter(root,false);
     }
     function connectFooter(root,ready,busy=false) {
       const footer=root.querySelector('.dialog-footer'),focused=footer.contains?.(document.activeElement)?document.activeElement?.dataset?.action:null;
       footer.innerHTML=(ready?button(busy?'Підключаю…':'Підтвердити','confirm','sensor-connect-primary',busy?'disabled aria-disabled="true"':''):'')+
-        ctx.button('Скасувати','close','cancel');
-      footer.classList.toggle('sensor-connect-paired',ready);
+        ctx.button('Скасувати','close','cancel')+(!ready&&root.dataset.scanState!=='manual'?button('Ввести код','manual','sensor-manual-entry'):'');
+      footer.classList.toggle('sensor-connect-paired',ready||root.dataset.scanState!=='manual');
       if(focused){const controls=[...footer.querySelectorAll('button')];(controls.find(el=>el.dataset.action===focused&&!el.disabled)||controls.find(el=>!el.disabled))?.focus({preventScroll:true});}
     }
     function confirmConnection(code,root,scanner) {
@@ -295,6 +299,8 @@ window.SvitloLiveSensors={forecastAvailable(data){
     switch(action){
       case 'list':listExpanded=bindings().length?!listExpanded:false;ctx.render();break;
       case 'connect':connect();break;
+      case 'manual':document.querySelector('.sensor-connect-dialog')?.sensorScanner?.manual();break;
+      case 'buy':window.SvitloNextUI.redirect('subscription');break;
       case 'confirm':{
         if(!pendingBinding||pendingBinding.busy)break;const b=pendingBinding;
         if(!b.root.isConnected){pendingBinding=null;break;}
@@ -303,11 +309,21 @@ window.SvitloLiveSensors={forecastAvailable(data){
         b.root.querySelector('.sensor-connect-error').hidden=true;
         try{
           await live.sensor('connect_qr',{requestId:b.requestId,qr:b.qr,profileId:b.addressId});
+          await live.enableSensorNotice(b.addressId).catch(()=>ctx.toast('Датчик підключено. Увімкни сповіщення в його налаштуваннях.'));
           if(pendingBinding===b)pendingBinding=null;
           await Promise.allSettled([live.sync('manual'),live.refreshSensors()]);
           if(b.root.isConnected){ctx.close();ctx.render();ctx.toast('Датчик підключено. Очікую перший сигнал.');}
         }catch(error){
           if(b.root.isConnected&&pendingBinding===b){
+            if(/(?:subscription|entitlement).*(?:required|expired)|main_app_subscription/.test(error.code||'')){
+              b.scanner?.pause();b.root.dataset.connectionState='subscription';
+              const view=document.createElement('div');view.className='sensor-subscription-state';
+              view.innerHTML='<img src="assets/privacy-shield-guide-v1.webp" alt=""><p>Для активації датчика потрібна підписка.</p>';
+              b.root.querySelector('.sensor-scanner').after(view);
+              b.root.querySelector('.dialog-footer').innerHTML=button('Придбати','buy','sensor-connect-primary')+ctx.button('Скасувати','close','cancel');
+              b.root.querySelector('.sensor-connect-error').hidden=true;
+              break;
+            }
             b.root.dataset.connectionState='error';
             b.root.querySelector('.sensor-connection-icon').innerHTML=window.SvitloNativeUI.sensorIcon('warning');
             b.root.querySelector('.sensor-connection-icon').setAttribute('aria-label','Підключення не підтверджено');
@@ -331,7 +347,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
       case 'members':if(owner(p))await members();break;
       case 'revoke':if(owner(p)){await call('member_revoke',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch,membershipId:el.dataset.member});await members();}break;
       case 'leave':if(member(p)&&!owner(p)){await call('leave',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch,membershipId:p.membershipId});await live.refreshSensors();ctx.close();ctx.render();}break;
-      case 'disconnect':if(owner(p))ctx.dialog('Від’єднати для всіх?','<p>Усі учасники втратять доступ до цієї точки. Інші адреси залишаться.</p>',ctx.button('Скасувати','close','cancel')+button('Від’єднати','disconnect-confirm'),'',{footerClass:'paired'});break;
+      case 'disconnect':if(owner(p))ctx.dialog('Видалити датчик?','<p>Датчик буде відв’язано від усіх акаунтів. Його можна буде підключити знову.</p>',button('Видалити','disconnect-confirm','cancel')+button('Скасувати','settings'),'',{footerClass:'paired'});break;
       case 'disconnect-confirm':if(owner(p)){await call('disconnect',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch,confirmed:true});generation++;signals.clear();views.clear();await live.refreshSensors();ctx.close();ctx.render();}break;
     }
   }
@@ -339,6 +355,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
     ctx.dialog('Учасники',(r.members||r.memberships||[]).map(m=>`<p>${m.role==='owner'?'Власник':'Глядач'} ${m.role==='viewer'?button('Відкликати','revoke','',`data-member="${e(m.membershipId)}"`):''}</p>`).join(''),button('До доступу','sharing'));
   }
   document.getElementById('app').addEventListener('change',async event=>{
+    if(event.target.dataset.sensorSummary){const p=managed();if(member(p)&&['plan','actual'].includes(event.target.dataset.sensorSummary)){p.actualSummary=event.target.dataset.sensorSummary==='actual';save();ctx.render();}return;}
     if(event.target.dataset.sensorLayer!=='notifications')return;const p=managed();if(!member(p))return;const input=event.target;input.disabled=true;try{const r=await live.sensor('notice_set',{sensorId:p.sensorId,bindingEpoch:p.bindingEpoch,enabled:input.checked});noticePrefs.set(key(p),r.enabled===true);input.checked=r.enabled===true;}catch(error){input.checked=noticePrefs.get(key(p))===true;ctx.toast(error.message);}finally{input.disabled=false;}
   });
   return {pruneProfiles,hasBinding,preferActual:()=>!!profile()?.actualSummary,observation,indicator,tracks,optionsHTML,messagesHTML:()=>'',examplePlan:()=>null,

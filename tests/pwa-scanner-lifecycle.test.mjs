@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 const source=await readFile(new URL('../pwa/sensor-scanner.js',import.meta.url),'utf8');
 const valid=JSON.stringify({version:1,kind:'phone_owner',sensorId:'11111111-1111-4111-8111-111111111111',proof:'sp_'+'a'.repeat(43)});
 class Node extends EventTarget {
- constructor(){super();this.hidden=false;this.value='';this.dataset={};this.isConnected=true;this.clientWidth=300;this.clientHeight=200;this.attrs={};}
+ constructor(){super();this.hidden=false;this.value='';this.dataset={};this.isConnected=true;this.clientWidth=300;this.clientHeight=200;this.attrs={};this.style={setProperty(){}};}
  querySelector(){return this.path;}
  setAttribute(k,v){this.attrs[k]=v;}toggleAttribute(k,v){if(v)this.attrs[k]='';else delete this.attrs[k];}
  focus(){this.focused=true;}select(){}async play(){}getContext(){return{drawImage(){},getImageData(){return{data:new Uint8ClampedArray(16),width:2,height:2};}};}

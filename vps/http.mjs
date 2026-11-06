@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {redirectTarget} from './redirects.js';
 import {readFile,stat} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
 import {runtime} from './runtime.js';
@@ -35,6 +36,7 @@ const server=http.createServer(async(req,res)=>{
   try{
     if(req.headers.host!==new URL(origin).host)return json(res,421,{error:'Host is not allowed'});
     const url=new URL(req.url,origin);path=url.pathname;
+    const target=redirectTarget(path);if(target&&['GET','HEAD'].includes(req.method)){res.writeHead(302,{Location:target,'Cache-Control':'no-store'});return res.end();}
     if(path==='/healthz')return json(res,200,{status:'ok',scope:'isolated-staging',release});
     if(path==='/readyz'){
       const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1011_operations.sql') and exists(select 1 from svitlo_vps.migrations where name='1010_kyiv_regions.sql') and exists(select 1 from svitlo_vps.migrations where name='1008_map_addresses.sql') and exists(select 1 from svitlo_vps.migrations where name='1007_sensor_history.sql') and exists(select 1 from pg_proc where pronamespace='svitlo_sensors'::regnamespace and proname='phone_ingest') as universal_ready from svitlo_vps.release_state where id");

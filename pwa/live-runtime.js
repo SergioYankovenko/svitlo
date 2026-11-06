@@ -1,3 +1,4 @@
+import {retainPublishedDays} from './core/lib/universal-history.js';
 import {createBackgroundAddresses} from './core/lib/background-addresses.js';
 import {subscribeWithTimeout} from './live-push.js';
 import {rememberReloadView,takeReloadView} from './reload-state.js';
@@ -18,7 +19,7 @@ export async function createLive(){
   const PUSH_CHOICE='svitlo.pwa.v2.push-choice';
   const pushChoice=()=>{try{return JSON.parse(localStorage.getItem(PUSH_CHOICE)||'null');}catch{return null;}};
   const savePushChoice=(enabled,subject=owner)=>{try{localStorage.setItem(PUSH_CHOICE,JSON.stringify({owner:subject,enabled}));}catch{}};
-  const preferenceJobs=new Map(),preferenceRevisions=new Map();
+  const preferenceJobs=new Map(),preferenceRevisions=new Map(),noticeJobs=new Map();
   let cap=null;const listeners=new Set();
   const emit=()=>listeners.forEach(f=>f());
   function persist(){try{const raw=JSON.stringify({version:1,owner,profiles,weather,active});if(owner&&raw.length<=MAX_CACHE)localStorage.setItem(KEY,raw);else localStorage.removeItem(KEY);}catch{/* Storage never blocks a fetched schedule. */}}
@@ -40,7 +41,7 @@ export async function createLive(){
       const generation=epoch,revision=dataRevision,id=active;
       const result=await request('sync',{...(id?{id}:{}),reason},{owner:who});
       if(generation!==epoch||who!==owner||revision!==dataRevision)return;
-      profiles=result.profiles||[];const linked=new URL(location.href).searchParams.get('profile');if(linked&&profiles.some(p=>p.id===linked)){active=linked;if(ui){ui.active=linked;const date=new URL(location.href).searchParams.get('date');if(/^\d{4}-\d\d-\d\d$/.test(date||''))ui.viewDate=date;}const link=new URL(location.href);link.searchParams.delete('profile');link.searchParams.delete('date');history.replaceState(null,'',link);}
+      const previous=new Map(profiles.map(p=>[p.id,p]));profiles=(result.profiles||[]).map(p=>{const old=previous.get(p.id);return old&&p.snapshot?.universal?{...p,snapshot:{...p.snapshot,universal:retainPublishedDays(p.snapshot.universal,old.snapshot?.universal,dayKey())}}:p;});const linked=new URL(location.href).searchParams.get('profile');if(linked&&profiles.some(p=>p.id===linked)){active=linked;if(ui){ui.active=linked;const date=new URL(location.href).searchParams.get('date');if(/^\d{4}-\d\d-\d\d$/.test(date||''))ui.viewDate=date;}const link=new URL(location.href);link.searchParams.delete('profile');link.searchParams.delete('date');history.replaceState(null,'',link);}
       active=profiles.some(p=>p.id===active)?active:result.active||profiles[0]?.id||null;
       vapid=result.vapid||'';
       restorePush().catch(()=>{});
@@ -63,12 +64,12 @@ export async function createLive(){
   }
   async function enroll(flow,signal){
     const choice=flow.geography?.routes?.length?await backgroundAddresses.resolve(flow,signal):{resolved:await universalRequest('resolve',{addressId:flow.house.id,...(flow.lineId?{lineId:flow.lineId}:{})},{signal})};
-    if(choice.requiresLine)return choice;const {resolved}=choice;signal?.throwIfAborted();
+    if(choice.requiresLine&&!flow.continueWithoutQueue)return choice;const {resolved}=choice;signal?.throwIfAborted();
     if(['disabled','unsupported'].includes(resolved.operator?.supportState))throw Error('Джерело цього регіону недоступне');
-    const lines=resolved.resolution?.lines||[],lineId=resolved.selection?.lineId||null;
-    if(lines.length>1&&!lineId){if(flow.geography)return {requiresLine:true,lines};throw Error('Потрібен вибір лінії живлення');}
+    const lines=resolved.resolution?.lines||[],lineId=flow.continueWithoutQueue?null:resolved.selection?.lineId||null;
+    if(!flow.continueWithoutQueue&&(!lines.length||lines.length>1&&!lineId)&&!['excluded','resolved'].includes(resolved.resolution?.state)){return {requiresLine:true,lines};throw Error('Потрібен вибір лінії живлення');}
     const who=await session(true),generation=epoch;signal?.throwIfAborted();
-    const result=await request('save',{address:{canonicalAddressId:resolved.address.id,lineId},name:flow.name||'',confirmed:true},{owner:who,signal});
+    const result=await request('save',{address:{canonicalAddressId:resolved.address.id,lineId,...(flow.continueWithoutQueue?{queueUnresolved:true}:{})},name:flow.name||'',confirmed:true},{owner:who,signal});
     if(generation!==epoch||who!==owner)throw Error('Сеанс змінився. Спробуйте ще раз');
     dataRevision++;profiles=profiles.filter(p=>p.id!==result.profile.id);profiles.push(result.profile);active=result.profile.id;persist();
     emit();sync().catch(()=>{});return result.profile;
@@ -89,9 +90,17 @@ export async function createLive(){
   async function mutate(action,data){const who=await session(false);if(!who)throw Error('Сеанс завершився. Додайте адресу ще раз');const g=epoch;const r=await request(action,data,{owner:who});if(g!==epoch)throw Error('Сеанс змінився');return r;}
   async function remove(id){await mutate('delete',{id});dataRevision++;profiles=profiles.filter(p=>p.id!==id);if(active===id)active=profiles[0]?.id||null;delete weather[id];sensors=[];persist();emit();}
   async function rename(id,name){const r=await mutate('rename',{id,name});dataRevision++;profiles=profiles.map(p=>p.id===id?r.profile:p);persist();emit();}
+  async function enableSensorNotice(id){
+    if(noticeJobs.has(id))return noticeJobs.get(id);
+    const g=epoch,who=owner;
+    const job=(async()=>{await refreshSensors();if(g!==epoch||who!==owner)return;const s=sensors.find(s=>s.readerProfileId===id);if(!s)return;
+      await sensorRequest('notice_set',{sensorId:s.sensorId,bindingEpoch:s.bindingEpoch,enabled:true},{owner:who});
+    })().finally(()=>noticeJobs.delete(id));noticeJobs.set(id,job);return job;
+  }
   async function preferences(state){const id=state.active;if(!id)return;const f=state.switches,patch={publication:f.tomorrow,change:f.changes,schedule:f.tomorrow||f.changes,reminder:f.before,restoration:f.restore,emergency:f.emergency,lead:state.reminder};
+    const before=current(id)?.preferences||{};
     const revision=(preferenceRevisions.get(id)||0)+1;preferenceRevisions.set(id,revision);
-    const job=(preferenceJobs.get(id)||Promise.resolve()).catch(()=>{}).then(()=>mutate('preferences',{id,preferences:patch})).then(r=>{dataRevision++;if(preferenceRevisions.get(id)===revision){profiles=profiles.map(p=>p.id===id?r.profile:p);persist();}});
+    const job=(preferenceJobs.get(id)||Promise.resolve()).catch(()=>{}).then(()=>mutate('preferences',{id,preferences:patch})).then(r=>{dataRevision++;if(preferenceRevisions.get(id)===revision){profiles=profiles.map(p=>p.id===id?r.profile:p);persist();if(!before.reminder&&patch.reminder||!before.restoration&&patch.restoration)return enableSensorNotice(id);}});
     preferenceJobs.set(id,job);return job;
   }
   function weatherHTML(e){const w=weather[active];if(!w||!Number.isFinite(w.temperature)||w.city!==profileView(current()||{}).city)return '';
@@ -125,7 +134,7 @@ export async function createLive(){
     })().finally(()=>{if(pushPending===job)pushPending=null;});pushPending=job;return job;
   }
   async function disablePush(){savePushChoice(false);pushRequest++;pushPending=null;const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner)await mutate('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
-  const api={adopt,enroll,search,geography:(route,data,signal)=>universalRequest(route,data,{signal}),sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,planView,summaryVisible,canSharePlan,planClock,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
+  const api={enableSensorNotice,adopt,enroll,search,geography:(route,data,signal)=>universalRequest(route,data,{signal}),sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,planView,summaryVisible,canSharePlan,planClock,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
     rememberView:view=>rememberReloadView(()=>sessionStorage,owner,view),takeView:()=>takeReloadView(()=>sessionStorage,owner),
     onChange:f=>{listeners.add(f);return()=>listeners.delete(f);},
     profile:current,profiles:()=>profiles,owner:()=>owner,sensors:()=>sensors,sensorFetched:()=>sensorFetched,signalView:sensorSignalView,refreshSensors,

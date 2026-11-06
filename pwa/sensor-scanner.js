@@ -78,6 +78,7 @@ window.SvitloSensorScanner = (() => {
         stream.getVideoTracks().forEach(track=>track.addEventListener('ended',()=>{if(!disposed&&token===epoch)noCamera();},{signal}));
         await video.play();const decode=await loadDecoder();if(disposed||token!==epoch)return;
         const canvas=document.createElement('canvas'),context=canvas.getContext('2d',{willReadFrequently:true});
+        camera.style.setProperty('--scan-height',camera.clientHeight+'px');
         present('Наведи камеру на QR-код датчика.','scanning');
         function scan(){
           if(disposed||token!==epoch||code||!root.isConnected)return;
@@ -97,11 +98,12 @@ window.SvitloSensorScanner = (() => {
         scan();
       }catch{if(!disposed&&token===epoch)noCamera();}
     }
-    enter.addEventListener('click',()=>{
+    function manualEntry(){
       stop();still.hidden=true;still.width=still.height=0;code=null;camera.hidden=true;enter.hidden=true;manual.hidden=false;
       digits.forEach(input=>input.value='');
       present('Введи 6 цифр коду.','manual');digits[0]?.focus({preventScroll:true});
-    },{signal});
+    }
+    enter.addEventListener('click',manualEntry,{signal});
     const focusDigit=index=>{digits[index]?.focus({preventScroll:true});digits[index]?.select?.();};
     const changed=()=>{
       if(digits.every(input=>/^[0-9]$/.test(input.value))&&accept(digits.map(input=>input.value).join(''),false))return;
@@ -140,6 +142,7 @@ window.SvitloSensorScanner = (() => {
     window.addEventListener('pagehide',pause,{signal});
     active=()=>{disposed=true;stop();still.hidden=true;still.width=still.height=0;digits.forEach(input=>input.value='');code=null;abort.abort();onDispose();};start();
     return {
+      manual:manualEntry,pause:stop,
       setBusy(value){busy=!!value;digits.forEach(input=>input.disabled=busy);},
       rejected(){if(!disposed){enter.hidden=!manual.hidden;root.dataset.scanState='error';}},
     };

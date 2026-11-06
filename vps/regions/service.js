@@ -39,10 +39,18 @@ export class Regions {
  async snapshot(entity,resolution,range){const data=await this.address(entity);let cityStatus=null;if(REGIONS[entity.operator_id]?.city)try{cityStatus=await this.cityStatus();}catch{/* Missing emergency state must not become a confirmed clear schedule. */}const value=dtekSnapshot(entity,resolution,range,data,cityStatus,this.now());
   // Archive absence/failure never grants certainty or blocks the current source.
   if(REGIONS[entity.operator_id]?.city)for(const line of value.lines)for(const day of line.categories.hourly.days){
-   if(day.state!=='suspended'||day.date>dayKey(this.now())||!/^\d+\.\d+$/.test(line.groupCode||''))continue;
+   const past=day.date<dayKey(this.now()),missing=['not_published','unknown','stale'].includes(day.state);
+   if(!(day.state==='suspended'||past&&missing)||day.date>dayKey(this.now())||!/^\d+\.\d+$/.test(line.groupCode||''))continue;
    try{const packet=await this.historyCache.load([HISTORICAL_PLAN_VERSION,entity.operator_id,line.groupCode,day.date],async()=>{
     const rows=(await this.bridge.query('select svitlo_source_history.plan_observations($1,$2::date) value',['GPV'+line.groupCode,day.date])).rows[0]?.value;
-    return {history:historicalPlan(rows,day.date,this.now())};});if(packet.history)day.historicalPlan=packet.history;
+    return {history:historicalPlan(rows,day.date,this.now())};});if(packet.history){
+     day.historicalPlan=packet.history;
+     if(past&&missing){
+      const last=packet.history.periods.at(-1);
+      day.publication={state:'published',intervals:last.intervals,checkedAt:last.end,sourceUpdatedAt:last.end,freshUntil:last.end};
+      day.applicability={state:'unconfirmed',reason:'archived_official_plan'};
+     }
+    }
    }catch{/* Keep reference hatching; never infer history from an unavailable archive. */}
   }
   return {value:seal(value)};}

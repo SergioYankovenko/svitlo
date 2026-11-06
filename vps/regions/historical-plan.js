@@ -1,6 +1,6 @@
 import {civil,addDays} from '../../app/lib/time.js';
 
-export const HISTORICAL_PLAN_VERSION='archived-official-plan-v1';
+export const HISTORICAL_PLAN_VERSION='archived-official-plan-v2';
 // This records the history of a published plan, never measured power. Only
 // adjacent agreeing observations of the same plan bound a verified period.
 export function historicalPlan(rows,date,now=Date.now()){

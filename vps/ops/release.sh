@@ -28,6 +28,7 @@ commit=$(python3 -c "import json;print(json.load(open('$target/manifest.json'))[
 test "$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" = "$commit"
 printf 'STAGE_IMAGE=%s\nRELEASE_ID=%s\nSVITLO_PILOT_PUSH=enabled\n' "$image" "$release" > "$target/vps/release.env"
 cd "$target"
+install -d -m 700 -o 1000 -g 1000 /var/lib/svitlo-stage/unresolved-addresses
 # Reserve the worker role's connection budget for two-process restored QA.
 # Graceful stop finishes the current portion; any failed gate resumes this same container.
 discovery_was_running=false

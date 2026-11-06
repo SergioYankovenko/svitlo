@@ -1,3 +1,4 @@
+import {unresolvedLog} from './universal/unresolved-log.js';
 import {adapterFor} from './universal/adapters.js';
 import {readFileSync} from 'node:fs';
 import {Database} from '../server/database.js';
@@ -44,7 +45,7 @@ export async function runtime(role='api'){
   const regions=new Regions({db,bridge,secret}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions});
   const regionalDiscovery=new RegionalDiscoverySources({gate:op=>regions.gate(op),finish:(...args)=>regions.finish(...args)});
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
-  const service=new UniversalService({...options,maps},reader);
+  const service=new UniversalService({...options,maps,unresolvedLog:role==='api'?unresolvedLog('/app-logs/unresolved-addresses.ndjson'):null},reader);
   const sourceHistory=new SourceHistory({bridge,regions,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
   return {p,bridge,db,source,service,legacy,reader,maps,regions,regionalDiscovery,sourceHistory,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions}),secret,...delivery};
 }

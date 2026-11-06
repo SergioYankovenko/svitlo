@@ -1,5 +1,6 @@
 import {createHash,createHmac,randomUUID} from 'node:crypto';
 import {problem} from '../telemetry/validation.js';
+import {phoneForecast} from './prediction.js';
 import {buildDayOverview} from './history.js';
 import {entitlementAction} from './entitlement-handler.mjs';
 export const sensorLimits={maxSensors:10,inviteSeconds:900,maxPending:5,maxViewers:20};
@@ -21,14 +22,14 @@ export function validateSensor(input){
  return {action:input.action,data:result};
 }
 export class SensorAccess {
- constructor({bridge,db,secret,phone}){Object.assign(this,{bridge,db,secret,phone});}
+ constructor({bridge,db,secret,phone}){Object.assign(this,{bridge,db,secret,phone});this.forecasts=new Map();}
  inviteToken(owner,data,nonce){return 'si_'+createHmac('sha256',this.secret).update(JSON.stringify(['sensor-viewer-invite-v1',owner,data.sensorId,data.bindingEpoch,data.requestId,nonce])).digest('base64url');}
  async handle(owner,input){
   if(!owner)throw problem(401,'sensor_session_required','owner');
   if(input?.action==='entitlement')return entitlementAction(this.bridge,owner,input,problem);
   if(this.phone&&['connect_qr','owner_qr','relocate'].includes(input?.action)){const value=await this.phone.reader(owner,input);if(value.viewerInvite){if(!value.profileId)throw problem(409,'viewer_requires_profile');const inspection=await this.handle(owner,{schemaVersion:1,action:'invite_inspect',inviteToken:value.viewerInvite});if(inspection.invitation.sensorId!==value.viewerSensorId)throw problem(409,'viewer_sensor_mismatch');return this.handle(owner,{schemaVersion:1,action:'invite_accept',requestId:value.requestId,profileId:value.profileId,inviteToken:value.viewerInvite});}return value;}
   if(this.phone&&input?.action==='history')return {schemaVersion:1,overview:await this.phone.history(input)};
-  if(this.phone&&input?.action==='overview'){const s=await this.handle(owner,{schemaVersion:1,action:'get',sensorId:input.sensorId,bindingEpoch:input.bindingEpoch});if(['phone','factory'].includes(s.sensor.sourceKind))return {schemaVersion:1,overview:await this.phone.history({...input,action:'history'})};}
+  if(this.phone&&input?.action==='overview'){const s=await this.handle(owner,{schemaVersion:1,action:'get',sensorId:input.sensorId,bindingEpoch:input.bindingEpoch});if(['phone','factory'].includes(s.sensor.sourceKind)){const overview=await this.phone.history({...input,action:'history'});let forecasts={};const cacheKey=JSON.stringify([owner,input.sensorId,input.bindingEpoch,input.date,new Date().toISOString().slice(0,10)]),cached=this.forecasts.get(cacheKey);if(cached&&cached.until>Date.now())forecasts=cached.value;else{try{forecasts=await phoneForecast(this.phone,input);}catch(error){if(error.status===401||error.status===403)throw error;}if(this.forecasts.size>=64)this.forecasts.delete(this.forecasts.keys().next().value);this.forecasts.set(cacheKey,{until:Date.now()+900000,value:forecasts});}return {schemaVersion:1,overview:{...overview,forecasts,capabilities:{...overview.capabilities,prediction:Object.keys(forecasts).length>0}}};}}
   const {action,data}=validateSensor(input);
   if(action==='notice_get'||action==='notice_set'){const value=(await this.bridge.query('select svitlo_vps.sensor_notice_settings($1,$2,$3) result',[data.sensorId,data.bindingEpoch,action==='notice_set'?data.enabled:null])).rows[0].result;if(value.http!==200)throw problem(value.http,value.code);return {enabled:value.enabled};}
   if(action==='invite_create'){data.nonce=randomUUID();data.tokenHash=tokenHash(this.inviteToken(owner,data,data.nonce));}
