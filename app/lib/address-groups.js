@@ -7,7 +7,7 @@ export function addressGroupKey(p){
 export const addressGroupCount=profiles=>new Set(profiles.map(addressGroupKey)).size;
 export function confirmedLines(result){
  const r=result?.resolution;
- if(!r?.complete||!['resolved','ambiguous'].includes(r.state)||r.provenance?.sourceUnavailable||!Array.isArray(r.lines)||r.lines.length>32)return [];
+ if(!r?.complete||!['resolved','ambiguous','excluded'].includes(r.state)||r.provenance?.sourceUnavailable||!Array.isArray(r.lines)||r.lines.length>32)return [];
  const seen=new Set();
  return r.lines.filter(l=>{const key=l.groupCode||l.key||l.id;if(!l.id||!key||seen.has(key))return false;seen.add(key);return true;});
 }
