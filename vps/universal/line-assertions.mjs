@@ -18,6 +18,11 @@ export async function verifyLineSql(db){
   const three=[...homes[0],{...homes[0][0],lineId:thirdLine}];
   const triple=await as(async()=>(await db.query("select public.svitlo_profile_group_create($1,$2,'Три лінії','{}') r",[other,three])).rows[0].r,other);
   assert.equal(triple.profiles.length,3);assert.deepEqual(triple.profiles.map(p=>p.address.lineNumber),[1,2,3]);assert.equal(addressGroupCount(triple.profiles),1);
+  const mapAddress={department:'universal:map-only',operatorId:'map-only',mapOnly:true,cityId:city,city:'QA',street:'Map Street',house:'20',lineId:null,mapLocation:{source:'visicom',precision:'house',street:'Map Street',latitude:50.45,longitude:30.52,featureId:'ADRTEST12345'}};
+  const map=await as(async()=>(await db.query("select svitlo_maps.create_profile($1,$2,$3,'Мапа','{}') r",['1'.repeat(64),'2'.repeat(64),mapAddress])).rows[0].r,other);
+  assert.equal(map.created,true);assert.equal(map.profile.address.mapOnly,true);
+  const mapLimit=await as(async()=>(await db.query("select svitlo_maps.create_profile($1,$2,$3,'Мапа','{}') r",['3'.repeat(64),'4'.repeat(64),{...mapAddress,house:'21'}])).rows[0].r,other);
+  assert.equal(mapLimit.status,'limit');
   const first=await create(homes[0]);assert.equal(first.profiles.length,2);assert.deepEqual(first.profiles.map(p=>p.address.lineNumber),[1,2]);assert.equal(first.profiles[1].preferences.reminder,false);
   const repeated=await create(homes[0].toReversed());assert.deepEqual(repeated.profiles.map(p=>p.id),first.profiles.map(p=>p.id));assert.equal(repeated.created,false);
   assert.equal((await create(homes[1])).profiles.length,2);assert.equal((await create(homes[2])).status,'limit');

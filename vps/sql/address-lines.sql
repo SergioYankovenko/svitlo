@@ -154,3 +154,8 @@ declare actor uuid:=auth.uid();g svitlo_sensors.main_app_subscriptions;stamp tim
  active:=found and g.revoked_at is null and g.valid_from<=stamp and g.valid_until>stamp;
  return jsonb_build_object('http',200,'schemaVersion',1,'entitlement',jsonb_build_object('policy','main_app_subscription_v1','ownerQrTransferGate',true,'status',case when active then 'active' else 'inactive' end,'validUntil',case when active then g.valid_until else null end,'testAccess',active and g.source='private_test','maxAddresses',case when active then 10 else 2 end,'maxSensorsPerAddress',1,'maxLinesPerAddress',32,'maxSensorsPerLine',1,'addressCounting','canonical_home'));
 end $$;
+
+-- The existing map-profile SECDEF path calls the same invoker quota/adoption helpers.
+-- Only own-subject predicates are exposed; no sensor rows or subscription rows are granted.
+grant usage on schema svitlo_sensors to svitlo_map_owner;
+grant execute on function public.svitlo_address_group(jsonb),public.svitlo_profile_quota_allows(uuid,jsonb),svitlo_sensors.address_limit(uuid),svitlo_sensors.profile_has_sensor(uuid) to svitlo_map_owner;

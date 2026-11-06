@@ -53,7 +53,7 @@ export class UniversalService extends Service {
    if(!owner)throw new ApiError(401,'Потрібне підключення');if(body.confirmed!==true)throw new ApiError(400,'Підтвердьте адресу');
    if(!await this.db.rate(owner,40,60000))throw new ApiError(429,'Забагато запитів');
    const created=await this.maps.save(owner,body.address.mapCandidateToken,body.name,this.defaultPreferences);
-   if(created.status==='limit')throw new ApiError(409,'Можна зберегти до 10 адрес');
+   if(created.status==='limit')throw new ApiError(409,'Досягнуто ліміт адрес вашої підписки');
    if(created.profile.address?.queueUnresolved&&this.unresolvedLog)await this.unresolvedLog(created.profile.address,created.profile.id);
    const p=await this.refresh(created.profile);return {profile:publicProfile(p),created:created.created};
   }
