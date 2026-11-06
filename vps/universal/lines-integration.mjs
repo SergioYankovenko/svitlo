@@ -21,4 +21,4 @@ try{
  await save(houses.find(h=>h.scenario==='2').id);
  await assert.rejects(()=>save(houses.find(h=>h.scenario==='4').id),e=>e.status===409);
  console.log(JSON.stringify({scope:'multiline-home-quota-and-sensors',passed:12,proof,checks:['SQL two-line and three-line canonical grouping','free two homes with multiple lines','premium ten homes and twenty line profiles','idempotent reversed line order','atomic identity rejection','cross-owner denial','twenty independent sensor memberships','one sensor per exact line','disconnect preserves other memberships','server expands confirmed same-address lines','independent per-line snapshots','API free quota enforcement']}));
-}finally{await rt?.close();await admin.end();}
+}finally{await rt?.p.end();await admin.end();}
