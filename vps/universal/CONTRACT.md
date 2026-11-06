@@ -21,3 +21,18 @@ Reuse the existing shared source-cache claim/fencing mechanism and per-provider 
 PWA is upgraded once in staging to consume this contract, select city→street→house, and explicitly select among lines. Existing profile IDs/names/settings/cache survive an exact migration. Further compatible operators are server-only additions. The existing released Android still needs its first universal-client update; no server can teach its hardcoded parser a new protocol.
 
 Vectors required before publication: exact Cherkasy frozen-source parity, stable aliases/group changes, two lines/conditional unit, partial line retention, explicit exclusion versus miss, unpublished/stale/failure/disabled operator, unknown enum/version, bad dates/batch/cursor, mixed batch/unchanged, midnight/DST, owner isolation, profile race, new compatible region without frontend hash change. Physical Android/Doze/push and public HTTPS deployment are separate gates.
+# Saved plan presentation (PWA-LIVE-44/59)
+
+An unavailable source may add `day.savedPublication` with basis
+`previous_confirmed_plan`. It is bounded display provenance for the same
+address, operator, line, group and calendar date, with original publication
+clocks and at most seven days of age. It never replaces effective intervals.
+A source-cache range miss may reuse the profile's last snapshot as degraded,
+with freshness expired and the latest failure/retry metadata preserved.
+
+The PWA may show a labelled `За графіком` estimate from this displayed plan.
+This is not measured power, renewed source certainty, a notification or a
+server reminder. Suspension, conflicting applicability and an open address
+incident prohibit that estimate. A successful response supersedes this
+fallback; genuinely unpublished data must not acquire a fictitious plan.
+

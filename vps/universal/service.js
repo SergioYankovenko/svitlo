@@ -1,4 +1,5 @@
 import {retainPublishedDays} from '../../app/lib/universal-history.js';
+import {failedPlanRead} from '../../app/lib/retained-plan.js';
 import {Service,publicProfile,DEFAULT_PREFS,ApiError} from '../../server/service.js';
 import {randomUUID} from 'node:crypto';
 import {universalEnvelope,selectedLine} from '../../app/lib/universal-contract.js';
@@ -36,7 +37,8 @@ export class UniversalService extends Service {
    if(result.status==='missing')throw new ApiError(404,'Адресу не знайдено');return result.profile;
   }
   let lineId=profile.address.lineId;if(!lineId&&s.resolution.complete&&s.lines.length===1)lineId=s.lines[0].id;
-  s=seal(retainPublishedDays(s,profile.snapshot?.universal,dayKey(now)));
+  s=seal(retainPublishedDays(s,profile.snapshot?.universal,dayKey(now),now));
+  if(!lineId&&failedPlanRead(s)&&s.addressId===profile.snapshot?.universal?.addressId&&s.operatorId===profile.snapshot?.universal?.operatorId&&s.lines.some(l=>l.id===profile.snapshot.selectedLineId))lineId=profile.snapshot.selectedLineId;
   const snapshot=universalEnvelope(s,lineId),updates=universalMessages(snapshot,profile.snapshot,now,profile.messages||[]),candidate={...profile,snapshot,last_checked:now,next_check:Math.max(now+60000,s.refreshAfter),messages:mergeHistory(profile.messages||[],updates,now)};
   const result=await this.db.commitProfile(candidate,profile.snapshot_revision||0);
   if(result.status==='missing')throw new ApiError(404,'Адресу не знайдено');

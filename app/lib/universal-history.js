@@ -1,10 +1,11 @@
 import {validUniversal} from './universal-contract.js';
 import {addDays} from './time.js';
+import {retainCurrentPlan} from './retained-plan.js';
 // Retain published past dates within the SAME canonical address and stable line.
 // Original publication timestamps stay intact: retention cannot renew freshness.
-export function retainPublishedDays(next,prior,today){
+export function retainPublishedDays(next,prior,today,now=Date.now()){
   if(!validUniversal(next)||!validUniversal(prior)||next.addressId!==prior.addressId||next.operatorId!==prior.operatorId)return next;
-  const cutoff=addDays(today,-6),copy=structuredClone(next);let first=copy.coverage.fromDate,changed=false;
+  const retained=retainCurrentPlan(next,prior,now),cutoff=addDays(today,-6),copy=structuredClone(retained);let first=copy.coverage.fromDate,changed=retained!==next;
   for(const line of copy.lines){
     const old=prior.lines.find(l=>l.id===line.id&&l.groupCode===line.groupCode);if(!old)continue;
     for(const kind of line.supportedCategories){

@@ -40,6 +40,6 @@ test('complete emergency totals including zero remain visible',()=>{
  for(const value of [null,undefined,NaN,Infinity])assert.equal(summaryVisible(d,{on:value,off:10}),false);
  assert.equal(summaryVisible(d,null),false);
 });
-test('unrelated incomplete non-emergency summaries keep existing behavior',()=>{
- assert.equal(summaryVisible({emergencySuspended:false,events:[]},{on:60,off:null}),true);
+test('incomplete non-emergency summaries are hidden as a pair',()=>{
+ assert.equal(summaryVisible({emergencySuspended:false,events:[]},{on:60,off:null}),false);
 });

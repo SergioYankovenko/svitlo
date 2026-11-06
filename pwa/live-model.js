@@ -1,3 +1,4 @@
+import {retainedPublication,usablePublication} from './core/lib/retained-plan.js';
 import {dayState,countdown,displayHours} from './core/lib/schedule.js';
 import {civil,addDays,dayKey,parts} from './core/lib/time.js';
 import {eventKind,categoryPriority} from './core/lib/outage-types.js';
@@ -8,11 +9,10 @@ export const labels={hourly:'Погодинне відключення',planned:
 export function planView(data){
   return data.planSummary?{...data,out:data.planSummary.off,clear:data.planSummary.on,unknown:0,events:data.planEvents}:data;
 }
-// Hide an incomplete emergency total as one pair; measured coverage stays usable.
+// A pair of totals is useful only when both durations are known; measured partial coverage stays usable.
 export function summaryVisible(data,summary){
   if(!summary)return false;
-  const emergency=data.emergencySuspended||data.events.some(e=>e.kind==='emergency');
-  return !emergency||[summary.on,summary.off].every(Number.isFinite);
+  return [summary.on,summary.off].every(Number.isFinite);
 }
 export function canSharePlan(data){
   const plan=planView(data);
@@ -29,19 +29,21 @@ export function refreshDeadline(profile,lastSync){
   const source=[s?.refreshAfter,s?.freshUntil].filter(t=>Number.isFinite(t)&&t>0);
   return Math.max(lastSync+30000,Math.min(lastSync+3600000,...source));
 }
-// A published table is a display source, never a replacement for effective events,
-// current-power certainty, countdowns, sensor observations or delivery policy.
+// A table is display provenance, never effective power, sensor or delivery evidence.
+// An expired table may drive only the explicitly labelled UI reference countdown.
 export function publishedReference(profile,date,now=Date.now(),saved=false){
   const s=profile?.snapshot?.universal,line=selectedLine(s,profile?.snapshot?.selectedLineId);
-  if(!line||!s.resolution.complete||!['available','degraded'].includes(s.supportState))return null;
-  const category=line.categories.hourly,day=category?.days.find(d=>d.date===date),publication=day?.publication;
-  if(category?.evidenceMode!=='daily_schedule'||!publication)return null;
+  if(!line||!['available','degraded'].includes(s.supportState))return null;
+  const category=line.categories.hourly,day=category?.days.find(d=>d.date===date),retained=saved&&day?retainedPublication(s,line,day,now):null;
+  if(category?.evidenceMode!=='daily_schedule'&&!retained||!s.resolution.complete&&!retained)return null;
+  const fromSaved=!!retained&&(!s.resolution.complete||!usablePublication(day?.publication,date,now)),publication=fromSaved?retained:day?.publication;
+  if(!publication)return null;
   const from=civil(date),until=civil(addDays(date,1)),stamp=t=>Number.isFinite(t)&&t>=0;
-  const fresh=[s,category,publication].every(x=>stamp(x.checkedAt)&&x.checkedAt<=now+300000&&stamp(x.freshUntil)&&x.freshUntil>now&&
+  const fresh=!fromSaved&&s.resolution.complete&&[s,category,publication].every(x=>stamp(x.checkedAt)&&x.checkedAt<=now+300000&&stamp(x.freshUntil)&&x.freshUntil>now&&
     (x.sourceUpdatedAt===null||stamp(x.sourceUpdatedAt)&&x.sourceUpdatedAt<=now+300000));
   const suspension={suspended:day.state==='suspended'||day.applicability?.state==='suspended',suspensionReason:day.applicability?.reason||null};
   if(publication.state==='not_published')return {available:false,notPublished:fresh,stale:!fresh,...suspension};
-  const savedPlan=saved&&date<=dayKey(now)&&[s,category,publication].every(x=>stamp(x.checkedAt)&&x.checkedAt<=now+300000&&now-x.checkedAt<=7*86400000&&(x.sourceUpdatedAt===null||stamp(x.sourceUpdatedAt)&&x.sourceUpdatedAt<=now+300000));
+  const savedPlan=saved&&date<=dayKey(now)&&(fromSaved||[s,category,publication].every(x=>stamp(x.checkedAt)&&x.checkedAt<=now+300000&&now-x.checkedAt<=7*86400000&&(x.sourceUpdatedAt===null||stamp(x.sourceUpdatedAt)&&x.sourceUpdatedAt<=now+300000)));
   if(publication.state!=='published'||!fresh&&!savedPlan||!Array.isArray(publication.intervals)||publication.intervals.length>2000||
     publication.intervals.some(e=>!e||!stamp(e.start)||!stamp(e.end)||e.start<from||e.end>until||e.end<=e.start))return {available:false};
   const positive=line.supportedCategories.filter(k=>k!=='hourly').flatMap(k=>{
@@ -49,12 +51,18 @@ export function publishedReference(profile,date,now=Date.now(),saved=false){
     if(c.evidenceMode!=='positive_only'||c.freshUntil<=now||c.checkedAt>now+300000||c.sourceUpdatedAt>now+300000)return [];
     return (c.days.find(d=>d.date===date)?.intervals||[]).filter(e=>e.start<until&&(e.end===null||e.end>from)).map(e=>({...e,category:k==='unplanned'?'planned':k,...(k==='unplanned'?{unplanned:true}:{})}));
   });
-  return {available:true,stale:!fresh,...suspension,applicability:day.applicability?.state||'unconfirmed',events:publication.intervals.map(e=>({...e,category:'hourly'})),positive};
+  return {available:true,stale:!fresh,...suspension,applicability:['suspended','conflict'].includes(day.applicability?.state)?day.applicability.state:fromSaved?'reported':day.applicability?.state||'unconfirmed',fromSaved,events:publication.intervals.map(e=>({...e,category:'hourly'})),positive};
 }
-export function plannedCountdown(profile,date,now=Date.now()){
-  const ref=publishedReference(profile,date,now);
-  if(!ref?.available||ref.applicability!=='reported')return null;
-  const tomorrow=publishedReference(profile,addDays(date,1),now);
+export function plannedCountdown(profile,date,now=Date.now()){return planCountdown(profile,date,now,false);}
+export function referenceCountdown(profile,date,now=Date.now()){return planCountdown(profile,date,now,true);}
+function planCountdown(profile,date,now,saved){
+  if(date!==dayKey(now))return null;
+  const ref=publishedReference(profile,date,now,saved);
+  if(!ref?.available||ref.suspended||ref.applicability!=='reported')return null;
+  const s=profile?.snapshot?.universal,line=selectedLine(s,profile?.snapshot?.selectedLineId);
+  if(line?.supportedCategories.some(k=>k!=='hourly'&&(line.categories[k].days.find(d=>d.date===date)?.intervals||[]).some(e=>e.start<=now&&e.end===null)))return null;
+  if(saved&&ref.stale&&s.notices.some(n=>n.kind==='regional_emergency'&&n.scope==='reported_group_day'&&n.active&&n.lineIds?.includes(line.id)&&n.start<=now&&(n.end===null||n.end>now)))return null;
+  const tomorrow=publishedReference(profile,addDays(date,1),now,saved);
   const events=[...ref.events,...ref.positive,...(tomorrow?.available&&tomorrow.applicability==='reported'?[...tomorrow.events,...tomorrow.positive]:[])];
   if(events.some(e=>e.start<=now&&e.end===null))return null;
   const merged=[];
@@ -64,8 +72,9 @@ export function plannedCountdown(profile,date,now=Date.now()){
   }
   const current=merged.find(e=>e.start<=now&&e.end>now),next=merged.find(e=>e.start>now);
   const target=current?.end??next?.start;
-  if(!Number.isFinite(target))return null;
-  return {label:current?'До відновлення':'До відключення',minutes:Math.ceil((target-now)/60000),target,source:'applicable_official_plan'};
+  if(!Number.isFinite(target))return saved?{label:ref.stale?'За графіком: не заплановано':'Не заплановано',minutes:null,target:null,source:ref.stale?'saved_official_plan':'applicable_official_plan'}:null;
+  const estimate=saved&&ref.stale;
+  return {label:estimate?(current?'За графіком: до відновлення':'За графіком: до відключення'):current?'До відновлення':'До відключення',minutes:Math.ceil((target-now)/60000),target,source:estimate?'saved_official_plan':'applicable_official_plan'};
 }
 export function officialSource(profile,preferred){
   const sources=profile?.snapshot?.universal?.provenance||[];
@@ -124,6 +133,8 @@ export function scheduleFor(profile,date,now=Date.now()) {
     }
     return !segment||segment.kind==='unknown'?'unknown':segment.kind==='clear'?null:segment.kind;
   };
+  const daily=d.line?.categories.hourly;
+  const incompleteDaily=daily?.evidenceMode==='daily_schedule'&&!reference?.available&&!d.known&&!d.events.some(e=>e.category!=='hourly');
   const notPublished=reference?!!reference.notPublished:!d.stale&&d.line?.categories.hourly?.days.find(x=>x.date===date)?.state==='not_published';
   const coverage=profile?.snapshot?.universal?.coverage,outside=coverage&&(date<coverage.fromDate||date>coverage.toDate);
   // This is a total of the published plan, never a claim about actual power.
@@ -132,7 +143,7 @@ export function scheduleFor(profile,date,now=Date.now()) {
   const planSummary=planSegments&&!referenceEvents.some(e=>e.end===null)?{on:total-planOut,off:planOut}:null;
   const archived=reference?.suspended?historicalReference(profile,date,now):null;
   const historicalOverlay=archived?{...archived,emergency:/^(?:emergency_report_|reported_emergency_|address_emergency)/.test(reference.suspensionReason||'')}:null;
-  return {publication:outside?'unknown':reference?.available?'published':notPublished&&!d.events.length?'unpublished':d.known||d.events.length?'published':'unknown',total,
+  return {publication:outside?'unknown':reference?.available?'published':notPublished&&!d.events.length?'unpublished':incompleteDaily?'unknown':d.known||d.events.length?'published':'unknown',total,
     events:d.events.map(e=>({start:Math.max(0,(e.start-from)/60000),end:Math.min(total,((e.end??now)-from)/60000),kind:eventKind(e)})),
     out,unknown:sum('unknown'),clear:sum('clear'),planSummary,
     planEvents:referenceEvents?.map(e=>({start:Math.max(0,(e.start-from)/60000),end:e.end===null?null:Math.min(total,(e.end-from)/60000),kind:eventKind(e)}))||null,
@@ -142,7 +153,7 @@ export function scheduleFor(profile,date,now=Date.now()) {
 }
 export function contextFor(profile,date,now=Date.now()) {
   const d=scheduleFor(profile,date,now),current=date===dayKey(now),c=current?countdown(profile?.snapshot||{},now):{};
-  const planned=current&&c.minutes==null?plannedCountdown(profile,date,now):null;
+  const planned=current&&c.minutes==null?(plannedCountdown(profile,date,now)||referenceCountdown(profile,date,now)):null;
   const relevant=d.raw.events.filter(e=>e.end===null||e.end>now).sort((a,b)=>a.start-b.start);
   const active=relevant.filter(e=>e.start<=now).sort((a,b)=>({emergency:3,planned:2,hourly:1}[b.category]||0)-({emergency:3,planned:2,hourly:1}[a.category]||0))[0];
   const category=current?(active||relevant[0]):d.raw.events.slice().sort((a,b)=>({emergency:3,planned:2,hourly:1}[b.category]||0)-({emergency:3,planned:2,hourly:1}[a.category]||0))[0];
@@ -161,7 +172,7 @@ export function contextFor(profile,date,now=Date.now()) {
     reference:false,stale:false
   }:null;
   const valueMinutes=suspensionLabel?null:planned?.minutes??c.minutes??null;
-  const restorationUnknown=current&&valueMinutes===null&&(emergencySuspension&&!d.referenceStale||active?.category==='emergency');
+  const restorationUnknown=current&&valueMinutes===null&&(emergencySuspension||active?.category==='emergency');
   return {kind:category?eventKind(category):null,label:restorationUnknown?'Час відновлення уточнюється':suspensionLabel||planned?.label||c.label||'',valueMinutes,warning:false,notice,plannedCountdown:!!planned};
 }
 export function profileView(p) {

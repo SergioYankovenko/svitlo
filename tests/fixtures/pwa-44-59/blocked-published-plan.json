@@ -1,0 +1,164 @@
+{
+  "now": 1793932587344,
+  "universal": {
+    "fault": {
+      "code": "forbidden"
+    },
+    "lines": [
+      {
+        "id": "test-line",
+        "label": "Група 14.1",
+        "groupCode": "14.1",
+        "categories": {
+          "hourly": {
+            "days": [
+              {
+                "date": "2026-11-06",
+                "state": "published",
+                "intervals": [
+                  {
+                    "end": 1793955600000,
+                    "start": 1793932200000
+                  },
+                  {
+                    "end": 1793991600000,
+                    "start": 1793964600000
+                  }
+                ],
+                "publication": {
+                  "state": "published",
+                  "checkedAt": 1793930951683,
+                  "intervals": [
+                    {
+                      "end": 1793955600000,
+                      "start": 1793932200000
+                    },
+                    {
+                      "end": 1793991600000,
+                      "start": 1793964600000
+                    }
+                  ],
+                  "freshUntil": 1793931071683,
+                  "sourceUpdatedAt": 1793905920000
+                },
+                "applicability": {
+                  "state": "reported",
+                  "reason": "sources_support_schedule"
+                }
+              },
+              {
+                "date": "2026-11-07",
+                "state": "not_published",
+                "intervals": [],
+                "publication": {
+                  "state": "not_published",
+                  "checkedAt": 1793930951683,
+                  "intervals": [],
+                  "freshUntil": 1793931071683,
+                  "sourceUpdatedAt": 1793905920000
+                },
+                "applicability": {
+                  "state": "unconfirmed",
+                  "reason": "no_primary_schedule_for_date"
+                }
+              }
+            ],
+            "checkedAt": 1793930951683,
+            "freshUntil": 1793931071683,
+            "evidenceMode": "daily_schedule",
+            "sourceUpdatedAt": 1793905920000
+          },
+          "planned": {
+            "days": [
+              {
+                "date": "2026-11-06",
+                "state": "unknown",
+                "intervals": []
+              },
+              {
+                "date": "2026-11-07",
+                "state": "unknown",
+                "intervals": []
+              }
+            ],
+            "checkedAt": 1793930951683,
+            "freshUntil": 1793931071683,
+            "evidenceMode": "positive_only",
+            "sourceUpdatedAt": 1793905920000
+          },
+          "emergency": {
+            "days": [
+              {
+                "date": "2026-11-06",
+                "state": "unknown",
+                "intervals": []
+              },
+              {
+                "date": "2026-11-07",
+                "state": "unknown",
+                "intervals": []
+              }
+            ],
+            "checkedAt": 1793930951683,
+            "freshUntil": 1793931071683,
+            "evidenceMode": "positive_only",
+            "sourceUpdatedAt": 1793905920000
+          },
+          "unplanned": {
+            "days": [
+              {
+                "date": "2026-11-06",
+                "state": "unknown",
+                "intervals": []
+              },
+              {
+                "date": "2026-11-07",
+                "state": "unknown",
+                "intervals": []
+              }
+            ],
+            "checkedAt": 1793930951683,
+            "freshUntil": 1793931071683,
+            "evidenceMode": "positive_only",
+            "sourceUpdatedAt": 1793905920000
+          }
+        },
+        "supportedCategories": [
+          "hourly",
+          "planned",
+          "unplanned",
+          "emergency"
+        ]
+      }
+    ],
+    "notices": [],
+    "coverage": {
+      "fromDate": "2026-11-06",
+      "toDate": "2026-11-07"
+    },
+    "revision": "b0c2b80eff5c904ea16d56b2d24000c7",
+    "timeZone": "Europe/Kyiv",
+    "addressId": "test-address",
+    "checkedAt": 1793930951683,
+    "synthetic": false,
+    "freshUntil": 1793931070800,
+    "operatorId": "ua-kyiv-dtek",
+    "provenance": [
+      {
+        "adapter": "dtek-public-v1",
+        "operatorId": "ua-kyiv-dtek"
+      }
+    ],
+    "resolution": {
+      "state": "resolved",
+      "complete": true
+    },
+    "attemptedAt": 1793932395870,
+    "refreshAfter": 1793932695870,
+    "supportState": "degraded",
+    "schemaVersion": 1,
+    "sourceUpdatedAt": 1793905920000
+  },
+  "syntheticIdentity": true,
+  "case": "Observed source403; public outage times, no profile or owner data"
+}
