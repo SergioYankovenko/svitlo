@@ -45,7 +45,7 @@ export function createBackgroundAddresses(request,{now=Date.now,newToken=()=>cry
   const confirmed=results.filter(x=>x.resolution?.complete&&['resolved','excluded'].includes(x.resolution.state)&&x.resolution.lines?.length),candidates=confirmed.length?confirmed:results,groups=new Map();
   for(const r of candidates)for(const line of r.resolution?.lines||[]){const key=JSON.stringify([r.operator?.id,r.resolution.state,line.groupCode??null,line.groupCode?null:line.key??line.id]);if(!groups.has(key))groups.set(key,{...line,label:line.label+(line.groupCode?' · черга '+line.groupCode:''),addressId:r.address.id});}
   if(flow.continueWithoutQueue){const selected=results.find(r=>r.address.id===flow.house.id);if(!selected||values.some(x=>!x.ok)||results.some(r=>r.resolution?.provenance?.sourceUnavailable))throw problem();return {resolved:selected,unresolved:true};}
-  if(candidates.length===1){const r=candidates[0];if(r.resolution?.lines?.length>1&&!r.selection?.lineId)return {requiresLine:true,lines:[...groups.values()]};return {resolved:r};}
+  if(candidates.length===1){const r=candidates[0];if(r.resolution?.lines?.length>1&&!r.selection?.lineId&&!r.resolution.complete)return {requiresLine:true,lines:[...groups.values()]};return {resolved:r};}
   if(groups.size===1&&confirmed.length===candidates.length){const one=[...groups.values()][0];return {resolved:candidates.find(r=>r.address.id===one.addressId)};}
   if(groups.size)return {requiresLine:true,lines:[...groups.values()]};
   // Offer explicit continuation; do not silently choose a source identity or group.

@@ -45,6 +45,7 @@ try{
   migrations.push(['1021_discovery_throughput.sql',await readFile('vps/sql/discovery-throughput.sql','utf8')]);
   migrations.push(['1022_discovery_territory.sql',await readFile('vps/sql/discovery-territory.sql','utf8')]);
   migrations.push(['1023_collector_sources.sql',await readFile('vps/sql/collector-sources.sql','utf8')]);
+  migrations.push(['1024_address_lines.sql',await readFile('vps/sql/address-lines.sql','utf8')]);
   for(const [name,sql] of migrations){
     const hash=createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex');
     const old=(await c.query('select sha256 from svitlo_vps.migrations where name=$1',[name])).rows[0];

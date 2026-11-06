@@ -3,7 +3,7 @@ import {problem} from '../telemetry/validation.js';
 import {phoneForecast} from './prediction.js';
 import {buildDayOverview} from './history.js';
 import {entitlementAction} from './entitlement-handler.mjs';
-export const sensorLimits={maxSensors:10,inviteSeconds:900,maxPending:5,maxViewers:20};
+export const sensorLimits={maxSensors:320,inviteSeconds:900,maxPending:5,maxViewers:20};
 export const sensorCapabilities={schemaVersion:1,available:true,foundationOnly:true,testOnly:true,requiresSession:true,requiresOwnedServerProfile:true,limits:sensorLimits,ingest:true,signal:true,observations:true,overview:true,prediction:false,transfer:false,recovery:false};
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const shape={notice_get:['sensorId','bindingEpoch'],notice_set:['sensorId','bindingEpoch','enabled'],list:[],get:['sensorId','bindingEpoch'],signal:['sensorId','bindingEpoch'],overview:['sensorId','bindingEpoch','date'],members:['sensorId','bindingEpoch'],claim:['requestId','claimToken','profileId'],invite_create:['requestId','sensorId','bindingEpoch'],invite_inspect:['inviteToken'],invite_accept:['requestId','inviteToken','profileId'],invite_revoke:['requestId','sensorId','bindingEpoch','inviteId'],member_revoke:['requestId','sensorId','bindingEpoch','membershipId'],leave:['requestId','sensorId','bindingEpoch','membershipId'],link:['requestId','sensorId','bindingEpoch','profileId'],disconnect:['requestId','sensorId','bindingEpoch','confirmed']};

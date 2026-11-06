@@ -13,7 +13,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
   const binding=(id=ctx.address().id)=>live.sensors().find(s=>s.readerProfileId===id);
 
   const addressRecord=s=>ctx.addresses().find(p=>p.id===s?.readerProfileId);
-  const label=s=>{const p=addressRecord(s);return p?.name||[p?.city,p?.street].filter(Boolean).join(', ')||'Датчик';};
+  const label=s=>{const p=addressRecord(s);const text=p?.name||[p?.city,p?.street].filter(Boolean).join(', ')||'Датчик';return text+(p?.lineNumber?' · Лінія '+p.lineNumber:'');};
   const viewKey=(s,date)=>key(s)+':'+date;
   const signal=s=>{const v=signals.get(key(s));return v?live.signalView(v.data,Date.now()-v.at):{state:'unknown',label:'Стан живлення невідомий'};};
   const button=(text,action,cls="",attrs="")=>ctx.button(text,"sensor-"+action,cls,attrs);
@@ -290,7 +290,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
         const address = [a.city,a.street].filter(Boolean).join(", "), label = a.name || address;
         return `<div class="sensor-binding-row"><button type="button" class="sensor-binding-info" data-action="sensor-details" data-address="${e(a.id)}" aria-label="${e("Графіки датчика: "+(a.name ? a.name+", " : "")+address)}"><strong>${e(label)}</strong><small>${e(reading(profile(a.id)).label)}</small></button><div class="sensor-binding-actions"><button type="button" class="sensor-icon-action" data-action="sensor-settings" data-address="${e(a.id)}" aria-label="${e("Налаштування датчика: "+label)}">${window.SvitloNativeUI.icon("settings")}</button><button type="button" class="sensor-icon-action" data-action="sensor-sharing" data-address="${e(a.id)}" aria-label="${e("Спільний доступ до датчика: "+label)}">${window.SvitloNativeUI.icon("access")}</button></div></div>`;
       }).join("")}</div>` : "";
-      const title = `<strong>Датчики</strong>${count ? `<small>${count} із 10 · один на адресу</small>` : ""}`;
+      const title = `<strong>Датчики</strong>${count ? `<small>${count} · один на лінію</small>` : ""}`;
       return `<section class="card outlined sensor-options"><div class="sensor-options-header">${count ? `<button class="sensor-list-toggle" data-action="sensor-list" aria-expanded="${listExpanded}">${title}</button>` : `<div class="sensor-list-title">${title}</div>`}${control}</div>${listing}</section>`;
     }
 

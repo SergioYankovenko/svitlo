@@ -1,3 +1,4 @@
+import {addressGroupCount,MAX_LINE_PROFILES} from './address-groups.js';
 import {validUniversal} from './universal-contract.js';
 import {validDate} from './lifecycle.js';
 const object=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
@@ -23,7 +24,7 @@ export function validWeather(w,now){
     (w.hours===undefined||Array.isArray(w.hours)&&w.hours.every(h=>object(h)&&time(h.time)&&Number.isFinite(h.temp)&&Number.isFinite(h.code)));
 }
 export function envelopeData(value,owner,now) {
-  if(!object(value)||value.owner!==owner||![undefined,1].includes(value.version)||!Array.isArray(value.profiles)||value.profiles.length>10||
+  if(!object(value)||value.owner!==owner||![undefined,1].includes(value.version)||!Array.isArray(value.profiles)||(value.profiles.length>MAX_LINE_PROFILES||addressGroupCount(value.profiles)>10)||
     !value.profiles.every(p=>validProfile(p,owner))||new Set(value.profiles.map(p=>p.id)).size!==value.profiles.length)return null;
   const cities=new Map(value.profiles.map(p=>[JSON.stringify([p.address.department,p.address.cityId,p.address.city]),p.address.city]));
   const invalidWeather=Object.entries(object(value.weather)?value.weather:{}).some(([k,w])=>!validWeather(w,now)||!cities.has(k)||w.city!==cities.get(k));

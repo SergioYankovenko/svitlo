@@ -11,8 +11,8 @@ export async function entitlementAction(bridge,owner,input,problem){
  if(value?.http===401&&value.code==='sensor_session_required')throw problem(401,value.code,'owner');
  const e=value?.entitlement;
  if(value?.http!==200||value.schemaVersion!==1||!e||Array.isArray(e)||e.policy!=='main_app_subscription_v1'||e.ownerQrTransferGate!==true||
-  !['active','inactive'].includes(e.status)||typeof e.testAccess!=='boolean'||e.maxSensorsPerAddress!==1||
+  !['active','inactive'].includes(e.status)||typeof e.testAccess!=='boolean'||e.maxSensorsPerAddress!==1||e.addressCounting!==undefined&&(e.addressCounting!=='canonical_home'||e.maxSensorsPerLine!==1||e.maxLinesPerAddress!==32)||
   (e.status==='active'?(e.maxAddresses!==10||typeof e.validUntil!=='string'||!Number.isFinite(Date.parse(e.validUntil))||Date.parse(e.validUntil)<=Date.now()):
    (e.maxAddresses!==2||e.validUntil!==null||e.testAccess!==false)))throw problem(503,'subscription_check_unavailable');
- return {schemaVersion:1,entitlement:{policy:e.policy,ownerQrTransferGate:true,status:e.status,validUntil:e.validUntil,testAccess:e.testAccess,maxAddresses:e.maxAddresses,maxSensorsPerAddress:1}};
+ return {schemaVersion:1,entitlement:{policy:e.policy,ownerQrTransferGate:true,status:e.status,validUntil:e.validUntil,testAccess:e.testAccess,maxAddresses:e.maxAddresses,maxSensorsPerAddress:e.maxSensorsPerAddress,...(e.addressCounting?{maxSensorsPerLine:1,maxLinesPerAddress:32,addressCounting:'canonical_home'}:{})}};
 }

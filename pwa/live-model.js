@@ -179,7 +179,7 @@ export function profileView(p) {
   const a=p.address||{},city=(typeof a.city==='string'?a.city:a.city?.label||a.city?.name)||a.cityName||'', street=(typeof a.street==='string'?a.street:a.street?.label||a.street?.name)||'',house=(typeof a.house==='string'?a.house:a.house?.label||a.house?.name)||'';
   const label=a.label||[city,street,house].filter(Boolean).join(', ');
   const first=label.indexOf(',');
-  return {id:p.id,name:typeof p.name==='string'?p.name:'',city:city||label.slice(0,first<0?undefined:first),street:[street,house].filter(Boolean).join(', ')|| (first<0?'':label.slice(first+1).trim()),queue:p.snapshot?.queue||'',catalogKey:p.id};
+  return {...(a.lineNumber?{addressGroupId:a.canonicalAddressId,lineNumber:a.lineNumber,lineId:a.lineId}:{}),id:p.id,name:typeof p.name==='string'?p.name:'',city:city||label.slice(0,first<0?undefined:first),street:[street,house].filter(Boolean).join(', ')|| (first<0?'':label.slice(first+1).trim()),queue:p.snapshot?.queue||'',catalogKey:p.id};
 }
 export function utcIntervals(overview) {
   if(!overview||overview.overviewVersion!==1||overview.observation?.semantics!=='explicit_coverage_only') return [];

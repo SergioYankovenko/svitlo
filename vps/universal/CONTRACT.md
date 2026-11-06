@@ -36,3 +36,6 @@ server reminder. Suspension, conflicting applicability and an open address
 incident prohibit that estimate. A successful response supersedes this
 fallback; genuinely unpublished data must not acquire a fictitious plan.
 
+
+
+PWA-LIVE-45 r6 / 1024: a confirmed complete multi-line resolution for one exact canonical address expands through one atomic `svitlo_profile_group_create` RPC. The save response contains `profile` (first stable ordinal), `profiles` (line views) and `addressGroupId`. An owner has at most2 homes without entitlement or10 with active entitlement; canonical IDs, not line-view count, define homes. The universal32-line bound remains, with320 maximum line profiles per owner. Existing profile IDs and unresolved profiles with sensors are never silently reassigned. The sync response adds own-subject `addressQuota: {used, limit}`. Separate source identities/partial results continue to use the existing unresolved path. `lineNumber` is persisted per line ID, and profiles read use stable tie ordering.

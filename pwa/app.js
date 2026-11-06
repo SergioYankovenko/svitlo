@@ -114,7 +114,19 @@
     state.addresses.find((x) => x.id === state.active) ||
     state.addresses[0] || { id: "", name: "", city: "", street: "", queue: "" };
   const fullAddress = (x) => `${x.city}, ${x.street}`;
-  const addressTitle = (x) => x.name || x.city;
+  const lineLabel = x => x.lineNumber ? "Лінія " + x.lineNumber : "";
+  const addressTitle = (x) => (x.name || x.city) + (x.lineNumber ? " · " + lineLabel(x) : "");
+  function lineGuideKey() {
+    const candidate=live.lineGuideKey(state.addresses,state.active);if(!candidate)return null;
+    const key=[state.liveOwner,candidate].join('|');
+    return state.lineGuideSeen?.[key]?null:key;
+  }
+  const lineGuideActive=()=>tab==='home'&&!modal&&!onboarding?.active()&&!!lineGuideKey();
+  function finishLineGuide(){const key=lineGuideKey();if(key){const seen=state.lineGuideSeen||{};state.lineGuideSeen=Object.fromEntries([...Object.entries(seen).slice(-39),[key,true]]);save();}}
+  function lineGuideHTML(){
+    const count=state.addresses.filter(x=>x.addressGroupId===address().addressGroupId&&x.lineNumber).length;
+    return `<div class="line-guide" aria-live="polite" role="region" aria-label="Кілька ліній живлення"><img src="assets/tour-point-down-v3.webp" alt="" width="384" height="384"><div class="character-speech"><button class="line-guide-close" data-action="line-guide-close" aria-label="Закрити пояснення">×</button><p>За твоєю адресою є ${count===2?'дві лінії':count===3?'три лінії':count+' '+(count%10>=2&&count%10<=4&&!(count%100>=12&&count%100<=14)?'лінії':'ліній')} живлення. Обери ту, графік якої найбільше збігається зі світлом удома.</p></div></div>`;
+  }
   const nowMinutes = () => window.SvitloClock.minutes(state);
   const todayIndex = () =>
     window.SvitloClock.weekday(window.SvitloClock.now(state).date);
@@ -200,6 +212,7 @@
           !!modal ||
           !!onboarding?.active() ||
           !!guideTour?.visible() ||
+          lineGuideActive() ||
           !!context().warning ||
           ["offline", "unknown"].includes(state.scenario);
         const visible = entries.some(x => x.isIntersecting && x.intersectionRatio >= 0.99);
@@ -430,14 +443,15 @@
     if (wizard) return setup();
     if (needsAddress()) return journey.welcome(scheduleCard(true));
     const a = address();
+    const lineGuide=lineGuideActive();if(lineGuide)expanded=true;
     const city = a.city,
       sensorIndicator = sensor?.indicator() || { html: "", label: "" };
-    return `<section class="card outlined address-card compact-address"><div class="address-top"><button class="address-trigger" data-action="expand-address" aria-label="${esc("Обрати адресу: " + fullAddress(a) + (sensorIndicator.label ? ", " + sensorIndicator.label : ""))}" aria-expanded="${expanded}"><div><div class="address-primary-row"><div class="address-primary">${esc(addressTitle(a))}</div>${sensorIndicator.html}</div><div class="address-subtitle">${esc(a.name ? fullAddress(a) : a.street)}</div></div>${state.addresses.length > 1 ? icon("chevron", "chevron") : ""}</button>${state.addresses.length === 1 ? '<button class="address-add" data-action="add-address" aria-label="Додати адресу"><span aria-hidden="true">+</span></button>' : ""}</div>${expanded ? addressList(a) : ""}</section>
+    return `<section class="card outlined address-card compact-address"><div class="address-top"><button class="address-trigger" data-action="expand-address" aria-label="${esc("Обрати адресу: " + fullAddress(a) + (sensorIndicator.label ? ", " + sensorIndicator.label : ""))}" aria-expanded="${expanded}"><div><div class="address-primary-row"><div class="address-primary">${esc(addressTitle(a))}</div>${sensorIndicator.html}</div><div class="address-subtitle">${esc(a.name ? fullAddress(a) : a.street)}</div></div>${state.addresses.length > 1 ? icon("chevron", "chevron") : ""}</button>${state.addresses.length === 1 ? '<button class="address-add" data-action="add-address" aria-label="Додати адресу"><span aria-hidden="true">+</span></button>' : ""}</div>${lineGuide?lineGuideHTML():""}${expanded ? addressList(a) : ""}</section>
       ${scheduleCard()}
       ${summaryCards()}${live.weatherHTML(esc)}<div class="home-bottom">${canShare() ? `<button class="action" data-action="share">${icon("share")}Поділитись графіком</button>` : ""}<button class="action" data-action="donate">♡ Подякувати за додаток</button></div>`;
   }
   function addressList(active) {
-    return `<div class="address-list"><div class="address-list-rows">${state.addresses.map((x) => `<div class="address-list-row ${x.id === active.id ? "selected" : ""}"><button class="address-row" data-action="select-address" data-id="${esc(x.id)}" aria-pressed="${x.id === active.id}">${x.name ? `<strong>${esc(x.name)}</strong>` : ""}<span>${esc(fullAddress(x))}</span></button><button class="address-edit" data-action="address-actions" data-id="${esc(x.id)}" aria-label="${esc("Редагувати адресу " + (x.name || fullAddress(x)))}">${icon("edit")}</button></div>`).join("")}</div><button class="action address-list-add" data-action="add-address">Додати адресу</button></div>`;
+    return `<div class="address-list"><div class="address-list-rows">${state.addresses.map((x) => `<div class="address-list-row ${x.id === active.id ? "selected" : ""}"><button class="address-row" data-action="select-address" data-id="${esc(x.id)}" aria-pressed="${x.id === active.id}">${x.name ? `<strong>${esc(x.name)}</strong>` : ""}<span>${esc(fullAddress(x))}${x.lineNumber?`<b class="address-line-label">${esc(lineLabel(x))}</b>`:""}</span></button><button class="address-edit" data-action="address-actions" data-id="${esc(x.id)}" aria-label="${esc("Редагувати адресу " + (x.name || fullAddress(x)))}">${icon("edit")}</button></div>`).join("")}</div><button class="action address-list-add" data-action="add-address">Додати адресу</button></div>`;
   }
   function returnToAddresses() {
     closeDialog();
@@ -754,7 +768,10 @@
           render();
         }
         break;
+      case "line-guide-close":
+        finishLineGuide();render();break;
       case "select-address":
+        finishLineGuide();
         state.active = id;
         live.adopt(state);
         expanded = false;
@@ -805,8 +822,8 @@
         if (!state.addresses.length) { journey.emptied(state); state.onboardingSeen=false; }
         render(false); break;
       case "add-address":
-        if (state.addresses.length >= 10) {
-          toast("У тестовому доступі можна додати до 10 адрес");
+        if (live.addressCount() >= live.addressLimit()) {
+          toast("Досягнуто ліміт адрес вашої підписки");
           break;
         }
         if (state.entryMode === "smart") {
@@ -976,6 +993,7 @@
     blocked: () =>
       !!modal ||
       !!onboarding.active() ||
+      lineGuideActive() ||
       !state.addresses.length ||
       state.entryMode !== "smart",
     getTab: () => tab,

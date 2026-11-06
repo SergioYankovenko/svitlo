@@ -1,3 +1,4 @@
+import {addressGroupCount,MAX_LINE_PROFILES,lineGuideKey} from './core/lib/address-groups.js';
 import {retainPublishedDays} from './core/lib/universal-history.js';
 import {createBackgroundAddresses} from './core/lib/background-addresses.js';
 import {subscribeWithTimeout} from './live-push.js';
@@ -9,9 +10,9 @@ import {sensorSignalView} from './core/lib/map-sensor.js';
 import {messageTitle} from './core/lib/notifications.js';
 import {visibleMessages} from './live-messages.js';
 import {sensorConnectError} from './core/lib/sensor-errors.js';
-const KEY='svitlo.pwa.v2.cache',MAX_CACHE=1500000;
+const KEY='svitlo.pwa.v2.cache',MAX_CACHE=12000000;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const safeRead=()=>{try {const raw=localStorage.getItem(KEY);if(!raw||raw.length>MAX_CACHE)return null;const v=JSON.parse(raw);return v.version===1&&typeof v.owner==='string'&&Array.isArray(v.profiles)&&v.profiles.length<=10&&v.profiles.every(p=>p&&typeof p.id==='string'&&p.address&&typeof p.address==='object'&&!Array.isArray(p.address)&&p.snapshot&&typeof p.snapshot==='object')&&v.weather&&typeof v.weather==='object'&&!Array.isArray(v.weather)?v:null;}catch{return null;}};
+const safeRead=()=>{try {const raw=localStorage.getItem(KEY);if(!raw||raw.length>MAX_CACHE)return null;const v=JSON.parse(raw);return v.version===1&&typeof v.owner==='string'&&Array.isArray(v.profiles)&&v.profiles.length<=MAX_LINE_PROFILES&&addressGroupCount(v.profiles)<=10&&v.profiles.every(p=>p&&typeof p.id==='string'&&p.address&&typeof p.address==='object'&&!Array.isArray(p.address)&&p.snapshot&&typeof p.snapshot==='object')&&v.weather&&typeof v.weather==='object'&&!Array.isArray(v.weather)?v:null;}catch{return null;}};
 const weatherType=code=>code===0?['☀️','Ясно']:code<3?['🌤️','Мінлива хмарність']:code===3?['☁️','Хмарно']:code<50?['🌫️','Туман']:code<70?['🌧️','Дощ']:code<80?['🌨️','Сніг']:code<95?['🌦️','Злива']:['⛈️','Гроза'];
 export async function createLive(){
   let old=safeRead(),owner=old?.owner||null,profiles=old?.profiles||[],weather=old?.weather||{},active=old?.active||null;
@@ -20,7 +21,7 @@ export async function createLive(){
   const pushChoice=()=>{try{return JSON.parse(localStorage.getItem(PUSH_CHOICE)||'null');}catch{return null;}};
   const savePushChoice=(enabled,subject=owner)=>{try{localStorage.setItem(PUSH_CHOICE,JSON.stringify({owner:subject,enabled}));}catch{}};
   const preferenceJobs=new Map(),preferenceRevisions=new Map(),noticeJobs=new Map();
-  let cap=null;const listeners=new Set();
+  let cap=null,quotaLimit=10;const listeners=new Set();
   const emit=()=>listeners.forEach(f=>f());
   function persist(){try{const raw=JSON.stringify({version:1,owner,profiles,weather,active});if(owner&&raw.length<=MAX_CACHE)localStorage.setItem(KEY,raw);else localStorage.removeItem(KEY);}catch{/* Storage never blocks a fetched schedule. */}}
   const current=id=>profiles.find(p=>p.id===(id||active));
@@ -47,7 +48,7 @@ export async function createLive(){
       restorePush().catch(()=>{});
       const weatherId=result.active||id,weatherProfile=current(weatherId);
       if(result.weather&&weatherProfile&&result.weather.city===profileView(weatherProfile).city)weather[weatherId]=result.weather;
-      lastSync=Date.now();syncFailures=0;retryAfter=0;offline=false;persist();emit();
+      quotaLimit=[2,10].includes(result.addressQuota?.limit)?result.addressQuota.limit:quotaLimit;lastSync=Date.now();syncFailures=0;retryAfter=0;offline=false;persist();emit();
     })().catch(error=>{offline=true;retryAfter=Date.now()+Math.min(900000,30000*2**Math.min(syncFailures++,5));if(error.status===401)clear();emit();throw error;}).finally(()=>{pending=null;pendingProfile=null;if(syncQueued){syncQueued=false;queueMicrotask(()=>sync().catch(()=>{}));}});
     return pending;
   }
@@ -67,16 +68,17 @@ export async function createLive(){
     if(choice.requiresLine&&!flow.continueWithoutQueue)return choice;const {resolved}=choice;signal?.throwIfAborted();
     if(['disabled','unsupported'].includes(resolved.operator?.supportState))throw Error('Джерело цього регіону недоступне');
     const lines=resolved.resolution?.lines||[],lineId=flow.continueWithoutQueue?null:resolved.selection?.lineId||null;
-    if(!flow.continueWithoutQueue&&(!lines.length||lines.length>1&&!lineId)&&!['excluded','resolved'].includes(resolved.resolution?.state)){return {requiresLine:true,lines};throw Error('Потрібен вибір лінії живлення');}
+    if(!flow.continueWithoutQueue&&(!lines.length||lines.length>1&&!lineId)&&!(resolved.resolution?.complete&&lines.length>1)&&!['excluded','resolved'].includes(resolved.resolution?.state)){return {requiresLine:true,lines};throw Error('Потрібен вибір лінії живлення');}
     const who=await session(true),generation=epoch;signal?.throwIfAborted();
     const result=await request('save',{address:{canonicalAddressId:resolved.address.id,lineId,...(flow.continueWithoutQueue?{queueUnresolved:true}:{})},name:flow.name||'',confirmed:true},{owner:who,signal});
     if(generation!==epoch||who!==owner)throw Error('Сеанс змінився. Спробуйте ще раз');
-    dataRevision++;profiles=profiles.filter(p=>p.id!==result.profile.id);profiles.push(result.profile);active=result.profile.id;persist();
-    emit();sync().catch(()=>{});return result.profile;
+    const incoming=result.profiles||[result.profile],ids=new Set(incoming.map(p=>p.id)),retained=incoming.find(p=>p.id===active);
+    dataRevision++;profiles=profiles.filter(p=>!ids.has(p.id));profiles.push(...incoming);active=retained?.id||result.profile.id;persist();
+    emit();sync().catch(()=>{});return incoming.find(p=>p.id===active);
   }
   function adopt(state){
     ui=state;
-    if(identityConfirmed&&state.liveOwner&&state.liveOwner!==owner){delete state.onboardingDraft;state.onboardingSeen=false;state.sessionReset=true;}
+    if(identityConfirmed&&state.liveOwner&&state.liveOwner!==owner){delete state.onboardingDraft;delete state.lineGuideSeen;state.onboardingSeen=false;state.sessionReset=true;}
     if(identityConfirmed)state.liveOwner=owner;state.addresses=profiles.map(profileView);if(!profiles.some(p=>p.id===state.active))state.active=active||profiles[0]?.id||null;
     if(state.active!==active){active=state.active;persist();lastSync=0;queueMicrotask(()=>sync().catch(()=>{}));}
     const p=current(),pref=p?.preferences;
@@ -134,7 +136,7 @@ export async function createLive(){
     })().finally(()=>{if(pushPending===job)pushPending=null;});pushPending=job;return job;
   }
   async function disablePush(){savePushChoice(false);pushRequest++;pushPending=null;const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner)await mutate('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
-  const api={enableSensorNotice,adopt,enroll,search,geography:(route,data,signal)=>universalRequest(route,data,{signal}),sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,planView,summaryVisible,canSharePlan,planClock,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
+  const api={lineGuideKey,addressLimit:()=>quotaLimit,addressCount:()=>addressGroupCount(profiles),enableSensorNotice,adopt,enroll,search,geography:(route,data,signal)=>universalRequest(route,data,{signal}),sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,planView,summaryVisible,canSharePlan,planClock,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
     rememberView:view=>rememberReloadView(()=>sessionStorage,owner,view),takeView:()=>takeReloadView(()=>sessionStorage,owner),
     onChange:f=>{listeners.add(f);return()=>listeners.delete(f);},
     profile:current,profiles:()=>profiles,owner:()=>owner,sensors:()=>sensors,sensorFetched:()=>sensorFetched,signalView:sensorSignalView,refreshSensors,

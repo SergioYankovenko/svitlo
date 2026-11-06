@@ -102,3 +102,17 @@ body.live-pwa{margin:0}
 .live-pwa .sensor-connection-icon svg{display:block;width:100%;height:100%}
 .live-pwa .sensor-add span{display:grid;place-items:center}
 .live-pwa .sensor-add .svitlo-sensor-icon{display:block;width:24px;height:24px}
+
+/* PWA-LIVE-45 r6: an inline explanation keeps both real line choices visible. */
+.address-line-label{display:block;color:var(--accent);font-size:.9em;margin-top:3px}
+.line-guide{display:flex;align-items:center;gap:10px;margin-top:18px;position:relative}
+.line-guide>img{width:90px;height:130px;object-fit:contain;flex:none;transform:scale(1.45)}
+.line-guide .character-speech{margin:0;min-width:0;flex:1;padding:16px 36px 16px 16px;font-size:calc(14px * var(--scale));font-weight:500}
+.line-guide p{margin:0;font:inherit;font-weight:400;line-height:1.35;overflow-wrap:anywhere}
+.line-guide-close{position:absolute;right:1px;top:1px;min-width:44px;min-height:44px;background:transparent;border:0;color:inherit;font-size:23px}
+@media(max-width:350px){.line-guide>img{width:65px;height:110px}.line-guide{gap:8px}}
+
+.large-text .line-guide{flex-direction:column;gap:8px}
+.large-text .line-guide>img{width:80px;height:95px}
+.large-text .line-guide .character-speech{width:100%;flex:none;box-sizing:border-box}
+.large-text .line-guide .character-speech:before{display:block;left:50%;top:-6px;transform:translateX(-50%) rotate(135deg)}
