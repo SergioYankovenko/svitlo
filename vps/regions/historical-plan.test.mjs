@@ -34,6 +34,15 @@ test('provider snapshot, archive enrichment and shared cache preserve additive A
  const day=value.lines[0].categories.hourly.days[0];assert.equal(day.state,'suspended');assert.deepEqual(day.intervals,[]);assert.equal(day.historicalPlan.periods[0].end,from+300000);
  assert.equal(JSON.stringify(data),original);
 });
+test('a past unpublished day restores only archived plan publication, without refreshing it',async()=>{
+ const stamp=from+86400000+12*3600000,data=projectStreet(dtekFixtureAt(JSON.parse(await readFile(new URL('./fixtures/kyiv.json',import.meta.url),'utf8')),stamp),stamp),house=Object.keys(data.houses)[0],resolution=resolveHouse(data,house);
+ resolution.lines=resolution.lines.map((l,i)=>({...l,id:'line-'+i}));
+ const db={sourceClaim:async()=>({state:'owner',token:'synthetic'}),sourceFinish:async()=>true};
+ const regions=new Regions({db,secret:'x'.repeat(64),now:()=>stamp,bridge:{query:async()=>({rows:[{value:[sample(-5),sample(0),sample(5)]}]})}});
+ regions.address=async()=>data;regions.cityStatus=async()=>null;
+ const value=(await regions.snapshot({id:'11111111-1111-4111-8111-111111111111',operator_id:'ua-kyiv-dtek',source_ref:{house}},resolution,{fromDate:date,toDate:date})).value;
+ const day=value.lines[0].categories.hourly.days[0];assert.equal(day.publication.state,'published');assert.equal(day.publication.freshUntil,from+300000);assert.equal(day.applicability.reason,'archived_official_plan');assert.deepEqual(day.intervals,[]);assert.equal(validUniversal(value),true);
+});
 test('real SQL projection returns only the requested public group/day with bounded grants',async()=>{
 const db=new PGlite();
  try{

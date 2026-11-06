@@ -48,7 +48,8 @@ export function createBackgroundAddresses(request,{now=Date.now,newToken=()=>cry
   if(candidates.length===1){const r=candidates[0];if(r.resolution?.lines?.length>1&&!r.selection?.lineId)return {requiresLine:true,lines:[...groups.values()]};return {resolved:r};}
   if(groups.size===1&&confirmed.length===candidates.length){const one=[...groups.values()][0];return {resolved:candidates.find(r=>r.address.id===one.addressId)};}
   if(groups.size)return {requiresLine:true,lines:[...groups.values()]};
-  // Multiple unconfirmed source identities never justify choosing an arbitrary department.
+  // Offer explicit continuation; do not silently choose a source identity or group.
+  if(values.every(x=>x.ok)&&results.every(r=>!r.resolution?.provenance?.sourceUnavailable))return {requiresLine:true,lines:[]};
   throw problem();
  }
  return {search,resolve};
