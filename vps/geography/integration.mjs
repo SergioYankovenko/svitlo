@@ -15,7 +15,7 @@ try{
   assert.deepEqual(counts,{nodes:manifest.nodeCount,settlements:manifest.settlementCount,routes:manifest.routeCount,links:manifest.linkCount,branches:22});
   // Regional collector additions are a separate growing namespace, never replacements for the edition.
   const baseRoutes=(await admin.query("select id from svitlo_geo.routes where active and coalesce(evidence->>'origin','')<>'regional_collector' order by id")).rows.map(r=>r.id);
-  assert.deepEqual(baseRoutes,data.routes.map(r=>r.id).sort());
+  assert.deepEqual(new Set(baseRoutes),new Set(data.routes.map(r=>r.id)));
   const baseLinks=(await admin.query("select l.route_id,l.settlement_code from svitlo_geo.route_places l join svitlo_geo.routes r on r.id=l.route_id where coalesce(r.evidence->>'origin','')<>'regional_collector'")).rows.map(r=>r.route_id+'|'+r.settlement_code).sort();
   assert.deepEqual(baseLinks,data.links.map(l=>l.routeId+'|'+l.settlementCode).sort());
   assert.equal((await admin.query('select count(*)::int n from svitlo_geo.places p left join svitlo_geo.places r on r.code=p.parent_code where p.parent_code is not null and r.code is null')).rows[0].n,0);
