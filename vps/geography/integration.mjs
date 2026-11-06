@@ -11,8 +11,13 @@ const routes=async code=>{const r=await post('/api/v1/settlement-routes',{schema
 let child,logs='';
 try{
  await check('full national edition reconciles all records, parent integrity and 22 Cherkasy branches',async()=>{
-  assert.equal(await rt.geography.ready(),true);const counts=(await admin.query("select (select count(*)::int from svitlo_geo.places where active) nodes,(select count(*)::int from svitlo_geo.places where active and (level=4 or category='K')) settlements,(select count(*)::int from svitlo_geo.routes where active) routes,(select count(*)::int from svitlo_geo.route_places) links,(select count(distinct branch_id)::int from svitlo_geo.routes where active and operator_id='ua-cherkasy') branches")).rows[0];
+  assert.equal(await rt.geography.ready(),true);const counts=(await admin.query("select (select count(*)::int from svitlo_geo.places where active) nodes,(select count(*)::int from svitlo_geo.places where active and (level=4 or category='K')) settlements,(select count(*)::int from svitlo_geo.routes where active and coalesce(evidence->>'origin','')<>'regional_collector') routes,(select count(*)::int from svitlo_geo.route_places l join svitlo_geo.routes r on r.id=l.route_id where coalesce(r.evidence->>'origin','')<>'regional_collector') links,(select count(distinct branch_id)::int from svitlo_geo.routes where active and operator_id='ua-cherkasy') branches")).rows[0];
   assert.deepEqual(counts,{nodes:manifest.nodeCount,settlements:manifest.settlementCount,routes:manifest.routeCount,links:manifest.linkCount,branches:22});
+  // Regional collector additions are a separate growing namespace, never replacements for the edition.
+  const baseRoutes=(await admin.query("select id from svitlo_geo.routes where active and coalesce(evidence->>'origin','')<>'regional_collector' order by id")).rows.map(r=>r.id);
+  assert.deepEqual(baseRoutes,data.routes.map(r=>r.id).sort());
+  const baseLinks=(await admin.query("select l.route_id,l.settlement_code from svitlo_geo.route_places l join svitlo_geo.routes r on r.id=l.route_id where coalesce(r.evidence->>'origin','')<>'regional_collector'")).rows.map(r=>r.route_id+'|'+r.settlement_code).sort();
+  assert.deepEqual(baseLinks,data.links.map(l=>l.routeId+'|'+l.settlementCode).sort());
   assert.equal((await admin.query('select count(*)::int n from svitlo_geo.places p left join svitlo_geo.places r on r.code=p.parent_code where p.parent_code is not null and r.code is null')).rows[0].n,0);
  });
  await check('owner import retry preserves edition, counts and every legacy private/catalogue row',async()=>{

@@ -318,7 +318,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
             if(/(?:subscription|entitlement).*(?:required|expired)|main_app_subscription/.test(error.code||'')){
               b.scanner?.pause();b.root.dataset.connectionState='subscription';
               const view=document.createElement('div');view.className='sensor-subscription-state';
-              view.innerHTML='<img src="assets/privacy-shield-guide-v1.webp" alt=""><p>Для активації датчика потрібна підписка.</p>';
+              view.innerHTML='<img src="assets/privacy-shield-guide-v1.webp" alt=""><p class="character-speech">Для активації датчика потрібна підписка.</p>';
               b.root.querySelector('.sensor-scanner').after(view);
               b.root.querySelector('.dialog-footer').innerHTML=button('Придбати','buy','sensor-connect-primary')+ctx.button('Скасувати','close','cancel');
               b.root.querySelector('.sensor-connect-error').hidden=true;

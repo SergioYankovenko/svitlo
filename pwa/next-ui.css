@@ -33,6 +33,12 @@
 .live-pwa .sensor-subscription-state{display:flex;align-items:center;gap:12px;padding:10px 0}
 .live-pwa .sensor-subscription-state img{width:34%;height:auto;object-fit:contain}
 .live-pwa .sensor-subscription-state p{font-size:calc(16px * var(--scale));line-height:1.4}
+.live-pwa .sensor-subscription-state .character-speech{flex:1;min-width:0;margin:0;font-weight:400}
+.live-pwa .sensor-subscription-state .character-speech:before{display:block}
+.live-pwa .phone.large-text .sensor-subscription-state{flex-direction:column;gap:16px}
+.live-pwa .phone.large-text .sensor-subscription-state .character-speech{flex:0 0 auto;width:100%;box-sizing:border-box}
+.live-pwa .phone.large-text .sensor-subscription-state img{width:90px;max-height:135px}
+.live-pwa .phone.large-text .sensor-subscription-state .character-speech:before{left:50%;top:-6px;transform:translateX(-50%) rotate(135deg)}
 .live-pwa .sensor-scan-sweep{top:14%;height:72%;background:transparent;box-shadow:none}
 .live-pwa .sensor-scan-sweep::before{inset:0;height:2px;background:var(--accent);box-shadow:0 0 10px 3px color-mix(in srgb,var(--accent) 55%,transparent);animation:sensor-scan-travel 2.4s ease-in-out infinite alternate;will-change:transform}
 .live-pwa [data-scan-state=scanning] .sensor-scan-sweep,.live-pwa [data-scan-state=invalid] .sensor-scan-sweep{animation:none;opacity:.75}
