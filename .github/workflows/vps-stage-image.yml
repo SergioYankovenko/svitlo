@@ -37,6 +37,7 @@ jobs:
       - run: node --test vps/events/*.test.mjs
       - run: node --test vps/observability/*.test.mjs
       - run: node --test vps/sources/*.test.mjs
+      - run: node --test vps/catalog/*.test.mjs
       - run: node vps/events/ci.mjs
       - name: Build once outside VPS; no server credentials or deployment
         run: |

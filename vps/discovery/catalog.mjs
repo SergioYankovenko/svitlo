@@ -30,8 +30,9 @@ export class DiscoveryCatalog {
   const term=normalizeName(q),signature=createHash('sha256').update(JSON.stringify([r.id,p.settlementCode,p.kind,parent.id,term])).digest('hex');let after=null;
   if(p.cursor!==undefined)try{if(typeof p.cursor!=='string'||p.cursor.length>1500)throw Error();after=JSON.parse(Buffer.from(p.cursor,'base64url'));if(after.signature!==signature||typeof after.key!=='string'||typeof after.name!=='string')throw Error();}catch{throw geoProblem(400,'invalid_settlement_catalog_cursor');}
   const sorted=rows.filter(x=>typeof x.id==='string'&&typeof x.name==='string'&&x.name.length<=240&&normalizeName(x.name).includes(term)&&!/[\x00-\x1f]/.test(x.name)&&!/^\s*(?:\[?невідом|невизначен|без вулиці|\*)/iu.test(x.name)).map(x=>({...x,sortName:normalizeName(x.name)})).sort((a,b)=>a.sortName<b.sortName?-1:a.sortName>b.sortName?1:a.id<b.id?-1:a.id>b.id?1:0).filter(x=>!after||x.sortName>after.name||x.sortName===after.name&&x.id>after.key);
-  const page=sorted.slice(0,limit),items=[];
-  for(const x of page){const id=(await this.bridge.query('select svitlo_discovery.catalog_entry($1,$2,$3,$4,$5,$6) id',[r.id,p.settlementCode,kind==='house'?'address':'street',parent.id,x.id,x.name])).rows[0].id;try{const item=this.reader.catalog.public(await this.reader.catalog.entity(id));items.push({...item,label:kind==='house'?item.house:item.label});}catch(e){if(e.status!==409)throw e;}}
+  const page=sorted.slice(0,limit);
+  const allocated=page.length?(await this.bridge.query('select svitlo_discovery.catalog_entries($1,$2,$3,$4,$5::jsonb) items',[r.id,p.settlementCode,kind==='house'?'address':'street',parent.id,JSON.stringify(page.map(x=>({id:x.id,name:x.name})))])).rows[0].items:[];
+  const items=allocated.map(row=>{const item=this.reader.catalog.public(row);return {...item,label:kind==='house'?item.house:item.label};});
   const last=page.at(-1),more=sorted.length>limit;
   return {schemaVersion:1,items,nextCursor:more?Buffer.from(JSON.stringify({signature,name:last.sortName,key:last.id})).toString('base64url'):null,complete:!more,coverage:'provider_dictionary',addressCheckRequired:true};
  }

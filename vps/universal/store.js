@@ -1,3 +1,4 @@
+import {validResolution} from './validate.js';
 const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
 export const apiError=(status,code,message=code)=>Object.assign(Error(message),{status,code});
 export class Catalog {
@@ -45,6 +46,7 @@ export class Catalog {
   if(ref.street&&(await this.db.query("select svitlo_vps.catalog_service_label('street',$1) blocked",[ref.street])).rows[0].blocked)throw apiError(409,'address_requires_reselection','Потрібно повторно обрати вулицю');
  }
  async lines(addressId,result){
+  if(!validResolution(result))throw apiError(503,'invalid_adapter_resolution');
   let checkedAt=result.checkedAt||Date.now();
   // One transaction and address lock: partial replies merge, complete replies may retire old lines.
   const c=await this.db.pool.connect();try{await c.query('begin');await c.query("select pg_advisory_xact_lock(hashtextextended('universal-lines:'||$1,0))",[addressId]);
@@ -52,6 +54,7 @@ export class Catalog {
    const stale=prior&&prior.checked_at>checkedAt;
    if(stale){const unavailable=result.provenance?.source==='dtek-address'&&result.provenance.sourceUnavailable===true;result={...result,state:unavailable?'unknown':prior.state,complete:!unavailable&&prior.complete,provenance:unavailable?result.provenance:prior.evidence,lines:[]};checkedAt=prior.checked_at;}
    if(!stale){
+   if(!result.complete&&!result.provenance?.sourceUnavailable)await c.query('select svitlo_catalog.record_review($1,$2,$3::jsonb)',[addressId,result.provenance?.conflict?'conflicting_binding':result.lines.length?'partial_binding':'mapping_miss',JSON.stringify(result.lines.map(l=>l.key))]);
    if(result.complete)await c.query('update svitlo_vps.address_lines set active=false where address_id=$1',[addressId]);
    for(const line of result.lines){await c.query(`insert into svitlo_vps.address_lines(address_id,source_key,label,group_code,evidence)
     values($1,$2,$3,$4,$5) on conflict(address_id,source_key) do update set label=excluded.label,group_code=excluded.group_code,evidence=excluded.evidence,active=true`,[addressId,line.key,line.label,line.groupCode??null,JSON.stringify(line.provenance||{})]);}
