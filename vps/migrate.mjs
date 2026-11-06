@@ -5,6 +5,7 @@ import {importGeography} from './geography/import.mjs';
 import {seedDiscovery} from './discovery/seed.mjs';
 import {importTerritories} from './discovery/territory.mjs';
 import {initializeRegionalSources} from './discovery/regional-import.mjs';
+import {seedSourceRegistry} from './sources/evidence.js';
 const password=(await readFile('/run/secrets/owner_password','utf8')).trim();
 const c=new pg.Client({host:'postgres',user:'svitlo_owner',database:'svitlo_staging',password});
 await c.connect();
@@ -50,6 +51,7 @@ try{
   migrations.push(['1026_modular_outbox.sql',await readFile('vps/sql/modular-outbox.sql','utf8')]);
   migrations.push(['1027_operations_metrics.sql',await readFile('vps/sql/operations-metrics.sql','utf8')]);
   migrations.push(['1028_domain_jobs.sql',await readFile('vps/sql/domain-jobs.sql','utf8')]);
+  migrations.push(['1029_source_evidence.sql',await readFile('vps/sql/source-evidence.sql','utf8')]);
   for(const [name,sql] of migrations){
     const hash=createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex');
     const old=(await c.query('select sha256 from svitlo_vps.migrations where name=$1',[name])).rows[0];
@@ -58,6 +60,7 @@ try{
     catch(e){await c.query('rollback');throw e;}
     console.log(JSON.stringify({migration:name,status:'applied'}));
   }
+  await seedSourceRegistry(c);
   console.log(JSON.stringify({geographyImport:await importGeography(c)}));
   await initializeRegionalSources(c);
   console.log(JSON.stringify({discoverySeeded:await seedDiscovery(c)}));

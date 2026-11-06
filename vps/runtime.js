@@ -20,6 +20,7 @@ import {SourceHistory} from './regions/source-history.js';
 import {Geography} from './geography/service.mjs';
 import {DiscoveryCatalog} from './discovery/catalog.mjs';
 import {RegionalDiscoverySources} from './discovery/regional-sources.mjs';
+import {SourceEvidence,observedPublicFetch} from './sources/evidence.js';
 
 // Accounts remain transient adapter inputs; they never enter the persistent address/profile/catalog.
 export class PrivateSource extends Source {
@@ -38,14 +39,15 @@ export async function runtime(role='api'){
     (select id from public.svitlo_profiles where coalesce(address->>'mapOnly','false')<>'true' and lease_until<$1 and ((next_check>0 and next_check<=$1) or (next_check=0 and last_checked<$1-3600000))
     order by next_check,last_checked limit least($2,4) for update skip locked) returning *`,[now,amount])).rows;
   const secret=readFileSync('/run/secrets/session_secret','utf8').trim();
-  const source=new PrivateSource(providerTransport(db,operatorFetch),{dictionaries:new SharedDictionaries(db),feed:new SharedFeed(db),categories:new SharedCategories(db,secret),departmentSchedules:new DepartmentSchedules({db,bridge,secret})});
+  const sourceEvidence=new SourceEvidence(bridge,{onError:code=>console.error(JSON.stringify({event:code}))}),fetcher=observedPublicFetch(operatorFetch,value=>sourceEvidence.record(value));
+  const source=new PrivateSource(providerTransport(db,fetcher),{dictionaries:new SharedDictionaries(db),feed:new SharedFeed(db),categories:new SharedCategories(db,secret),departmentSchedules:new DepartmentSchedules({db,bridge,secret})});
   const delivery=await pilotPush(p);
   const options={db,source,...delivery,jobBudgetMs:45000,
     defaultPreferences:{schedule:false,publication:false,change:false,emergency:false,reminder:false,restoration:false,lead:30}};
-  const regions=new Regions({db,bridge,secret}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions});
-  const regionalDiscovery=new RegionalDiscoverySources({gate:op=>regions.gate(op),finish:(...args)=>regions.finish(...args)});
+  const regions=new Regions({db,bridge,secret,fetcher}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions,sourceEvidence});
+  const regionalDiscovery=new RegionalDiscoverySources({fetcher,gate:op=>regions.gate(op),finish:(...args)=>regions.finish(...args)});
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
   const service=new UniversalService({...options,maps,unresolvedLog:role==='api'?unresolvedLog('/app-logs/unresolved-addresses.ndjson'):null},reader);
   const sourceHistory=new SourceHistory({bridge,regions,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
-  return {p,bridge,db,source,service,legacy,reader,maps,regions,regionalDiscovery,sourceHistory,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions}),secret,...delivery};
+  return {p,bridge,db,source,service,legacy,reader,maps,regions,regionalDiscovery,sourceHistory,sourceEvidence,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions}),secret,...delivery};
 }
