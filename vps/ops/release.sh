@@ -43,7 +43,7 @@ backup=$(cat /var/lib/svitlo-stage/latest-backup)
 mounts=(--mount type=bind,src=/etc/svitlo/secrets/postgres-owner-password,dst=/run/secrets/owner_password,readonly)
 for name in api worker session;do mounts+=(--mount "type=bind,src=/etc/svitlo/stage-secrets/$name-password,dst=/run/secrets/${name}_password,readonly");done
 for name in session sensor-access phone;do alias=${name//-/_};mounts+=(--mount "type=bind,src=/etc/svitlo/stage-secrets/$name-secret,dst=/run/secrets/${alias}_secret,readonly");done
-for suite in phone history map regions pwa sources subscriptions geography discovery regional lines;do
+for suite in lines regions map phone history pwa sources subscriptions geography discovery regional;do
  qa="svitlo_${suite}_qa_$(date +%s)"
  if test "$suite" = regions;then qa="svitlo_kyiv_qa_$(date +%s)";fi
  docker exec svitlo-postgres-1 createdb -U svitlo_owner "$qa"

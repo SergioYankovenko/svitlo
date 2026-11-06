@@ -65,16 +65,16 @@ try{
   const legacy=(await admin.query("select id from svitlo_vps.catalog where kind='city' and metadata->>'regionOperator' is null limit 1")).rows[0];
   assert(legacy);await assert.rejects(()=>rt.regions.import(op,'street',legacy.id,['Injected'],now+1));
  });
- await check('all three Brovary groups survive resolution and require explicit selection',async()=>{
+ await check('all three Brovary groups enroll atomically as one home without a queue picker',async()=>{
   const s=(await find('streets',town,'Київська'))[0].id;brovary=(await find('houses',s,'1')).find(e=>e.label==='1').id;
   const result=await rt.reader.resolve({addressId:brovary});assert.equal(result.resolution.lines.length,3);assert.equal(result.resolution.complete,true);assert.equal(result.selection.lineId,null);
-  await assert.rejects(()=>command(actors[0],()=>rt.service.handle(actors[0],{action:'save',confirmed:true,address:{canonicalAddressId:brovary}})),e=>e.status===409);
+  const saved=await command(actors[0],()=>rt.service.handle(actors[0],{action:'save',confirmed:true,address:{canonicalAddressId:brovary}}));assert.equal(saved.profiles.length,3);assert.equal(saved.addressGroupId,brovary);assert.deepEqual(saved.profiles.map(p=>p.address.lineNumber),[1,2,3]);assert.equal(new Set(saved.profiles.map(p=>p.address.canonicalAddressId)).size,1);assert.equal(new Set(saved.profiles.map(p=>p.snapshot.selectedLineId)).size,3);
  });
  await check('Kyiv emergency suspends applicability while keeping dated plan in provenance',async()=>{
   const value=await rt.reader.snapshot(address,range);assert(validUniversal(value));assert.equal(value.lines[0].categories.hourly.days[0].state,'suspended');
   const decision=value.provenance[0].reconciliation.days[decisionKey];assert.equal(decision.policy,RECONCILIATION_VERSION);assert.equal(decision.powerState,'unknown');assert(Array.isArray(decision.publishedIntervals));
  });
- await check('explicit line saves one private profile, duplicate is stable and foreign owner cannot read it',async()=>{
+ await check('explicit line revisit keeps stable private line profiles and foreign owner cannot read them',async()=>{
   const result=await rt.reader.resolve({addressId:brovary}),lineId=result.resolution.lines[0].id;
   const save=()=>command(actors[0],()=>rt.service.handle(actors[0],{action:'save',confirmed:true,name:'Kyiv QA',address:{canonicalAddressId:brovary,lineId}}));
   const first=(await save()).profile,second=(await save()).profile;assert.equal(first.id,second.id);assert.equal(first.address.lineId,lineId);
