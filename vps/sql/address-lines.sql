@@ -63,6 +63,7 @@ declare p public.svitlo_profiles;begin
  if not exists(select 1 from svitlo_vps.catalog where id=(address_data->>'canonicalAddressId')::uuid and kind='address') then raise exception 'unknown canonical address';end if;
  if address_data->>'lineId' is not null and not exists(select 1 from svitlo_vps.address_lines where id=(address_data->>'lineId')::uuid and address_id=(address_data->>'canonicalAddressId')::uuid and active) then raise exception 'line mismatch';end if;
  perform pg_advisory_xact_lock(hashtextextended('svitlo-profile-owner:'||subject::text,0));
+ perform pg_advisory_xact_lock(hashtextextended('svitlo-line-profile:'||id::text,0)) from public.svitlo_profiles where owner=subject and address->>'canonicalAddressId'=address_data->>'canonicalAddressId' and address->>'lineId' is null;
  select * into p from public.svitlo_profiles where owner=subject and address->>'canonicalAddressId'=address_data->>'canonicalAddressId'
   and coalesce(address->>'lineId','')=coalesce(address_data->>'lineId','') for update;
  if found then return jsonb_build_object('created',false,'profile',to_jsonb(public.svitlo_hydrate(p)));end if;
@@ -89,7 +90,7 @@ declare a jsonb;first_address jsonb;item jsonb;items jsonb:='[]';saved_profile p
   if a->>'canonicalAddressId' is distinct from first_address->>'canonicalAddressId' or not exists(select 1 from svitlo_vps.address_lines l join svitlo_vps.catalog c on c.id=l.address_id where l.id=(a->>'lineId')::uuid and l.address_id=(a->>'canonicalAddressId')::uuid and l.active and c.operator_id=a->>'operatorId') then raise exception 'line mismatch';end if;
  end loop;
  perform pg_advisory_xact_lock(hashtextextended('svitlo-profile-owner:'||subject::text,0));
- perform 1 from public.svitlo_profiles where owner=subject and address->>'canonicalAddressId'=first_address->>'canonicalAddressId' for update;
+ perform pg_advisory_xact_lock(hashtextextended('svitlo-line-profile:'||id::text,0)) from public.svitlo_profiles where owner=subject and address->>'canonicalAddressId'=first_address->>'canonicalAddressId' and address->>'lineId' is null;
  if not exists(select 1 from public.svitlo_profiles where owner=subject and address->>'canonicalAddressId'=first_address->>'canonicalAddressId') and not public.svitlo_profile_quota_allows(subject,first_address) then return jsonb_build_object('status','limit');end if;
  if (select count(*) from public.svitlo_profiles where owner=subject)+(select count(*) from jsonb_array_elements(addresses) x where not exists(select 1 from public.svitlo_profiles p where p.owner=subject and p.address->>'canonicalAddressId'=x.value->>'canonicalAddressId' and p.address->>'lineId'=x.value->>'lineId'))>320 then return jsonb_build_object('status','limit');end if;
  if exists(select 1 from public.svitlo_profiles p where p.owner=subject and p.address->>'canonicalAddressId'=first_address->>'canonicalAddressId' and p.address->>'lineId' is null and svitlo_sensors.profile_has_sensor(p.id)) then return jsonb_build_object('status','bound_unresolved');end if;
@@ -118,7 +119,7 @@ declare signature text;definition text;before text;begin
  foreach signature in array array['svitlo_sensors.phone_command_before_sub01(text,jsonb)','svitlo_sensors.command_before_sub01(text,jsonb)','svitlo_sensors.phone_relocate_before_sub01(jsonb)','svitlo_maps.allocate_address(text,text,jsonb)','public.svitlo_profile_create(uuid,uuid,jsonb,text,jsonb)'] loop
   definition:=pg_get_functiondef(signature::regprocedure);before:=definition;
   if signature like 'svitlo_sensors.%' then
-   definition:=replace(definition,'select * into profile from public.svitlo_profiles where id=(p->>''profileId'')::uuid and owner=actor;','select * into profile from public.svitlo_profiles where id=(p->>''profileId'')::uuid and owner=actor for update;');
+   definition:=replace(definition,'select * into profile from public.svitlo_profiles where id=(p->>''profileId'')::uuid and owner=actor;','perform pg_advisory_xact_lock(hashtextextended(''svitlo-line-profile:''||(p->>''profileId'')::uuid::text,0)); select * into profile from public.svitlo_profiles where id=(p->>''profileId'')::uuid and owner=actor;');
   end if;
   if signature like 'svitlo_sensors.phone_command%' then
    definition:=replace(definition,')>=10 then return jsonb_build_object(''http'',409,''code'',''sensor_membership_limit'')',')>=320 then return jsonb_build_object(''http'',409,''code'',''sensor_membership_limit'')');
@@ -130,7 +131,7 @@ declare signature text;definition text;before text;begin
   elsif signature like 'svitlo_sensors.command%' then
    definition:=replace(definition,'order by sm.created_at limit 10','order by sm.created_at limit 320');
   elsif signature like 'svitlo_sensors.phone_relocate%' then
-   null; -- The profile row lock above serializes relocation against adoption.
+   null; -- The profile advisory lock above serializes relocation against adoption.
   elsif signature like 'svitlo_maps.%' then
    definition:=replace(definition,'(select count(*) from public.svitlo_profiles where owner=actor)>=10','not public.svitlo_profile_quota_allows(actor,jsonb_build_object(''canonicalAddressId'',aid))');
   else
