@@ -1,8 +1,10 @@
 import {sensorPushTick} from './push.js';
 import {runtime} from './runtime.js';
 import {runLoggedJob} from '../server/operations.js';
+import {catalogProjectorLoop} from './events/worker.js';
 const rt=await runtime('worker');let stopping=false;
 for(const s of ['SIGINT','SIGTERM'])process.on(s,()=>{stopping=true;});
+const projector=catalogProjectorLoop(rt.p,{stopping:()=>stopping,onError:code=>console.error(JSON.stringify({event:code}))});
 async function tick(){
   await rt.p.query('update svitlo_vps.worker_cycle set last_attempt=clock_timestamp() where id');
   let historyError=null;
@@ -27,4 +29,4 @@ do{const start=Date.now();try{await tick();}catch(e){const code=/^[A-Z0-9_]{1,32
   // Short interruptible sleeps; every process restart resumes durable DB lease state.
   while(!stopping&&Date.now()-start<60000)await new Promise(r=>setTimeout(r,1000));
 }while(!stopping);
-await rt.p.end();
+stopping=true;await projector;await rt.p.end();

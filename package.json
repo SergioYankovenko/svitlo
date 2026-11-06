@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2.106.1",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "api-anything": "file:vps/maps/vendor/api-anything-0.3.2.tgz",
     "pg": "8.23.1",
     "undici": "8.12.3",

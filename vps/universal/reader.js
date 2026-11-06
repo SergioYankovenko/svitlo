@@ -2,7 +2,7 @@ import {createHmac} from 'node:crypto';
 import {SharedCategories} from '../../server/shared-categories.js';
 import {dayKey,addDays,monday} from '../../app/lib/time.js';
 import {validDate} from '../../app/lib/lifecycle.js';
-import {validUniversal} from '../../app/lib/universal-contract.js';
+import {validResolution,validSnapshot} from './validate.js';
 import {Catalog,apiError} from './store.js';
 import {adapterFor} from './adapters.js';
 import {degraded,normalizeLegacy,retainPartial} from './normalize.js';
@@ -10,7 +10,7 @@ import {RECONCILIATION_VERSION} from '../regions/reconcile.js';
 import {HISTORICAL_PLAN_VERSION} from '../regions/historical-plan.js';
 import {DTEK_SNAPSHOT_VERSION} from '../regions/policy.js';
 export class UniversalReader {
- constructor({db,bridge,legacy,source,secret,regions}){Object.assign(this,{db,bridge,legacy,source,secret,regions});this.catalog=new Catalog(bridge,regions);this.shared=new SharedCategories(db,secret,{ttl:300000});}
+ constructor({db,bridge,legacy,source,secret,regions,adapterRegistry}){Object.assign(this,{db,bridge,legacy,source,secret,regions,adapterRegistry});this.catalog=new Catalog(bridge,regions);this.shared=new SharedCategories(db,secret,{ttl:300000});}
  async capabilities(){const operators=await this.catalog.operators();return {schemaVersion:1,apiVersion:'1.0.0',featureSet:'universal',timeZones:['Europe/Kyiv'],
   categories:['hourly','planned','unplanned','emergency'],limits:{search:50,batch:10,days:14},addressFallback:{source:'visicom',requiresSession:true,approximate:true,preserveHouse:true},operators:operators.map(o=>({id:o.id,label:o.label,supportState:adapterFor(o,this)?o.state:'unsupported',synthetic:o.is_test,coverage:o.config.coverage,unitSupported:o.config.unitSupported===true})),push:false,sensors:false};}
  checkVersion(body){if(body.schemaVersion!==undefined&&body.schemaVersion!==1)throw apiError(400,'unsupported_schema','Ця версія формату не підтримується');}
@@ -22,7 +22,7 @@ export class UniversalReader {
   const op=await this.catalog.operator(entity.operator_id),adapter=op&&adapterFor(op,this);
   if(!op||!adapter||op.state==='disabled')return {address:this.catalog.public(entity),operator:{id:entity.operator_id,label:op?.label||'',supportState:!adapter?'unsupported':'disabled',synthetic:!!op?.is_test},resolution:{state:'unknown',complete:false,lines:[],checkedAt:0,provenance:{}},unitSupported:false};
   const value=await adapter.resolve(entity);
-  if(!Array.isArray(value.lines)||value.lines.length>32||new Set(value.lines.map(l=>l.key)).size!==value.lines.length||value.lines.some(l=>typeof l.key!=='string'||!l.key||l.key.length>120||typeof l.label!=='string'||l.groupCode!==null&&l.groupCode!==undefined&&(typeof l.groupCode!=='string'||l.groupCode.length>80))||!['resolved','excluded','ambiguous','unknown'].includes(value.state)||typeof value.complete!=='boolean')throw apiError(503,'invalid_adapter_resolution');
+  if(!validResolution(value))throw apiError(503,'invalid_adapter_resolution');
   const resolution=await this.catalog.lines(entity.id,value);
   return {address:this.catalog.public(entity),operator:{id:op.id,label:op.label,supportState:op.state,synthetic:op.is_test},resolution,unitSupported:op.config.unitSupported===true&&typeof adapter.selectUnit==='function'};
  }
@@ -42,7 +42,7 @@ export class UniversalReader {
   const scope=['universal-snapshot-v1',entity.operator_id,entity.id,range.fromDate,range.toDate];
   if(this.regions?.handles(entity.operator_id))scope.push(RECONCILIATION_VERSION,DTEK_SNAPSHOT_VERSION,HISTORICAL_PLAN_VERSION);
   const key=createHmac('sha256',this.secret).update(JSON.stringify(scope)).digest('hex');
-  const old=async()=>{const r=(await this.bridge.query('select value from public.svitlo_source_cache where key=$1',[key])).rows[0]?.value;return validUniversal(r)&&r.addressId===entity.id?r:null;};
+  const old=async()=>{const r=(await this.bridge.query('select value from public.svitlo_source_cache where key=$1',[key])).rows[0]?.value;return validSnapshot(r,entity)?r:null;};
   if(!adapter||operator.state==='disabled')return degraded(entity,range,await old(),!adapter?'adapter_unsupported':'operator_disabled',Date.now(),!adapter?'unsupported':'disabled');
   const cache=this.regions?.handles(entity.operator_id)?this.regions.snapshotCache:this.shared;
   return cache.load(scope,async()=>{
@@ -53,7 +53,7 @@ export class UniversalReader {
      if(l.queue||excluded){resolution=await this.catalog.lines(entity.id,{state:excluded?'excluded':'resolved',complete:true,checkedAt:Date.now(),lines:[{key:'main',label:excluded?'Основна лінія · не включена до ГПВ':'Основна лінія',groupCode:l.queue||null,provenance:l.queueResolution}],provenance:l.queueResolution});}
      result.value=retainPartial(normalizeLegacy(entity,l,resolution,range),previous,l.failures||[]);
     }
-    if(!validUniversal(result.value)||result.value.addressId!==entity.id||result.value.operatorId!==entity.operator_id)throw Error('invalid_adapter_snapshot');
+    if(!validSnapshot(result.value,entity)||result.value.coverage.fromDate!==range.fromDate||result.value.coverage.toDate!==range.toDate)throw Error('invalid_adapter_snapshot');
     return result.value;
    }catch(e){return degraded(entity,range,previous,['forbidden','rate_limited','timeout','synthetic_unavailable'].includes(e.code)?e.code:'source_unavailable');}
   });
