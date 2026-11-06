@@ -115,9 +115,9 @@
     state.addresses[0] || { id: "", name: "", city: "", street: "", queue: "" };
   const fullAddress = (x) => `${x.city}, ${x.street}`;
   const lineLabel = x => x.lineNumber ? "Лінія " + x.lineNumber : "";
-  const addressTitle = (x) => (x.name || x.city) + (x.lineNumber ? " · " + lineLabel(x) : "");
+  const addressTitle = (x) => (x.lineNumber ? lineLabel(x) + " · " : "") + (x.name || x.city);
   function lineGuideKey() {
-    const candidate=live.lineGuideKey(state.addresses,state.active);if(!candidate)return null;
+    const candidate=live.lineGuideKey?.(state.addresses,state.active);if(!candidate)return null;
     const key=[state.liveOwner,candidate].join('|');
     return state.lineGuideSeen?.[key]?null:key;
   }

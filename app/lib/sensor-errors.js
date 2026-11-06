@@ -11,6 +11,7 @@ const messages={
   profile_not_available:'Адреса недоступна. Вибери її знову.',
   profile_requires_reselection:'Для цієї адреси потрібно повторно вибрати будинок.',
   profile_line_not_available:'Лінія живлення цієї адреси недоступна. Перевір адресу.',
+  profile_already_has_sensor:'До цієї лінії вже підключено датчик.',
   profile_already_linked:'До цієї адреси вже підключено датчик.',
   sensor_requires_explicit_relocation:'Датчик уже має точку вимірювання. Його не можна підключити до іншої адреси цим кодом.',
   viewer_requires_profile:'Спочатку вибери адресу для датчика.',

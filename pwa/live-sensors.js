@@ -13,7 +13,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
   const binding=(id=ctx.address().id)=>live.sensors().find(s=>s.readerProfileId===id);
 
   const addressRecord=s=>ctx.addresses().find(p=>p.id===s?.readerProfileId);
-  const label=s=>{const p=addressRecord(s);const text=p?.name||[p?.city,p?.street].filter(Boolean).join(', ')||'Датчик';return text+(p?.lineNumber?' · Лінія '+p.lineNumber:'');};
+  const label=s=>{const p=addressRecord(s);const text=p?.name||[p?.city,p?.street].filter(Boolean).join(', ')||'Датчик';return (p?.lineNumber?'Лінія '+p.lineNumber+' · ':'')+text;};
   const viewKey=(s,date)=>key(s)+':'+date;
   const signal=s=>{const v=signals.get(key(s));return v?live.signalView(v.data,Date.now()-v.at):{state:'unknown',label:'Стан живлення невідомий'};};
   const button=(text,action,cls="",attrs="")=>ctx.button(text,"sensor-"+action,cls,attrs);
@@ -74,7 +74,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
     }
     function hubDialog(title, body, footer, options = {}) {
       const address = managedAddress();
-      ctx.dialog(title,body,footer,[address.city,address.street].filter(Boolean).join(", ") || address.name || "Адреса",{
+      ctx.dialog(title,body,footer,(address.lineNumber?"Лінія "+address.lineNumber+" · ":"")+([address.city,address.street].filter(Boolean).join(", ") || address.name || "Адреса"),{
         className:"sensor-details-dialog sensor-overview-dialog",footerClass:"sensor-hub-footer",...options});
     }
     function settings() {
@@ -236,7 +236,7 @@ window.SvitloLiveSensors={forecastAvailable(data){
       const address = ctx.address();
       if (!address?.id || bindingError(address.id)) return;
       managedAddressId = address.id;
-      const target = address.id, label = [address.city,address.street].filter(Boolean).join(", ");
+      const target = address.id, label = (address.lineNumber?"Лінія "+address.lineNumber+" · ":"")+[address.city,address.street].filter(Boolean).join(", ");
       ctx.dialog("Підключити датчик",window.SvitloSensorScanner.html(),
         ctx.button("Скасувати","close","cancel center"),label,
         {className:"sensor-connect-dialog",footerClass:"sensor-connect-footer",focus:'[data-action="close"]'});
