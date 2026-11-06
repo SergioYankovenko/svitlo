@@ -70,6 +70,15 @@ try{
   const result=await rt.reader.resolve({addressId:brovary});assert.equal(result.resolution.lines.length,3);assert.equal(result.resolution.complete,true);assert.equal(result.selection.lineId,null);
   const saved=await command(actors[0],()=>rt.service.handle(actors[0],{action:'save',confirmed:true,address:{canonicalAddressId:brovary}}));assert.equal(saved.profiles.length,3);assert.equal(saved.addressGroupId,brovary);assert.deepEqual(saved.profiles.map(p=>p.address.lineNumber),[1,2,3]);assert.equal(new Set(saved.profiles.map(p=>p.address.canonicalAddressId)).size,1);assert.equal(new Set(saved.profiles.map(p=>p.snapshot.selectedLineId)).size,3);
  });
+ await check('blocked source enrolls cached three-line identity atomically without renewing schedule evidence',async()=>{
+  const client=rt.regions.clients.get(province),cache=rt.regions.streetCache;
+  rt.regions.streetCache={load:async(_scope,loader)=>loader()};rt.regions.clients.set(province,{houses:async()=>{throw Object.assign(Error('forbidden'),{code:'forbidden',status:503});}});
+  try{
+   const resolved=await rt.reader.resolve({addressId:brovary});assert.equal(resolved.resolution.complete,false);assert.equal(resolved.resolution.provenance.sourceUnavailable,true);assert.equal(resolved.resolution.provenance.retainedIdentity.lineKeys.length,3);
+   const result=await command(actors[1],()=>rt.service.handle(actors[1],{action:'save',confirmed:true,address:{canonicalAddressId:brovary}}));assert.equal(result.profiles.length,3);assert.equal(result.addressGroupId,brovary);assert.deepEqual(result.profiles.map(p=>p.address.lineNumber),[1,2,3]);assert(result.profiles.every(p=>p.snapshot.universal.supportState==='degraded'));
+   await command(actors[1],async()=>{for(const p of result.profiles)await rt.service.handle(actors[1],{action:'delete',id:p.id});});
+  }finally{rt.regions.streetCache=cache;rt.regions.clients.set(province,client);}
+ });
  await check('Kyiv emergency suspends applicability while keeping dated plan in provenance',async()=>{
   const value=await rt.reader.snapshot(address,range);assert(validUniversal(value));assert.equal(value.lines[0].categories.hourly.days[0].state,'suspended');
   const decision=value.provenance[0].reconciliation.days[decisionKey];assert.equal(decision.policy,RECONCILIATION_VERSION);assert.equal(decision.powerState,'unknown');assert(Array.isArray(decision.publishedIntervals));

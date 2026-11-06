@@ -1,4 +1,4 @@
-import {addressGroupCount,MAX_LINE_PROFILES,lineGuideKey} from './core/lib/address-groups.js';
+import {addressGroupCount,MAX_LINE_PROFILES,lineGuideKey,confirmedLines} from './core/lib/address-groups.js';
 import {retainPublishedDays} from './core/lib/universal-history.js';
 import {createBackgroundAddresses} from './core/lib/background-addresses.js';
 import {subscribeWithTimeout} from './live-push.js';
@@ -67,8 +67,8 @@ export async function createLive(){
     const choice=flow.geography?.routes?.length?await backgroundAddresses.resolve(flow,signal):{resolved:await universalRequest('resolve',{addressId:flow.house.id,...(flow.lineId?{lineId:flow.lineId}:{})},{signal})};
     if(choice.requiresLine&&!flow.continueWithoutQueue)return choice;const {resolved}=choice;signal?.throwIfAborted();
     if(['disabled','unsupported'].includes(resolved.operator?.supportState))throw Error('Джерело цього регіону недоступне');
-    const lines=resolved.resolution?.lines||[],lineId=flow.continueWithoutQueue?null:resolved.selection?.lineId||null;
-    if(!flow.continueWithoutQueue&&(!lines.length||lines.length>1&&!lineId)&&!(resolved.resolution?.complete&&lines.length>1)&&!['excluded','resolved'].includes(resolved.resolution?.state)){return {requiresLine:true,lines};throw Error('Потрібен вибір лінії живлення');}
+    const lines=resolved.resolution?.lines||[],enrollable=confirmedLines(resolved),lineId=flow.continueWithoutQueue?null:resolved.selection?.lineId||(enrollable.length===1?enrollable[0].id:null);
+    if(!flow.continueWithoutQueue&&(!lines.length||lines.length>1&&!lineId)&&!enrollable.length&&!['excluded','resolved'].includes(resolved.resolution?.state)){return {requiresLine:true,lines};throw Error('Потрібен вибір лінії живлення');}
     const who=await session(true),generation=epoch;signal?.throwIfAborted();
     const result=await request('save',{address:{canonicalAddressId:resolved.address.id,lineId,...(flow.continueWithoutQueue?{queueUnresolved:true}:{})},name:flow.name||'',confirmed:true},{owner:who,signal});
     if(generation!==epoch||who!==owner)throw Error('Сеанс змінився. Спробуйте ще раз');

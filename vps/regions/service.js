@@ -1,3 +1,4 @@
+import {createHmac} from 'node:crypto';
 import {historicalPlan,HISTORICAL_PLAN_VERSION} from './historical-plan.js';
 import {seal} from '../universal/normalize.js';
 import {dayKey} from '../../app/lib/time.js';
@@ -8,7 +9,7 @@ import {projectYasno} from './yasno.js';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 export class Regions {
  constructor({db,bridge,secret,fetcher=fetch,now=Date.now}){
-  Object.assign(this,{db,bridge,fetcher,now});this.indexCache=new SharedCategories(db,secret,{ttl:86400000,now});this.streetCache=new SharedCategories(db,secret,{ttl:120000,now});this.snapshotCache=new SharedCategories(db,secret,{ttl:60000,boundFreshUntil:true,now});this.statusCache=new SharedCategories(db,secret,{ttl:120000,now});this.clients=new Map();this.historyCache=new SharedCategories(db,secret,{ttl:60000,now});
+  Object.assign(this,{db,bridge,fetcher,now,secret});this.indexCache=new SharedCategories(db,secret,{ttl:86400000,now});this.streetCache=new SharedCategories(db,secret,{ttl:120000,now});this.snapshotCache=new SharedCategories(db,secret,{ttl:60000,boundFreshUntil:true,now});this.statusCache=new SharedCategories(db,secret,{ttl:120000,now});this.clients=new Map();this.historyCache=new SharedCategories(db,secret,{ttl:60000,now});
  }
  handles(op){return Object.hasOwn(REGIONS,op);}
  async gate(op){const deadline=Date.now()+6000;while(true){const r=(await this.bridge.query('select svitlo_regions.acquire($1) result',[op])).rows[0].result;if(r.granted)return r.ticket;if(r.reason==='cooldown')throw regionError(r.code==='forbidden'?'forbidden':'rate_limited',r.code==='forbidden'?503:429);if(Date.now()>=deadline)throw regionError('rate_limited',429);await pause(Math.min(500,r.waitMs||100));}}
@@ -27,7 +28,13 @@ export class Regions {
  unavailable(e){return e?.status>=500||['forbidden','rate_limited','timeout'].includes(e?.code)||['EAI_AGAIN','ENOTFOUND','ECONNRESET','ETIMEDOUT'].includes(e?.cause?.code);}
  async street(op,city,street){return this.streetCache.load(['dtek-street-v2',op,city,street],async()=>projectStreet(await this.client(op).houses(city,street),this.now()));}
  async address(entity){if(!this.handles(entity.operator_id)||entity.kind!=='address')throw regionError('unsupported_operator',400);return this.street(entity.operator_id,entity.source_ref.city,entity.source_ref.street);}
- async resolve(entity){try{return resolveHouse(await this.address(entity),entity.source_ref.house);}catch(e){if(!this.unavailable(e))throw e;return {state:'unknown',complete:false,checkedAt:entity.metadata?.sourceCheckedAt||1,lines:[],provenance:{source:'dtek-address',sourceUnavailable:true,sourceState:e.code||'source_unavailable',sourceCheckedAt:entity.metadata?.sourceCheckedAt||null,attemptedAt:this.now()}};}}
+ async retainedIdentity(entity){
+  const key=createHmac('sha256',this.secret).update(JSON.stringify(['dtek-street-v2',entity.operator_id,entity.source_ref.city,entity.source_ref.street])).digest('hex');
+  const data=(await this.bridge.query('select value from public.svitlo_source_cache where key=$1',[key])).rows[0]?.value,house=data?.houses?.[entity.source_ref.house];
+  if(!Number.isFinite(data?.checkedAt)||data.checkedAt>this.now()||data.checkedAt<this.now()-7*86400000||!house||!Array.isArray(house.groups)||!house.groups.length||house.groups.length>32||house.groups.some(g=>typeof g!=='string'||!/^GPV[1-9]\d{0,2}\.[1-9]\d?$/.test(g))||new Set(house.groups).size!==house.groups.length||house.partial!==false||house.external!==false)return null;
+  return {addressId:entity.id,checkedAt:data.checkedAt,lineKeys:house.groups};
+ }
+ async resolve(entity){try{return resolveHouse(await this.address(entity),entity.source_ref.house);}catch(e){if(!this.unavailable(e))throw e;return {state:'unknown',complete:false,checkedAt:entity.metadata?.sourceCheckedAt||1,lines:[],provenance:{source:'dtek-address',sourceUnavailable:true,retainedIdentity:await this.retainedIdentity(entity),sourceState:e.code||'source_unavailable',sourceCheckedAt:entity.metadata?.sourceCheckedAt||null,attemptedAt:this.now()}};}}
  async cityStatus(){
   return this.statusCache.load(['yasno-kyiv-plan-v2'],async()=>{
    const op='yasno-kyiv',ticket=await this.gate(op);let status=0,error=null,retry=0;

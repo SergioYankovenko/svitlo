@@ -72,9 +72,9 @@ function planCountdown(profile,date,now,saved){
   }
   const current=merged.find(e=>e.start<=now&&e.end>now),next=merged.find(e=>e.start>now);
   const target=current?.end??next?.start;
-  if(!Number.isFinite(target))return saved?{label:ref.stale?'За графіком: не заплановано':'Не заплановано',minutes:null,target:null,source:ref.stale?'saved_official_plan':'applicable_official_plan'}:null;
+  if(!Number.isFinite(target))return saved?{label:'Не заплановано',minutes:null,target:null,source:ref.stale?'saved_official_plan':'applicable_official_plan'}:null;
   const estimate=saved&&ref.stale;
-  return {label:estimate?(current?'За графіком: до відновлення':'За графіком: до відключення'):current?'До відновлення':'До відключення',minutes:Math.ceil((target-now)/60000),target,source:estimate?'saved_official_plan':'applicable_official_plan'};
+  return {label:current?'До відновлення':'До відключення',minutes:Math.ceil((target-now)/60000),target,source:estimate?'saved_official_plan':'applicable_official_plan'};
 }
 export function officialSource(profile,preferred){
   const sources=profile?.snapshot?.universal?.provenance||[];

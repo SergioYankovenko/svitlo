@@ -19,8 +19,9 @@ export class UniversalService extends Service {
  constructor(options,reader){super(options);this.reader=reader;this.maps=options.maps;this.unresolvedLog=options.unresolvedLog;
  }
  async canonicalAddress(body){const r=await this.reader.resolve(body),a=r.address;
-  if(r.resolution.provenance?.sourceUnavailable||['disabled','unsupported'].includes(r.operator.supportState))throw new ApiError(503,'Джерело цього регіону тимчасово недоступне');
-  const lines=body.expandLines&&!body.allowUnresolved?confirmedLines(r):[],selected=r.selection.lineId||lines[0]?.id||null;
+  const known=confirmedLines(r);
+  if(r.resolution.provenance?.sourceUnavailable&&!known.length||['disabled','unsupported'].includes(r.operator.supportState))throw new ApiError(503,'Джерело цього регіону тимчасово недоступне');
+  const lines=body.expandLines&&!body.allowUnresolved?known:[],selected=r.selection.lineId||lines[0]?.id||null;
   if(!body.allowUnresolved&&!selected&&r.resolution.lines.length>1)throw new ApiError(409,'Оберіть лінію для цієї адреси');
   const e=await this.reader.catalog.entity(a.id);
   // Compatibility fields keep old staging cache consumers safe; provider routing uses canonical IDs exclusively.

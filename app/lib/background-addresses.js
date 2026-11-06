@@ -1,3 +1,4 @@
+import {confirmedLines} from './address-groups.js';
 // New-address lookup only. Canonical IDs always come from a route-scoped server response.
 const uuid=x=>typeof x==='string'&&/^[a-f0-9-]{36}$/i.test(x);
 export const lookupName=x=>String(x??'').normalize('NFKC').toLocaleLowerCase('uk-UA').replace(/[’ʼ`]/g,"'").replace(/\s+/gu,' ').trim();
@@ -42,10 +43,10 @@ export function createBackgroundAddresses(request,{now=Date.now,newToken=()=>cry
   const ids=[...new Set((flow.house.alternatives||[{id:flow.house.id}]).map(x=>x.id))];if(!ids.length||ids.length>32||ids.some(id=>!uuid(id)))throw problem();
   const values=await bounded(ids,addressId=>request('resolve',{addressId},signal));aborted(signal);const results=values.filter(x=>x.ok).map(x=>x.value).filter(x=>!['disabled','unsupported'].includes(x.operator?.supportState));if(!results.length)throw problem();
   if(flow.lineId){const chosen=results.filter(x=>x.resolution?.lines?.some(l=>l.id===flow.lineId));if(chosen.length!==1)throw problem();return {resolved:await request('resolve',{addressId:chosen[0].address.id,lineId:flow.lineId},signal)};}
-  const confirmed=results.filter(x=>x.resolution?.complete&&['resolved','excluded'].includes(x.resolution.state)&&x.resolution.lines?.length),candidates=confirmed.length?confirmed:results,groups=new Map();
+  const confirmed=results.filter(x=>confirmedLines(x).length),candidates=confirmed.length?confirmed:results,groups=new Map();
   for(const r of candidates)for(const line of r.resolution?.lines||[]){const key=JSON.stringify([r.operator?.id,r.resolution.state,line.groupCode??null,line.groupCode?null:line.key??line.id]);if(!groups.has(key))groups.set(key,{...line,label:line.label+(line.groupCode?' · черга '+line.groupCode:''),addressId:r.address.id});}
   if(flow.continueWithoutQueue){const selected=results.find(r=>r.address.id===flow.house.id);if(!selected||values.some(x=>!x.ok)||results.some(r=>r.resolution?.provenance?.sourceUnavailable))throw problem();return {resolved:selected,unresolved:true};}
-  if(candidates.length===1){const r=candidates[0];if(r.resolution?.lines?.length>1&&!r.selection?.lineId&&!r.resolution.complete)return {requiresLine:true,lines:[...groups.values()]};return {resolved:r};}
+  if(candidates.length===1){const r=candidates[0];if(r.resolution?.lines?.length>1&&!r.selection?.lineId&&!confirmedLines(r).length)return {requiresLine:true,lines:[...groups.values()]};return {resolved:r};}
   if(groups.size===1&&confirmed.length===candidates.length){const one=[...groups.values()][0];return {resolved:candidates.find(r=>r.address.id===one.addressId)};}
   if(groups.size)return {requiresLine:true,lines:[...groups.values()]};
   // Offer explicit continuation; do not silently choose a source identity or group.

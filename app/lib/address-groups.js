@@ -7,7 +7,15 @@ export function addressGroupKey(p){
 export const addressGroupCount=profiles=>new Set(profiles.map(addressGroupKey)).size;
 export function confirmedLines(result){
  const r=result?.resolution;
- if(!r?.complete||!['resolved','ambiguous','excluded'].includes(r.state)||r.provenance?.sourceUnavailable||!Array.isArray(r.lines)||r.lines.length>32)return [];
+ if(!r||!Array.isArray(r.lines)||r.lines.length>32)return [];
+ // Retained address identity is separate from fresh schedule applicability.
+ const saved=r.provenance?.retainedIdentity;
+ if(r.provenance?.sourceUnavailable){
+  if(r.provenance.source!=='dtek-address'||saved?.addressId!==result.address?.id||!Number.isFinite(saved.checkedAt)||!Array.isArray(saved.lineKeys)||!saved.lineKeys.length||saved.lineKeys.length>32||new Set(saved.lineKeys).size!==saved.lineKeys.length)return [];
+  const lines=saved.lineKeys.map(key=>r.lines.find(l=>l.key===key&&l.id&&l.provenance?.source==='dtek-address'&&l.provenance.partial===false&&'GPV'+l.groupCode===key));
+  return lines.every(Boolean)?lines:[];
+ }
+ if(!r.complete||!['resolved','ambiguous','excluded'].includes(r.state))return [];
  const seen=new Set();
  return r.lines.filter(l=>{const key=l.groupCode||l.key||l.id;if(!l.id||!key||seen.has(key))return false;seen.add(key);return true;});
 }

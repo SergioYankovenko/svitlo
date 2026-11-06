@@ -11,7 +11,7 @@ const profile=s=>({snapshot:universalEnvelope(s,'test-line')});
 function partial(){const s=structuredClone(fixture.universal);s.resolution={state:'unknown',complete:false};s.checkedAt=now;s.freshUntil=now+120000;for(const c of Object.values(s.lines[0].categories)){c.checkedAt=now;c.freshUntil=now+120000;}const h=s.lines[0].categories.hourly.days[0];h.state='unknown';h.applicability={state:'unconfirmed',reason:'source_unavailable'};h.publication={state:'unknown',intervals:[],checkedAt:now,sourceUpdatedAt:null,freshUntil:now+120000};return s;}
 test('observed403: displayed saved plan and header agree, without renewing source or backend reminders',()=>{
  const s=structuredClone(fixture.universal),before=JSON.stringify(s),p=profile(s),d=scheduleFor(p,date,now),c=contextFor(p,date,now),reference=referenceCountdown(p,date,now);
- assert.equal(d.referenceStale,true);assert.equal(d.publication,'published');assert.ok(reference.minutes>0);assert.equal(c.valueMinutes,reference.minutes);assert.match(c.label,/^За графіком: до відновлення$/);
+ assert.equal(d.referenceStale,true);assert.equal(d.publication,'published');assert.ok(reference.minutes>0);assert.equal(c.valueMinutes,reference.minutes);assert.equal(c.label,'До відновлення');assert.equal(reference.source,'saved_official_plan');
  assert.equal(reference.target,s.lines[0].categories.hourly.days[0].publication.intervals[0].end);
  assert.equal(plannedCountdown(p,date,now),null);assert.equal(countdown(p.snapshot,now).minutes,undefined);assert.equal(JSON.stringify(s),before);
 });
@@ -20,7 +20,7 @@ test('partial line recheck retains display provenance of the exact previously co
  assert.equal(s.resolution.complete,false);assert.equal(d.raw.known,false);assert.equal(d.referenceStale,true);assert.equal(d.at(0),null);assert.equal(d.at(5*60),'hourly');
  assert.equal(s.lines[0].categories.hourly.days[0].publication.state,'unknown');assert.deepEqual(s.lines[0].categories.hourly.days[0].savedPublication.intervals,fixture.universal.lines[0].categories.hourly.days[0].publication.intervals);
  assert.equal(s.lines[0].categories.hourly.days[0].savedPublication.checkedAt,fixture.universal.lines[0].categories.hourly.days[0].publication.checkedAt);
- assert.match(contextFor(profile(s),date,now).label,/^За графіком:/);assert.equal(countdown(profile(s).snapshot,now).minutes,undefined);assert.equal(JSON.stringify(next),before);
+ assert.equal(contextFor(profile(s),date,now).label,'До відновлення');assert.equal(countdown(profile(s).snapshot,now).minutes,undefined);assert.equal(JSON.stringify(next),before);
  const forwarded=retainPublishedDays(partial(),s,date,now);assert.equal(scheduleFor(profile(forwarded),date,now).at(0),null);
 });
 test('source-cache range miss keeps the same profile plan as expired, including an omitted day',()=>{
@@ -56,3 +56,5 @@ test('successful refresh restores a regular countdown and empty full plan has a 
  assert.equal(contextFor(profile(s),date,now).label,'Не заплановано');assert.equal(contextFor(profile(s),date,now).valueMinutes,null);assert.equal(planView(scheduleFor(profile(s),date,now)).unknown,0);
  assert.equal(referenceCountdown(profile(s),'2026-11-05',now),null);
 });
+
+test('saved plan before an outage uses the approved short header',()=>{const s=structuredClone(fixture.universal),at=s.lines[0].categories.hourly.days[0].publication.intervals[0].start-60000;assert.equal(referenceCountdown(profile(s),date,at).label,'До відключення');assert.equal(referenceCountdown(profile(s),date,at).source,'saved_official_plan');});
