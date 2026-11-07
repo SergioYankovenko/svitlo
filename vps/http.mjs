@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {ChargingService} from './charging/service.js';
 import {configuredMigration} from './migration/runtime.js';
 import {NotificationService,notificationKey} from './notifications/service.js';
 import {redirectTarget} from './redirects.js';
@@ -25,6 +26,7 @@ const rt=await runtime(),sessionPool=pool('session',2),sessions=new Sessions(ses
 const identity=new IdentityService({pool:sessionPool,provider:configuredGoogle(),sessions});
 const billing=new BillingService({bridge:rt.bridge,vault:configuredVault(),packageName:process.env.GOOGLE_PLAY_PACKAGE||'',products:(process.env.GOOGLE_PLAY_PRODUCTS||'').split(',').filter(Boolean),pushProof:new PubSubProof({audience:process.env.GOOGLE_PLAY_RTDN_AUDIENCE||'',email:process.env.GOOGLE_PLAY_RTDN_EMAIL||'',subscription:process.env.GOOGLE_PLAY_RTDN_SUBSCRIPTION||''})});
 const notifications=new NotificationService({bridge:rt.bridge,key:notificationKey(),channels:{webpush:rt.delivery==='pilot-enabled',fcm:!!process.env.FIREBASE_PROJECT_ID}});
+const charging=new ChargingService({bridge:rt.bridge,schedules:rt.ports.schedules});
 const telemetry=new Telemetry(rt.bridge,rt.secret);
 const sensorSecret=(await readFile('/run/secrets/sensor_access_secret','utf8')).trim();
 if(!/^[a-f0-9]{64}$/.test(sensorSecret))throw Error('Sensor access secret unavailable');
@@ -34,7 +36,7 @@ const sensors=new SensorAccess({bridge:rt.bridge,db:rt.db,secret:sensorSecret,ph
 const sensorIngest=new SensorIngest(rt.bridge);
 const root=resolve('dist/app'),origin=process.env.STAGE_ORIGIN||'http://localhost:18765';
 const release=process.env.RELEASE_ID||'development',migration=configuredMigration(rt,origin);
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2','.ttf':'font/ttf','.ico':'image/x-icon','.txt':'text/plain; charset=utf-8'};
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2','.ttf':'font/ttf','.ico':'image/x-icon','.txt':'text/plain; charset=utf-8'};
 // Session metadata has a separate bounded pool; mutations/devices keep 32/s.
 const admission=new HttpAdmission();
 const budget=(key,limit)=>admission.budget(key,limit);
@@ -43,7 +45,7 @@ async function body(req,limit=16384,legacyLimit=0){let size=0,parts=[];for await
 const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Robots-Tag','noindex, nofollow');res.setHeader('X-Content-Type-Options','nosniff');
   res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Cross-Origin-Resource-Policy','same-origin');
-  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://tiles.openfreemap.org; font-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
   const start=Date.now();let path,leave=()=>{};
   res.once('finish',()=>metrics.http(path,res.statusCode,(Date.now()-start)/1000));
   try{
@@ -88,7 +90,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(path.startsWith('/api')||path==='/diagnostic-reports'){
       const trace=telemetry.requestIds.issue();res.telemetryMeta={path:routeTag(path),correlationId:trace.id};res.setHeader('X-Svitlo-Request-ID',trace.token);
-      const publicReader=path.startsWith('/api/v1/')&&['/api/v1/capabilities','/api/v1/plan-windows','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/settlements','/api/v1/settlement-routes','/api/v1/settlement-catalog','/api/v1/settlement-search'].includes(path);
+      const publicReader=path.startsWith('/api/v1/')&&['/api/v1/capabilities','/api/v1/charging','/api/v1/plan-windows','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/settlements','/api/v1/settlement-routes','/api/v1/settlement-catalog','/api/v1/settlement-search'].includes(path);
       if(['/api/v1/settlements','/api/v1/settlement-routes','/api/v1/settlement-catalog','/api/v1/settlement-search'].includes(path)&&req.method!=='POST')return json(res,405,{error:'Method not allowed'});
       if(req.method!=='GET'&&req.headers.origin!==origin&&(!publicReader||req.headers.origin))return json(res,403,{error:'Origin rejected'});
       if(req.method!=='GET'&&req.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json')return json(res,415,{error:'JSON required'});
@@ -107,10 +109,13 @@ const server=http.createServer(async(req,res)=>{
         }
         return json(res,405,{error:'Method not allowed'});
       }
-      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.ports.catalog.capabilities(),identity:{schemaVersion:1,google:identity.provider.configured,recoverableAccounts:true},billing:{schemaVersion:1,...await billing.readiness()},push:rt.delivery==='pilot-enabled',sensorAccess:{...sensorCapabilities,notifications:rt.delivery==='pilot-enabled'},sensorIngest:ingestCapabilities,phoneSensors:phoneCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
+      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.ports.catalog.capabilities(),charging:await charging.capabilities(),identity:{schemaVersion:1,google:identity.provider.configured,recoverableAccounts:true},billing:{schemaVersion:1,...await billing.readiness()},push:rt.delivery==='pilot-enabled',sensorAccess:{...sensorCapabilities,notifications:rt.delivery==='pilot-enabled'},sensorIngest:ingestCapabilities,phoneSensors:phoneCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
       if(publicReader&&req.method==='POST'){
         if(path.endsWith('/capabilities'))return json(res,405,{error:'Method not allowed'});
         const data=await body(req);validateRequest(path,data);validateContract(path,data);rt.reader.checkVersion(data);
+        if(path==='/api/v1/charging'){
+          if(url.search)throw problem(400,'query_not_allowed');if(!budget('charging:'+client,120))throw problem(429,'charging_rate_limited','rate');return json(res,200,await charging.handle(data));
+        }
         if(path==='/api/v1/plan-windows'){
           if(url.search)throw problem(400,'query_not_allowed');if(!budget('planning:'+client,120))throw problem(429,'planning_rate_limited','rate');
           const range=rt.reader.range({fromDate:data.date,toDate:data.date}),snapshot=await rt.ports.schedules.snapshot(data.addressId,range);

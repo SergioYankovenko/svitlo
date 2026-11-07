@@ -12,6 +12,8 @@ await cp('app/api.js','dist/app/core/api.js');
 await writeFile('dist/app/config.js',`export default ${JSON.stringify({apiUrl:'/api',transport:'vps',local:false,scope:'isolated-staging'})};\n`);
 await cp('dist/app/config.js','dist/app/core/config.js');
 async function walk(dir){return (await Promise.all((await readdir(dir,{withFileTypes:true})).map(e=>e.isDirectory()?walk(dir+'/'+e.name):[dir+'/'+e.name]))).flat();}
+await mkdir('dist/app/vendor/maplibre',{recursive:true});
+for(const name of ['maplibre-gl.mjs','maplibre-gl-shared.mjs','maplibre-gl-worker.mjs','maplibre-gl.css'])await cp('node_modules/maplibre-gl/dist/'+name,'dist/app/vendor/maplibre/'+name);
 const files=(await walk('dist/app')).sort();
 for(const file of files.filter(f=>/\.(?:js|html|css|json|webmanifest|svg)$/.test(f)))await writeFile(file,(await readFile(file,'utf8')).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'));
 const hash=createHash('sha256');hash.update(await readFile(new URL(import.meta.url)));for(const f of files.filter(f=>!f.endsWith('/sw.js')))hash.update(await readFile(f));
@@ -25,7 +27,7 @@ const list=files.filter(f=>!f.endsWith('/sw.js')),integrity={};
 for(const f of list)integrity['./'+f.slice(9)]=createHash('sha256').update(await readFile(f)).digest('hex');
 let sw=await readFile('dist/app/sw.js','utf8');
 sw=sw.replace(/(["'])svitlo-stage-v2-[^"']+\1/,JSON.stringify(version));
-sw=sw.replace(/const SHELL = \[[\s\S]*?\];/,'const SHELL = '+JSON.stringify(['./',...list.map(f=>'./'+f.slice(9))])+';');
+sw=sw.replace(/const SHELL = \[[\s\S]*?\];/,'const SHELL = '+JSON.stringify(['./',...list.filter(f=>!f.includes('/vendor/maplibre/')).map(f=>'./'+f.slice(9))])+';');
 sw=sw.replace(/const HASHES = \{[^;]*\};/,'const HASHES = '+JSON.stringify(integrity)+';');
 sw=sw.replace('k.startsWith("svitlo-pwa-")','k.startsWith("svitlo-stage-")');
 await writeFile('dist/app/sw.js',sw);await writeFile('dist/release.json',JSON.stringify({version,files:files.length,scope:'isolated-staging'}));
