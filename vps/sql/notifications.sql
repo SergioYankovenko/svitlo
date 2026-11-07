@@ -68,7 +68,12 @@ declare i svitlo_notifications.installations;begin
  if action='revoke' then update svitlo_notifications.installations set revoked_at=clock_timestamp(),permission='denied',revision=revision+1 where id=i.id;
  elsif action='receipt' and receipt in ('received','displayed') then
   update svitlo_notifications.deliveries set received_at=coalesce(received_at,clock_timestamp()),displayed_at=case when receipt='displayed' then coalesce(displayed_at,clock_timestamp()) else displayed_at end where installation_id=i.id and intent_id=intent and state='accepted';
- else raise exception 'invalid installation action';end if;return '{"ok":true}';
+ else raise exception 'invalid installation action';end if;
+ if action='receipt' and receipt='received' then
+  return coalesce((select jsonb_build_object('ok',true,'profile',jsonb_build_object('snapshot',p.snapshot,'address',p.address,'preferences',p.preferences),'intent',jsonb_build_object('intentId',t.id,'profileId',p.id,'planKey',t.plan_key,'preferenceKey',t.preference_key,'kind',t.kind,'targetAt',t.target_at,'expiresAt',t.expires_at,'quiet',i.quiet))
+  from svitlo_notifications.deliveries d join svitlo_notifications.intents t on t.id=d.intent_id join public.svitlo_profiles p on p.id=t.profile_id
+  where d.installation_id=i.id and d.intent_id=intent and d.state='accepted' and not t.canceled and t.expires_at>clock_timestamp() and i.revoked_at is null and i.permission='granted' and svitlo_admin.account_allowed(p.owner)), '{"ok":true,"displayAllowed":false}'::jsonb);
+ end if;return '{"ok":true}';
 end $$;
 create function svitlo_notifications.due_profiles() returns jsonb language sql security definer set search_path='' as $$
  select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'owner',p.owner,'snapshot',p.snapshot,'address',p.address,'preferences',p.preferences,'revision',p.snapshot_revision,'previousKey',n.plan_key)), '[]'::jsonb)

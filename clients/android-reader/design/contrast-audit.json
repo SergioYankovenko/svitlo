@@ -1,0 +1,229 @@
+{
+  "method": "sRGB relative luminance, (Lmax+0.05)/(Lmin+0.05); opaque fills only; not a full accessibility certification",
+  "pairs": [
+    {
+      "theme": "dark",
+      "foregroundRole": "ink",
+      "backgroundRole": "surface",
+      "foreground": "#F0F3E8",
+      "background": "#20382C",
+      "ratio": 11.236
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "muted",
+      "backgroundRole": "surface",
+      "foreground": "#BCC9BD",
+      "background": "#20382C",
+      "ratio": 7.351
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "accent",
+      "backgroundRole": "background",
+      "foreground": "#C1D99A",
+      "background": "#14251E",
+      "ratio": 10.402
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "ink",
+      "backgroundRole": "track",
+      "foreground": "#F0F3E8",
+      "background": "#43594C",
+      "ratio": 6.743
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "inputHint",
+      "backgroundRole": "inputBackground",
+      "foreground": "#B8C5B5",
+      "background": "#3B5143",
+      "ratio": 4.784
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "ink",
+      "backgroundRole": "inputBackground",
+      "foreground": "#F0F3E8",
+      "background": "#3B5143",
+      "ratio": 7.648
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "cancelInk",
+      "backgroundRole": "cancelBackground",
+      "foreground": "#E0AAA0",
+      "background": "#3B2C29",
+      "ratio": 6.607
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "outageIcon",
+      "backgroundRole": "hourly",
+      "foreground": "#14251E",
+      "background": "#D9A746",
+      "ratio": 7.285
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "outageIcon",
+      "backgroundRole": "planned",
+      "foreground": "#14251E",
+      "background": "#AD9CD1",
+      "ratio": 6.437
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "outageIcon",
+      "backgroundRole": "emergency",
+      "foreground": "#14251E",
+      "background": "#DF8272",
+      "ratio": 5.768
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "outageIcon",
+      "backgroundRole": "unplanned",
+      "foreground": "#14251E",
+      "background": "#78579F",
+      "ratio": 2.789
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "unplannedTimeInk",
+      "backgroundRole": "unplanned",
+      "foreground": "#F0F3E8",
+      "background": "#78579F",
+      "ratio": 5.103
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "track",
+      "backgroundRole": "surface",
+      "foreground": "#43594C",
+      "background": "#20382C",
+      "ratio": 1.666
+    },
+    {
+      "theme": "dark",
+      "foregroundRole": "inputBorder",
+      "backgroundRole": "inputBackground",
+      "foreground": "#627566",
+      "background": "#3B5143",
+      "ratio": 1.741
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "ink",
+      "backgroundRole": "surface",
+      "foreground": "#20382C",
+      "background": "#FFFFFF",
+      "ratio": 12.624
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "muted",
+      "backgroundRole": "surface",
+      "foreground": "#52654F",
+      "background": "#FFFFFF",
+      "ratio": 6.3
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "accent",
+      "backgroundRole": "background",
+      "foreground": "#416B2A",
+      "background": "#EFF5EC",
+      "ratio": 5.635
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "ink",
+      "backgroundRole": "track",
+      "foreground": "#20382C",
+      "background": "#D8E5D1",
+      "ratio": 9.648
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "inputHint",
+      "backgroundRole": "inputBackground",
+      "foreground": "#64725F",
+      "background": "#F4F7F0",
+      "ratio": 4.718
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "ink",
+      "backgroundRole": "inputBackground",
+      "foreground": "#20382C",
+      "background": "#F4F7F0",
+      "ratio": 11.668
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "cancelInk",
+      "backgroundRole": "cancelBackground",
+      "foreground": "#995048",
+      "background": "#F8ECE9",
+      "ratio": 5.052
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "outageIcon",
+      "backgroundRole": "hourly",
+      "foreground": "#14251E",
+      "background": "#D9A746",
+      "ratio": 7.285
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "outageIcon",
+      "backgroundRole": "planned",
+      "foreground": "#14251E",
+      "background": "#B3A1D8",
+      "ratio": 6.859
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "outageIcon",
+      "backgroundRole": "emergency",
+      "foreground": "#14251E",
+      "background": "#DF8272",
+      "ratio": 5.768
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "outageIcon",
+      "backgroundRole": "unplanned",
+      "foreground": "#14251E",
+      "background": "#7D5DA6",
+      "ratio": 3.037
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "unplannedTimeInk",
+      "backgroundRole": "unplanned",
+      "foreground": "#F0F3E8",
+      "background": "#7D5DA6",
+      "ratio": 4.686
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "track",
+      "backgroundRole": "surface",
+      "foreground": "#D8E5D1",
+      "background": "#FFFFFF",
+      "ratio": 1.309
+    },
+    {
+      "theme": "light",
+      "foregroundRole": "inputBorder",
+      "backgroundRole": "inputBackground",
+      "foreground": "#D6E0D0",
+      "background": "#F4F7F0",
+      "ratio": 1.258
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import {modernInstallation,registerModern,revokeModern} from './core/lib/modern-push.js';
 import {addressGroupCount,MAX_LINE_PROFILES,lineGuideKey,confirmedLines} from './core/lib/address-groups.js';
 import {retainPublishedDays} from './core/lib/universal-history.js';
 import {createBackgroundAddresses} from './core/lib/background-addresses.js';
@@ -116,7 +117,7 @@ export async function createLive(){
     pushRestore=(async()=>{const generation=epoch,who=owner,id=active,registration=await navigator.serviceWorker.getRegistration();if(!registration?.active)return;const sub=await registration.pushManager.getSubscription();if(!sub)return;
       const bytes=sub.options?.applicationServerKey,actual=bytes?btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll('+','-').replaceAll('/','_').replaceAll('=',''):null;
       if(actual&&actual!==vapid){await sub.unsubscribe();pushSubscribed=false;return;}
-      const key=[who,id,sub.endpoint].join('|');if(key!==pushBinding){await mutate('subscribe',{id,subscription:sub.toJSON()});if(generation!==epoch||id!==active)return;pushBinding=key;}
+      const key=[who,id,sub.endpoint].join('|');if(key!==pushBinding){const modern=await modernInstallation(who);if(!modern?.ready)await mutate('subscribe',{id,subscription:sub.toJSON()});if(generation!==epoch||id!==active)return;pushBinding=key;}
       pushSubscribed=true;emit();
     })().finally(()=>pushRestore=null);return pushRestore;
   }
@@ -132,10 +133,10 @@ export async function createLive(){
     savePushChoice(true);
     if(!subscription){const raw=atob(vapid.replaceAll('-','+').replaceAll('_','/'));subscription=await subscribeWithTimeout(registration.pushManager,{userVisibleOnly:true,applicationServerKey:Uint8Array.from(raw,c=>c.charCodeAt(0))},{onLate:sub=>g===pushRequest?restorePush():sub.unsubscribe()});}
     if(g!==pushRequest){await subscription.unsubscribe();throw Error('Стан підключення змінився. Повторіть спробу.');}
-    await mutate('subscribe',{id:active,subscription:subscription.toJSON()});pushBinding=[owner,active,subscription.endpoint].join('|');pushSubscribed=true;emit();
+    const modern=await registerModern(subscription.toJSON(),owner);if(!modern)await mutate('subscribe',{id:active,subscription:subscription.toJSON()});pushBinding=[owner,active,subscription.endpoint].join('|');pushSubscribed=true;emit();
     })().finally(()=>{if(pushPending===job)pushPending=null;});pushPending=job;return job;
   }
-  async function disablePush(){savePushChoice(false);pushRequest++;pushPending=null;const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner)await mutate('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
+  async function disablePush(){savePushChoice(false);pushRequest++;pushPending=null;const registration=await navigator.serviceWorker?.getRegistration(),subscription=await registration?.pushManager.getSubscription();if(subscription){if(owner){await revokeModern(owner);await mutate('unsubscribe',{endpoint:subscription.endpoint});}await subscription.unsubscribe();}pushSubscribed=false;pushBinding=null;emit();}
   const api={lineGuideKey,addressLimit:()=>quotaLimit,addressCount:()=>addressGroupCount(profiles),enableSensorNotice,adopt,enroll,search,geography:(route,data,signal)=>universalRequest(route,data,{signal}),sync,remove,rename,preferences,enablePush,disablePush,weatherHTML,messagesHTML,planView,summaryVisible,canSharePlan,planClock,label:k=>labels[k]||'',schedule:(date,id)=>scheduleFor(current(id),date||dayKey()),context:(date,id)=>contextFor(current(id),date||dayKey()),
     rememberView:view=>rememberReloadView(()=>sessionStorage,owner,view),takeView:()=>takeReloadView(()=>sessionStorage,owner),
     onChange:f=>{listeners.add(f);return()=>listeners.delete(f);},

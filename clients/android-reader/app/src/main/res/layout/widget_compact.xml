@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="10dp" android:background="@drawable/widget_dark_bg">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false" android:gravity="center_vertical">
+  <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+   <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="ϟ  Світло" android:maxLines="1" android:ellipsize="end" android:textSize="18sp" android:textStyle="bold" android:textColor="#F0F3E8"/>
+   <TextView android:id="@+id/widget_city" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:maxLines="1" android:ellipsize="end" android:textColor="#BCC9BD"/>
+  </LinearLayout>
+  <LinearLayout android:id="@+id/widget_weather" android:layout_width="68dp" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="end" android:paddingStart="6dp" android:contentDescription="Відкрити прогноз погоди">
+   <TextView android:id="@+id/weather_now" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="end" android:textSize="20sp" android:maxLines="1" android:textColor="#F0F3E8"/>
+   <TextView android:id="@+id/weather_next" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="end" android:textSize="10sp" android:maxLines="2" android:textColor="#BCC9BD"/>
+  </LinearLayout>
+ </LinearLayout>
+ <TextView android:id="@+id/widget_headline" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textSize="10sp" android:maxLines="1" android:ellipsize="end" android:textColor="#BCC9BD"/>
+ <TextView android:id="@+id/widget_range" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="19sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:textColor="#F0F3E8"/>
+ <TextView android:id="@+id/widget_kind" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="10sp" android:maxLines="1" android:textColor="#BCC9BD"/>
+ <ImageView android:id="@+id/widget_header_divider" android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="1dp" android:layout_marginBottom="1dp" android:background="#43594C" android:importantForAccessibility="no"/>
+ <ImageView android:id="@+id/widget_chart" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:minHeight="30dp" android:scaleType="fitCenter" android:contentDescription="Графік на сьогодні з кроком 5 хвилин. Натисніть, щоб переглянути точні часи."/>
+ 
+ <ImageView android:id="@+id/widget_footer_divider" android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="1dp" android:layout_marginBottom="1dp" android:background="#43594C" android:importantForAccessibility="no"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false" android:gravity="center_vertical|end">
+  <TextView android:id="@+id/widget_legend" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="■ Світло є   ■ Світла немає" android:textSize="12sp" android:maxLines="3" android:textColor="#BCC9BD"/>
+  <TextView android:id="@+id/widget_refresh" android:minWidth="48dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center" android:paddingStart="8dp" android:paddingEnd="2dp" android:text="↻ Оновити" android:textSize="12sp" android:textColor="#F0F3E8" android:contentDescription="Оновити графіки та погоду"/>
+ </LinearLayout>
+</LinearLayout>
+
+
+
+
+

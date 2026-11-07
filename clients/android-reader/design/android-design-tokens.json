@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "product": "Світло Android",
+  "baseline": {"versionName": "1.6.0", "versionCode": 25, "recordedAt": "2026-10-29", "packageId": "ua.svitlo.widget"},
+  "purpose": "Reference specification. Not imported by runtime; dp/sp are Android logical units, not screenshot pixels.",
+  "sources": {
+    "palette": "app/src/main/java/ua/svitlo/widget/UiSupport.kt#Palette.app",
+    "dialogs": "app/src/main/java/ua/svitlo/widget/AppDialogPanel.kt",
+    "main": "app/src/main/java/ua/svitlo/widget/MainActivity.kt",
+    "hourTile": "app/src/main/java/ua/svitlo/widget/HourTileView.kt",
+    "widgets": "app/src/main/java/ua/svitlo/widget/WidgetStyle.kt"
+  },
+  "themes": {
+    "dark": {
+      "background": "#14251E", "surface": "#20382C", "ink": "#F0F3E8", "muted": "#BCC9BD",
+      "track": "#43594C", "accent": "#C1D99A", "hourly": "#D9A746", "planned": "#AD9CD1",
+      "unplanned": "#78579F", "emergency": "#DF8272", "outageIcon": "#14251E", "unplannedTimeInk": "#F0F3E8",
+      "inputBackground": "#3B5143", "inputBorder": "#627566", "inputHint": "#B8C5B5",
+      "cancelBackground": "#3B2C29", "cancelInk": "#E0AAA0", "regionalWarningInk": "#F1AD72"
+    },
+    "light": {
+      "background": "#EFF5EC", "surface": "#FFFFFF", "ink": "#20382C", "muted": "#52654F",
+      "track": "#D8E5D1", "accent": "#416B2A", "hourly": "#D9A746", "planned": "#B3A1D8",
+      "unplanned": "#7D5DA6", "emergency": "#DF8272", "outageIcon": "#14251E", "unplannedTimeInk": "#F0F3E8",
+      "inputBackground": "#F4F7F0", "inputBorder": "#D6E0D0", "inputHint": "#64725F",
+      "cancelBackground": "#F8ECE9", "cancelInk": "#995048", "regionalWarningInk": "#A94A24"
+    }
+  },
+  "radiusDp": {
+    "outerCard": 22, "scheduleCard": 22, "summaryCard": 22, "dialog": 24,
+    "dialogControl": 12, "homeAction": 16, "weatherHour": 16, "hourTile": 13,
+    "navigation": 14, "chip": 14, "appearanceGroup": 14, "appearanceOption": 10,
+    "summaryIconBackground": 9, "legendSample": 5, "widget": 26
+  },
+  "layoutDp": {
+    "screenPadding": {"start": 18, "top": 14, "end": 18, "bottom": 22},
+    "cardPadding": 18, "cardBottomMargin": 14, "cardBorder": 1,
+    "schedulePadding": {"horizontal": 12, "vertical": 18},
+    "summaryPadding": {"horizontal": 14, "vertical": 18},
+    "dialogHeaderPadding": {"start": 20, "top": 20, "end": 20, "bottom": 16},
+    "dialogBodyHorizontalPadding": 20,
+    "dialogFooterPadding": {"start": 20, "top": 8, "end": 20, "bottom": 20},
+    "dialogContextGap": 4, "dialogDividerTopMargin": 14, "dialogButtonGap": 8,
+    "dialogButtonPadding": {"horizontal": 12, "vertical": 10}, "inputPadding": 12,
+    "touchTargetMinimum": 48, "navigationMinimumHeight": 54, "divider": 1,
+    "hourTileMinimumHeight": 52, "hourTileMargin": 3, "currentHourStroke": 2,
+    "dayIndicator": {"width": 24, "height": 4, "radius": 2},
+    "legendSample": 20, "legendIconTextGap": 6, "legendGroupGap": 16, "legendLineGap": 10,
+    "fullLegendSample": 30, "fullLegendHalfSampleHeight": 40, "fullLegendTextGap": 12,
+    "appearanceLabelWidth": 65, "appearanceLabelGap": 10, "appearanceGroupPadding": 4,
+    "appearanceOptionGap": 5, "appearanceOptionHeight": 56, "appearanceThemeHeight": 64,
+    "notificationBellGlyph": 28, "notificationBellTarget": 48, "notificationBellVisibleGap": 4,
+    "weatherHourBaseWidth": 80, "weatherHourGap": 6
+  },
+  "typeSp": {
+    "appTitle": 22, "activeAddressTitle": 21, "settingsCardTitle": 20, "scheduleMessageTitle": 20,
+    "dialogTitle": 18, "remoteMessageTitle": 18, "fullLegendTitle": 18,
+    "summaryValue": 44, "weatherTemperature": 44, "weatherCity": 19, "weatherCondition": 16,
+    "input": 16, "button": 15, "navigation": 15, "pickerItem": 15,
+    "body": 14, "dialogContext": 14, "switchLabel": 14, "addressSubtitle": 14,
+    "compactAction": 14, "hourTile": 14, "shortLegend": 14, "shortLegendMinimum": 11,
+    "headerTimer": 13, "summaryTitle": 13, "summaryCaption": 12, "messageMetadata": 12,
+    "weatherAttribution": 11, "appearanceThemeLabel": 13, "appearanceTime": 15
+  },
+  "typePolicy": {
+    "family": "system sans", "headingFamily": "sans-serif-medium", "buttonAllCaps": false,
+    "summaryUnitScale": 0.42, "hourTileMaximumDp": 24,
+    "appearanceThemeLabelMaximumDp": 18, "appearanceTimeMaximumDp": 20,
+    "compactPickerException": "address_picker only: low IME viewport uses fixed-dp text sizes; not a global fontScale policy",
+    "singleLineHelperCaveat": "TextSizing.singleLine currently enables multiline. Inspect maxLines and owning container."
+  },
+  "states": {
+    "button": {"background": "background", "foreground": "accent"},
+    "dialogSelection": {"background": "track", "foreground": "ink", "visibleCheckmark": false},
+    "navigationSelected": {"background": "accent", "foreground": "background"},
+    "appearanceSelected": {"backgroundBlend": ["track", "accent", 0.16], "border": "accent", "borderDp": 1},
+    "cancel": {"background": "cancelBackground", "foreground": "cancelInk"},
+    "disabledTypicalAlpha": 0.5,
+    "unknownSchedule": {"background": "track", "pattern": "diagonal hatch", "glyph": "?"},
+    "currentHour": {"border": "accent", "borderDp": 2}
+  },
+  "motion": {"dayTransitionMs": 260, "dayIndicatorMs": 260, "interpolator": "DecelerateInterpolator", "respectDisabledAnimations": true, "elevationDp": 0},
+  "responsive": {
+    "stackCompactActionsAtFontScale": 1.5, "stackSummaryAtFontScale": 1.5,
+    "appearanceLabelAboveAtFontScale": 1.5, "stackSavedAddressFooterAtFontScale": 1.5,
+    "hourColumnsPhonePreferred": 4, "hourColumnsWidePreferred": 6, "wideScreenDp": 600, "hourColumnsMinimum": 2,
+    "verificationWidthsDp": [320, 360, 412, 414], "verificationFontScales": [1, 1.5, 2],
+    "addressPickerCompactViewportDp": 360, "addressPickerMinimumRegularBodyRoomDp": 144
+  },
+  "widget": {
+    "theme": "fixed dark", "background": "#20382C", "border": "#43594C", "powerBand": "#526D4C",
+    "radiusDp": 26, "pageSize": 4, "pagingFromAddressCount": 5, "pagerTargetDp": 48,
+    "scaleReferenceDp": [360, 320], "scaleMinimum": 0.35, "scaleMaximum": 1,
+    "shortBelowHeightDp": 320, "rowMinimumHeightDp": 48,
+    "titlePreferredSp": 20, "weatherPreferredSp": 24, "rowNamePreferredSp": 14, "statusPreferredSp": 12,
+    "footerPreferredSp": 12, "axisPreferredSp": 11,
+    "powerBandIsNotAppPowerTile": true
+  },
+  "pending": [
+    {"id": "widget-pin-footer-center", "status": "recorded-only", "source": "ANDROID-NEXT-PATCH.md", "description": "Center Закрити / Додати повторно when implementation is requested; current baseline is start-aligned."}
+  ]
+}

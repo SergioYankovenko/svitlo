@@ -1,3 +1,4 @@
+import {notificationPayload} from './worker.js';
 import {createHmac,createHash} from 'node:crypto';import {readFileSync,existsSync} from 'node:fs';
 import {PurchaseVault} from '../billing/vault.js';import {validSubscription} from '../../server/service.js';
 const fail=(code,status=400)=>Object.assign(Error(code),{code,status});
@@ -22,7 +23,8 @@ export class NotificationService {
   }
   if(typeof d.credential!=='string'||!/^ni_[A-Za-z0-9_-]{43}$/.test(d.credential))throw fail('installation_proof_required',403);
   if(d.action==='receipt'&&(!uuid(d.intentId)||!['received','displayed'].includes(d.state)))throw fail('invalid_notification_receipt');
-  return {schemaVersion:1,...(await this.bridge.query('select svitlo_notifications.installation_action($1,$2,$3,$4,$5) value',[d.installationId,this.hash(d.credential),d.action,d.intentId||null,d.state||null])).rows[0].value};
+  const result=(await this.bridge.query('select svitlo_notifications.installation_action($1,$2,$3,$4,$5) value',[d.installationId,this.hash(d.credential),d.action,d.intentId||null,d.state||null])).rows[0].value;
+  if(result.profile){const payload=notificationPayload(result.intent,result.profile);return {schemaVersion:1,ok:true,displayAllowed:!!payload,...(payload?{payload}:{} )};}return {schemaVersion:1,...result};
  }
 }
 export function notificationKey(){const path='/run/notifications/delivery-key';if(!existsSync(path))return null;const key=readFileSync(path,'utf8').trim();if(!/^[a-f0-9]{64}$/.test(key))throw Error('invalid_notification_key');return key;}

@@ -83,6 +83,17 @@ async function recordPush(stage, error = "") {
     /* Local diagnostics must not prevent notification delivery. */
   }
 }
+async function modernNotification(packet){
+  if(packet.schemaVersion!==1||!validProfile(packet.intentId)||Date.parse(packet.expiresAt)<=Date.now())return;
+  const stateCache=await caches.open('svitlo-installations-v1'),saved=await stateCache.match(new URL('push-installation.json',ROOT).href);if(!saved)return;const i=await saved.json();if(!i.ready||!i.credential)return;
+  const sessionResponse=await fetch(new URL('/api/session',ROOT),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(5000)});if(!sessionResponse.ok)return;const {session}=await sessionResponse.json();if(session?.user?.id!==i.owner)return;
+  async function receipt(state){const response=await fetch(new URL('/api/v1/notifications',ROOT),{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','X-Svitlo-CSRF':session.csrf_token},body:JSON.stringify({schemaVersion:1,action:'receipt',installationId:i.installationId,credential:i.credential,intentId:packet.intentId,state}),signal:AbortSignal.timeout(8000)});if(!response.ok)throw Error('notification_validation_failed');return response.json();}
+  const verified=await receipt('received');if(!verified.displayAllowed)return;const p=verified.payload;if(Date.parse(p.expiresAt)<=Date.now()||!validProfile(p.profileId))return;
+  const seen=new URL('seen/'+p.intentId+'.json',ROOT).href;if(await stateCache.match(seen))return;
+  await self.registration.showNotification(p.title,{body:p.body,tag:'plan:'+p.intentId,renotify:false,icon:new URL('icons/icon-192.png',ROOT).href,data:{profile:p.profileId}});
+  await stateCache.put(seen,Response.json({expiresAt:p.expiresAt}));const keys=await stateCache.keys();for(const key of keys){if(!key.url.includes('/seen/'))continue;const value=await (await stateCache.match(key)).json();if(Date.parse(value.expiresAt)<Date.now()-86400000)await stateCache.delete(key);}
+  await receipt('displayed');
+}
 let invalidationQueue=Promise.resolve();
 self.addEventListener("push", (event) =>
   event.waitUntil(
@@ -92,6 +103,7 @@ self.addEventListener("push", (event) =>
       try {
         p = event.data?.json() || {};
       } catch {}
+      if(p.intentId){try{await modernNotification(p);}catch{await recordPush('modern_unverified');}return;}
       if(validProfile(p.profile)) {
         try {
           invalidationQueue=invalidationQueue.catch(()=>{}).then(async()=>{

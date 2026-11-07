@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Applied only to app Activities and dialogs, never widget contexts. -->
+    <style name="SvitloAppDark" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:buttonStyle">@style/SvitloFlatButton</item>
+        <item name="android:windowElevation">0dp</item>
+    </style>
+    <style name="SvitloAppLight" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">#416B2A</item>
+        <item name="android:buttonStyle">@style/SvitloFlatButton</item>
+        <item name="android:switchStyle">@style/SvitloFlatSwitch</item>
+        <item name="android:windowElevation">0dp</item>
+    </style>
+    <style name="SvitloFlatButton" parent="android:style/Widget.Material.Button">
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:translationZ">0dp</item>
+    </style>
+    <style name="SvitloFlatDialogButton" parent="android:style/Widget.Material.Button.Borderless">
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:translationZ">0dp</item>
+    </style>
+    <style name="SvitloFlatSwitch" parent="android:style/Widget.Material.CompoundButton.Switch">
+        <item name="android:thumb">@drawable/switch_thumb_flat</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+</resources>

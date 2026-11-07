@@ -1,0 +1,13 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="4dp">
+    <ImageView android:id="@+id/next_widget_image" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:contentDescription="Графік Світло 1.7" />
+    <LinearLayout android:id="@+id/next_widget_rows" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent" android:paddingTop="48dp" android:paddingBottom="48dp">
+        <FrameLayout android:id="@+id/next_widget_row0" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+        <FrameLayout android:id="@+id/next_widget_row1" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+        <FrameLayout android:id="@+id/next_widget_row2" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+        <FrameLayout android:id="@+id/next_widget_row3" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="100dp" android:layout_height="48dp" android:layout_gravity="bottom|end">
+        <TextView android:id="@+id/next_widget_prev" android:layout_width="50dp" android:layout_height="48dp" android:text="‹" android:textSize="24sp" android:textColor="#C1D99A" android:gravity="center" android:contentDescription="Попередні адреси" />
+        <TextView android:id="@+id/next_widget_next" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:text="›" android:textSize="24sp" android:textColor="#C1D99A" android:gravity="center" android:contentDescription="Наступні адреси" />
+    </LinearLayout>
+</FrameLayout>

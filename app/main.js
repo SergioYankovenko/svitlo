@@ -1,3 +1,4 @@
+import {modernInstallation,registerModern,revokeModern} from './lib/modern-push.js';
 import {appStorage,readJSON} from './lib/storage.js';
 import {Lifecycle,readRoute,routeDate} from './lib/lifecycle.js';
 import {validProfile} from './lib/cache-data.js';
@@ -458,7 +459,8 @@ async function subscriptionData(){
     }
   }
   if(!lifecycle.current(scope))return null;
-  state.push=!!sub;state.subscription=sub?.toJSON()||null;return state.subscription;
+  const modern=universalEnabled&&await modernInstallation(scope.owner);
+  state.push=!!sub;state.subscription=modern?.ready?null:sub?.toJSON()||null;return state.subscription;
 }
 async function checkPush(force=false){
   if(pushCheck)return pushCheck;
@@ -694,6 +696,7 @@ async function togglePush() {
     const old=await bounded(registration.pushManager.getSubscription(),3000);
     if(!lifecycle.current(scope))return;
     if(state.push&&old){
+      if(universalEnabled)await revokeModern(scope.owner);
       const result=await ownedRequest('unsubscribe',{endpoint:old.endpoint},scope);
       if(!result)return;
       save('svitlo-push-disabled',true);state.push=false;state.subscription=null;state.pushChecked=true;
@@ -708,9 +711,10 @@ async function togglePush() {
     const sub=old||await bounded(registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key}),8000);
     if(!old)created=sub;
     if(!lifecycle.current(scope))return;
-    const result=await ownedRequest('subscribe',{subscription:sub.toJSON(),id},scope,{intent:true});
+    const modern=universalEnabled&&await registerModern(sub.toJSON(),scope.owner);
+    const result=modern?{ok:true}:await ownedRequest('subscribe',{subscription:sub.toJSON(),id},scope,{intent:true});
     if(!result)return;
-    save('svitlo-push-disabled',false);state.push=true;state.subscription=sub.toJSON();state.pushChecked=true;
+    save('svitlo-push-disabled',false);state.push=true;state.subscription=modern?null:sub.toJSON();state.pushChecked=true;
     patchProfiles(p=>p,{subscription:JSON.stringify([id,state.subscription,state.vapid]),subscriptionAt:Date.now()});render();
     toast('Сповіщення увімкнено для обраної адреси');
   }catch(e){

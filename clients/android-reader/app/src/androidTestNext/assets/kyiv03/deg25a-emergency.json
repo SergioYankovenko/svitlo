@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "addressId": "9529c1c0-9227-4650-a43d-3d13b362582e",
+  "operatorId": "ua-kyiv-dtek",
+  "timeZone": "Europe/Kyiv",
+  "coverage": {
+    "fromDate": "2026-11-04",
+    "toDate": "2026-11-05"
+  },
+  "resolution": {
+    "state": "resolved",
+    "complete": true
+  },
+  "lines": [
+    {
+      "id": "63ed6ef5-507f-441c-87de-5397ea8f1ee6",
+      "label": "Група 14.1",
+      "groupCode": "14.1",
+      "supportedCategories": [
+        "hourly",
+        "planned",
+        "unplanned",
+        "emergency"
+      ],
+      "categories": {
+        "hourly": {
+          "checkedAt": 1793806200000,
+          "sourceUpdatedAt": 1793792460000,
+          "freshUntil": 1793806320000,
+          "evidenceMode": "daily_schedule",
+          "days": [
+            {
+              "date": "2026-11-04",
+              "state": "suspended",
+              "intervals": [],
+              "publication": {
+                "state": "published",
+                "intervals": [
+                  {
+                    "start": 1793779200000,
+                    "end": 1793800800000
+                  },
+                  {
+                    "start": 1793811600000,
+                    "end": 1793829600000
+                  }
+                ],
+                "checkedAt": 1793806200000,
+                "sourceUpdatedAt": 1793792460000,
+                "freshUntil": 1793806320000
+              },
+              "applicability": {
+                "state": "suspended",
+                "reason": "emergency_report_newer_than_plan"
+              }
+            },
+            {
+              "date": "2026-11-05",
+              "state": "suspended",
+              "intervals": [],
+              "publication": {
+                "state": "not_published",
+                "intervals": [],
+                "checkedAt": 1793806200000,
+                "sourceUpdatedAt": 1793792460000,
+                "freshUntil": 1793806320000
+              },
+              "applicability": {
+                "state": "suspended",
+                "reason": "reported_emergency_without_primary_plan"
+              }
+            }
+          ]
+        },
+        "planned": {
+          "checkedAt": 1793806200000,
+          "sourceUpdatedAt": 1793792460000,
+          "freshUntil": 1793806320000,
+          "evidenceMode": "positive_only",
+          "days": [
+            {
+              "date": "2026-11-04",
+              "state": "unknown",
+              "intervals": []
+            },
+            {
+              "date": "2026-11-05",
+              "state": "unknown",
+              "intervals": []
+            }
+          ]
+        },
+        "unplanned": {
+          "checkedAt": 1793806200000,
+          "sourceUpdatedAt": 1793792460000,
+          "freshUntil": 1793806320000,
+          "evidenceMode": "positive_only",
+          "days": [
+            {
+              "date": "2026-11-04",
+              "state": "unknown",
+              "intervals": []
+            },
+            {
+              "date": "2026-11-05",
+              "state": "unknown",
+              "intervals": []
+            }
+          ]
+        },
+        "emergency": {
+          "checkedAt": 1793806200000,
+          "sourceUpdatedAt": 1793792460000,
+          "freshUntil": 1793806320000,
+          "evidenceMode": "positive_only",
+          "days": [
+            {
+              "date": "2026-11-04",
+              "state": "unknown",
+              "intervals": []
+            },
+            {
+              "date": "2026-11-05",
+              "state": "unknown",
+              "intervals": []
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "notices": [
+    {
+      "kind": "regional_emergency",
+      "scope": "reported_group_day",
+      "lineIds": [
+        "63ed6ef5-507f-441c-87de-5397ea8f1ee6"
+      ],
+      "active": true,
+      "start": 1793743200000,
+      "end": 1793829600000,
+      "sourceUpdatedAt": 1793796600000,
+      "checkedAt": 1793806200000,
+      "url": "https://static.yasno.ua/kyiv/outages/",
+      "reason": "official_sources_emergency_override"
+    },
+    {
+      "kind": "regional_emergency",
+      "scope": "reported_group_day",
+      "lineIds": [
+        "63ed6ef5-507f-441c-87de-5397ea8f1ee6"
+      ],
+      "active": false,
+      "start": 1793829600000,
+      "end": 1793916000000,
+      "sourceUpdatedAt": 1793796600000,
+      "checkedAt": 1793806200000,
+      "url": "https://static.yasno.ua/kyiv/outages/",
+      "reason": "official_sources_emergency_override"
+    }
+  ],
+  "checkedAt": 1793806200000,
+  "sourceUpdatedAt": 1793792460000,
+  "freshUntil": 1793806320000,
+  "refreshAfter": 1793806260000,
+  "supportState": "available",
+  "provenance": [
+    {
+      "operatorId": "ua-kyiv-dtek",
+      "adapter": "dtek-public-v1",
+      "url": "https://www.dtek-kem.com.ua/ua/shutdowns",
+      "allocation": {
+        "source": "dtek-address",
+        "partial": false,
+        "externalOperator": false,
+        "groupsConfirmed": true
+      },
+      "categoryCoverage": "daily_hourly_and_positive_current_address_events",
+      "cityEmergencyStatus": "yasno-official",
+      "reconciliation": {
+        "version": "kyiv-sources-v3",
+        "days": {
+          "GPV14.1:2026-11-04": {
+            "state": "suspended",
+            "policy": "kyiv-sources-v3",
+            "date": "2026-11-04",
+            "primarySource": "dtek-address",
+            "primaryPublishedAt": 1793792460000,
+            "primaryCheckedAt": 1793806200000,
+            "secondarySource": "yasno-official",
+            "secondaryPublishedAt": 1793796600000,
+            "secondaryCheckedAt": 1793806200000,
+            "secondaryStatus": "EmergencyShutdowns",
+            "powerState": "unknown",
+            "publicationAgeWarning": false,
+            "scope": "reported_group_day",
+            "publication": "published",
+            "applicability": "suspended",
+            "publishedIntervals": [
+              {
+                "start": 1793779200000,
+                "end": 1793800800000
+              },
+              {
+                "start": 1793811600000,
+                "end": 1793829600000
+              }
+            ],
+            "reason": "emergency_report_newer_than_plan"
+          },
+          "GPV14.1:2026-11-05": {
+            "state": "suspended",
+            "policy": "kyiv-sources-v3",
+            "date": "2026-11-05",
+            "primarySource": "dtek-address",
+            "primaryPublishedAt": 1793792460000,
+            "primaryCheckedAt": 1793806200000,
+            "secondarySource": "yasno-official",
+            "secondaryPublishedAt": 1793796600000,
+            "secondaryCheckedAt": 1793806200000,
+            "secondaryStatus": "EmergencyShutdowns",
+            "powerState": "unknown",
+            "publicationAgeWarning": false,
+            "scope": "reported_group_day",
+            "publication": "not_published",
+            "applicability": "suspended",
+            "publishedIntervals": [],
+            "reason": "reported_emergency_without_primary_plan"
+          }
+        }
+      }
+    }
+  ],
+  "synthetic": true,
+  "revision": "087637778b53bc6903b4ab645ca57bf2"
+}

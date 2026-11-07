@@ -1,0 +1,126 @@
+{
+  "DATETIME": "14:03 24.10.2026",
+  "DISCONNECTIONS": [
+    {
+      "DATE_START": "21:00 16.10.2026",
+      "DATE_STOP": "00:00 17.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "02:00 17.10.2026",
+      "DATE_STOP": "03:25 17.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "08:00 17.10.2026",
+      "DATE_STOP": "10:03 17.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "18:01 17.10.2026",
+      "DATE_STOP": "20:02 17.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "12:00 18.10.2026",
+      "DATE_STOP": "14:01 18.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "19:00 18.10.2026",
+      "DATE_STOP": "21:10 18.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "10:00 19.10.2026",
+      "DATE_STOP": "12:00 19.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "16:00 19.10.2026",
+      "DATE_STOP": "18:00 19.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "22:00 19.10.2026",
+      "DATE_STOP": "23:30 19.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "08:01 20.10.2026",
+      "DATE_STOP": "10:02 20.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "08:01 21.10.2026",
+      "DATE_STOP": "10:02 21.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "14:00 21.10.2026",
+      "DATE_STOP": "16:01 21.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "20:01 21.10.2026",
+      "DATE_STOP": "22:02 21.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "16:00 22.10.2026",
+      "DATE_STOP": "18:01 22.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "10:00 22.10.2026",
+      "DATE_STOP": "12:01 22.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "22:00 22.10.2026",
+      "DATE_STOP": "23:59 22.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "08:00 23.10.2026",
+      "DATE_STOP": "10:00 23.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "14:00 23.10.2026",
+      "DATE_STOP": "16:30 23.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "20:00 23.10.2026",
+      "DATE_STOP": "22:00 23.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    },
+    {
+      "DATE_START": "12:01 24.10.2026",
+      "DATE_STOP": "14:02 24.10.2026",
+      "ADDRESS": "<strong>м. Христинівка</strong>вул. Флорештська 10а/51<br>",
+      "DISCONN_TYPE": "ГПВ"
+    }
+  ],
+  "DISCONN_QUEUQ": []
+}

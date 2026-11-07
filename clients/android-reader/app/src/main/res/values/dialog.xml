@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="SvitloDialog" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:windowElevation">0dp</item>
+        <item name="android:buttonStyle">@style/SvitloFlatButton</item>
+        <item name="android:buttonBarButtonStyle">@style/SvitloFlatDialogButton</item>
+        <item name="android:colorAccent">#C1D99A</item>
+        <item name="android:colorBackground">#20382C</item>
+        <item name="android:windowBackground">#20382C</item>
+        <item name="android:textColorPrimary">#F0F3E8</item>
+        <item name="android:textColorSecondary">#BCC9BD</item>
+        <item name="android:colorControlNormal">#BCC9BD</item>
+        <item name="android:colorControlActivated">#C1D99A</item>
+        <item name="android:windowMinWidthMajor">90%</item>
+        <item name="android:windowMinWidthMinor">90%</item>
+    </style>
+    <style name="SvitloDialogLight" parent="android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:windowElevation">0dp</item>
+        <item name="android:buttonStyle">@style/SvitloFlatButton</item>
+        <item name="android:buttonBarButtonStyle">@style/SvitloFlatDialogButton</item>
+        <item name="android:switchStyle">@style/SvitloFlatSwitch</item>
+        <item name="android:colorAccent">#416B2A</item>
+        <item name="android:colorBackground">#FFFFFF</item>
+        <item name="android:windowBackground">#FFFFFF</item>
+        <item name="android:textColorPrimary">#20382C</item>
+        <item name="android:textColorSecondary">#52654F</item>
+        <item name="android:colorControlNormal">#52654F</item>
+        <item name="android:colorControlActivated">#416B2A</item>
+        <item name="android:windowMinWidthMajor">90%</item>
+        <item name="android:windowMinWidthMinor">90%</item>
+    </style>
+</resources>
