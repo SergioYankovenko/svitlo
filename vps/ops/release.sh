@@ -28,6 +28,7 @@ commit=$(python3 -c "import json;print(json.load(open('$target/manifest.json'))[
 test "$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" = "$commit"
 printf 'STAGE_IMAGE=%s\nRELEASE_ID=%s\nSVITLO_PILOT_PUSH=enabled\n' "$image" "$release" > "$target/vps/release.env"
 cd "$target"
+python3 vps/ops/provision-modules.py prepare
 install -d -m 700 -o 1000 -g 1000 /var/lib/svitlo-stage/unresolved-addresses
 # Reserve the worker role's connection budget for two-process restored QA.
 # Graceful stop finishes the current portion; any failed gate resumes this same container.
@@ -103,6 +104,7 @@ for suite in lines regions map phone history pwa sources subscriptions geography
 done
 compose=(docker compose --env-file vps/release.env -f vps/compose.yaml)
 "${compose[@]}" run --rm --user 0 migrate
+python3 vps/ops/provision-modules.py search
 slot=a
 if grep -q 'proxy_pass http://127.0.0.1:18766;' /etc/nginx/conf.d/svitlo-staging.conf;then slot=b;fi
 "${compose[@]}" up -d "api-$slot"
@@ -132,4 +134,5 @@ for i in $(seq 1 30);do
  sleep 2
 done
 /usr/local/sbin/svitlo-stage-health
+python3 vps/ops/provision-modules.py admin
 printf 'ARC_RELEASE_COMPLETE\n'

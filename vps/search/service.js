@@ -43,7 +43,7 @@ export class AddressSearch {
     and (e.metadata->>'regionOperator' is null or coalesce(e.metadata->>'sourceActive','true')<>'false')
     and (e.kind<>'city' or svitlo_vps.catalog_city_state(e.id)<>'empty') order by array_position($1::uuid[],e.id)`,[page.ids,kind,parentId])).rows:[];
   const afterState=await state();if(!afterState?.ready||afterState.generation!==before.generation||afterState.scopeToken!==before.scopeToken||!await this.client.anchor(before.generation,scope,before.scopeToken)){if(after)throw cursorError();return null;}
-  if(rows.some(r=>!r.search_document||fingerprint(publicDocument(r.search_document))!==page.fingerprints[r.id])){await repair();if(after)throw cursorError();return null;}
+  if(rows.length!==page.ids.length||rows.some(r=>!r.search_document||fingerprint(publicDocument(r.search_document))!==page.fingerprints[r.id])){await repair();if(after)throw cursorError();return null;}
   const safe=kind==='address'&&q.trim()?rows.filter(r=>sameHouse(r.label,q)):rows;
   if(page.more&&(after?.offset||0)+limit>=20000)throw Object.assign(Error('Уточніть пошук'),{status:409,code:'search_capacity_limited'});
   return {rows:safe,nextCursor:page.more?this.cursor({engine:'meili',...query,generation:before.generation,offset:(after?.offset||0)+page.consumed}):null,complete:!page.more};

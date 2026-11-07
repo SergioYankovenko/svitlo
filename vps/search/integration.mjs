@@ -52,10 +52,14 @@ try{
  await c.query("insert into svitlo_geo.routes values('dictionary-fixture','ua-cherkasy',true);insert into svitlo_geo.route_places values('dictionary-fixture','UAfixture')");
  const dictionary=new DictionarySearch({bridge:api,client,secret:'isolated-dictionary'}),scope=dictionary.scope('dictionary-fixture','UAfixture','street',dictionaryCity);
  await dictionary.stage({route:'dictionary-fixture',settlement:'UAfixture',kind:'street',parent:dictionaryCity,rows:names.map((name,i)=>({id:'street-'+i,name}))});
- await c.query('set role svitlo_stage_worker');await new DictionaryIndexer({pool:poolFor(c),client}).tick();
+ await c.query('set role svitlo_stage_worker');await new DictionaryIndexer({pool:poolFor(c),client,secret:'isolated-dictionary'}).tick();
  const found=await dictionary.search({scope,q:'Шевченко',kind:'street',limit:50});assert.ok(found?.page.some(x=>x.id==='street-0'));checks++;
  const page=await dictionary.search({scope,q:'',kind:'street',limit:1});assert.equal(page.page.length,1);assert.ok(page.nextCursor);checks++;
  assert.equal((await dictionary.search({scope,q:'',kind:'street',limit:1,cursor:page.nextCursor})).page.length,1);checks++;
+ // An engine restart/lost volume must restore settings as well as documents.
+ await settle();const active=(await c.query('select active_generation from svitlo_search.control')).rows[0].active_generation;
+ await client.request(client.index(active),{method:'DELETE'}).then(t=>client.wait(t));indexer.configuredAt.set(active,0);await settle();
+ assert.deepEqual((await client.search(active,{kind:'address',parentId:home.parentId,q:'99/2',limit:50})).ids,[home.id]);checks++;
  await c.query('reset role');const stored=(await c.query('select count(*)::int n from svitlo_vps.catalog')).rows[0].n;
  latencies.sort((a,b)=>a-b);const report={scope:'meilisearch-postgresql-corpus',checks,exactHouseCases:corpus.length,catalogRows:stored,initialIndexMs:Math.round(indexMs),engineP95Ms:Math.round(latencies[Math.floor(latencies.length*.95)]*100)/100,rebuildUnderWrite:true,optionalDependencyFailure:true,syntheticOnly:!process.env.SEARCH_PUBLIC_DATA_FILE,privateTablesRead:false};
  if(process.env.SEARCH_REPORT_FILE)await writeFile(process.env.SEARCH_REPORT_FILE,JSON.stringify(report,null,2));console.log(JSON.stringify(report));

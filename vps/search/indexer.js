@@ -1,7 +1,7 @@
 import {randomBytes} from 'node:crypto';
 import {publicDocument,fingerprint,scopeKeys,anchorId} from './meili.js';
 export class SearchIndexer {
- constructor({pool,client,onError=()=>{}}){Object.assign(this,{pool,client,onError});this.initialized=new Set();}
+ constructor({pool,client,onError=()=>{}}){Object.assign(this,{pool,client,onError});this.initialized=new Set();this.configuredAt=new Map();}
  async generations(c){return (await c.query("select * from svitlo_search.generations where state in ('active','standby','building','ready') order by created_at")).rows;}
  async readBatch(c,{checkpoint=null,root=null,kind=null,extraScopes=[]}={}){
   await c.query('begin isolation level repeatable read read only');try{
@@ -43,8 +43,8 @@ export class SearchIndexer {
    locked=(await c.query('select pg_try_advisory_lock(311032031) value')).rows[0].value;if(!locked)return {state:'other_writer'};
    let targets=await this.generations(c);
    if(!targets.length){await c.query('select svitlo_search.create_generation($1)',['svitlo_catalog_g_'+randomBytes(6).toString('hex')]);targets=await this.generations(c);}
-   for(const target of targets)if(!this.initialized.has(target.name)){
-    const created=await this.client.ensure(target.name);await this.client.drain(target.name);this.initialized.add(target.name);
+   for(const target of targets)if(!this.initialized.has(target.name)||Date.now()-(this.configuredAt.get(target.name)||0)>=60000){
+    const created=await this.client.ensure(target.name);await this.client.drain(target.name);this.initialized.add(target.name);this.configuredAt.set(target.name,Date.now());
     if(created&&target.backfill_complete){await c.query("update svitlo_search.generations set state='building',backfill_complete=false,checkpoint=null where name=$1",[target.name]);target.state='building';target.backfill_complete=false;target.checkpoint=null;}
    }
    const leaves=await this.readLeaves(c);
@@ -76,7 +76,7 @@ export class SearchIndexer {
  }
  async loop({stopping=()=>false,sleep=ms=>new Promise(r=>setTimeout(r,ms))}={}){
   let lastError=0;while(!stopping()){
-   let delay=1000;try{const result=await this.tick();if(result.documents>0)delay=25;}catch{if(Date.now()-lastError>60000){lastError=Date.now();this.onError('search_indexer_error');}}
+   let delay=1000;try{const result=await this.tick();if(result.documents>0)delay=25;}catch{this.initialized.clear();if(Date.now()-lastError>60000){lastError=Date.now();this.onError('search_indexer_error');}}
    if(!stopping())await sleep(delay);
   }
  }

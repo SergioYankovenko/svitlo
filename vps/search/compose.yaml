@@ -1,0 +1,26 @@
+name: svitlo-search
+services:
+  search:
+    image: getmeili/meilisearch@sha256:b7ba431bf6f9b26cc86132798f3640964147a699cf23f026b74c6c05dbb1d60d
+    container_name: svitlo-search-1
+    restart: unless-stopped
+    init: true
+    user: '1000:1000'
+    read_only: true
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
+    env_file: [/etc/svitlo/search/engine.env]
+    environment:
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: 'true'
+      MEILI_DB_PATH: /meili_data/data.ms
+      MEILI_MAX_INDEXING_MEMORY: 128MiB
+      MEILI_MAX_INDEXING_THREADS: '1'
+    volumes: [/var/lib/svitlo-search:/meili_data]
+    networks: [backend]
+networks:
+  backend: {external: true,name: svitlo_backend}

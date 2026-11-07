@@ -12,7 +12,7 @@ const rt=await runtime('worker');let stopping=false;
 for(const s of ['SIGINT','SIGTERM'])process.on(s,()=>{stopping=true;});
 const projector=catalogProjectorLoop(rt.p,{stopping:()=>stopping,onError:code=>console.error(JSON.stringify({event:code}))});
 const searchClient=configuredMeili('write'),searchLoop=searchClient?new SearchIndexer({pool:rt.p,client:searchClient,onError:code=>console.error(JSON.stringify({event:code}))}).loop({stopping:()=>stopping}):Promise.resolve();
-const dictionaryLoop=searchClient?new DictionaryIndexer({pool:rt.p,client:searchClient}).loop({stopping:()=>stopping,onError:code=>console.error(JSON.stringify({event:code}))}):Promise.resolve();
+const dictionaryLoop=searchClient?new DictionaryIndexer({pool:rt.p,client:searchClient,secret:rt.secret}).loop({stopping:()=>stopping,onError:code=>console.error(JSON.stringify({event:code}))}):Promise.resolve();
 const billingLoop=new BillingWorker({pool:rt.p,provider:configuredPlay(),vault:configuredVault(),onError:code=>console.error(JSON.stringify({event:code}))}).loop({stopping:()=>stopping});
 async function tick(){
   await rt.p.query('update svitlo_vps.worker_cycle set last_attempt=clock_timestamp() where id');
