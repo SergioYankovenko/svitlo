@@ -45,6 +45,7 @@ jobs:
       - run: node --test vps/sources/*.test.mjs
       - run: node --test vps/catalog/*.test.mjs
       - run: node --test vps/admin/*.test.mjs
+      - run: node --test vps/identity/*.test.mjs
       - run: node admin/build.mjs
       - run: node --test vps/search/*.test.mjs
       - run: node vps/search/ci.mjs

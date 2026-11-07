@@ -13,6 +13,9 @@ x-runtime: &runtime
   networks: [backend,egress]
   environment: &environment
     PGDATABASE: svitlo_staging
+    SVITLO_SESSION_SECURE: 'true'
+    GOOGLE_WEB_CLIENT_IDS: ${GOOGLE_WEB_CLIENT_IDS:-}
+    GOOGLE_ANDROID_CLIENT_IDS: ${GOOGLE_ANDROID_CLIENT_IDS:-}
     RELEASE_ID: ${RELEASE_ID}
     SVITLO_PILOT_PUSH: ${SVITLO_PILOT_PUSH:-disabled}
     SVITLO_SENSOR_INFO_URL: ${SVITLO_SENSOR_INFO_URL:-https://www.svitlo.guru}
