@@ -4,7 +4,7 @@ HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[1]
 assert os.geteuid()==0 and (str(ROOT).startswith('/opt/svitlo/staging/releases/') or str(ROOT).startswith('/opt/svitlo/modules/observability/'))
 for folder in [Path('/etc/svitlo/netdata'),Path('/var/lib/svitlo-netdata')]:
  if folder.exists():assert (folder/'.owner').read_text()=='ARCH-MOD-01-01'
- folder.mkdir(mode=0o755,parents=True,exist_ok=True);(folder/'.owner').write_text('ARCH-MOD-01-01')
+ folder.mkdir(mode=0o755,parents=True,exist_ok=True);folder.chmod(0o755);(folder/'.owner').write_text('ARCH-MOD-01-01')
 for kind in ['cache','lib','log']:
  p=Path('/var/lib/svitlo-netdata')/kind;p.mkdir(mode=0o700,exist_ok=True);os.chown(p,201,201)
 config=Path('/etc/svitlo/netdata');(config/'netdata.conf').write_bytes((HERE/'netdata.conf').read_bytes());(config/'netdata.conf').chmod(0o644)

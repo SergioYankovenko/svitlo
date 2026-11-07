@@ -9,7 +9,7 @@ services:
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
-    tmpfs: [/tmp:size=16m,mode=1777]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
     ports: [127.0.0.1:19999:19999]
     environment: {DO_NOT_TRACK: '1',TZ: UTC}
     volumes:
