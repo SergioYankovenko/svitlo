@@ -1,3 +1,6 @@
+import {NotificationWorker} from './notifications/worker.js';
+import {notificationKey} from './notifications/service.js';
+import {configuredFcm} from './notifications/channel.js';
 import {sensorPushTick} from './push.js';
 import {runtime} from './runtime.js';
 import {runLoggedJob} from '../server/operations.js';
@@ -14,6 +17,7 @@ const projector=catalogProjectorLoop(rt.p,{stopping:()=>stopping,onError:code=>c
 const searchClient=configuredMeili('write'),searchLoop=searchClient?new SearchIndexer({pool:rt.p,client:searchClient,onError:code=>console.error(JSON.stringify({event:code}))}).loop({stopping:()=>stopping}):Promise.resolve();
 const dictionaryLoop=searchClient?new DictionaryIndexer({pool:rt.p,client:searchClient,secret:rt.secret}).loop({stopping:()=>stopping,onError:code=>console.error(JSON.stringify({event:code}))}):Promise.resolve();
 const billingLoop=new BillingWorker({pool:rt.p,provider:configuredPlay(),vault:configuredVault(),onError:code=>console.error(JSON.stringify({event:code}))}).loop({stopping:()=>stopping});
+const notificationsLoop=new NotificationWorker({pool:rt.p,key:notificationKey(),channels:{fcm:configuredFcm(),webpush:{configured:rt.delivery==='pilot-enabled',send:rt.push}},onError:code=>console.error(JSON.stringify({event:code}))}).loop({stopping:()=>stopping});
 async function tick(){
   await rt.p.query('update svitlo_vps.worker_cycle set last_attempt=clock_timestamp() where id');
   let historyError=null;
@@ -42,4 +46,4 @@ do{const start=Date.now();try{await tick();}catch(e){const code=/^[A-Z0-9_]{1,32
   // Short interruptible sleeps; every process restart resumes durable DB lease state.
   while(!stopping&&Date.now()-start<60000)await new Promise(r=>setTimeout(r,1000));
 }while(!stopping);
-stopping=true;await Promise.all([projector,searchLoop,dictionaryLoop,billingLoop]);await rt.p.end();
+stopping=true;await Promise.all([projector,searchLoop,dictionaryLoop,billingLoop,notificationsLoop]);await rt.p.end();

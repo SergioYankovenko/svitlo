@@ -15,6 +15,7 @@ x-runtime: &runtime
     PGDATABASE: svitlo_staging
     SVITLO_ALERTS_ENERGY_ENABLED: ${SVITLO_ALERTS_ENERGY_ENABLED:-false}
     SVITLO_SESSION_SECURE: 'true'
+    FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
     GOOGLE_PLAY_PACKAGE: ${GOOGLE_PLAY_PACKAGE:-}
     GOOGLE_PLAY_PRODUCTS: ${GOOGLE_PLAY_PRODUCTS:-}
     GOOGLE_PLAY_RTDN_AUDIENCE: ${GOOGLE_PLAY_RTDN_AUDIENCE:-}
@@ -39,18 +40,18 @@ services:
   api-a:
     <<: *runtime
     ports: [127.0.0.1:18766:8080]
-    volumes: [/var/lib/svitlo-stage/unresolved-addresses:/app-logs,/etc/svitlo/search/api:/run/search:ro,/etc/svitlo/billing/api:/run/billing:ro,/etc/svitlo/sources/api:/run/sources:ro]
+    volumes: [/var/lib/svitlo-stage/unresolved-addresses:/app-logs,/etc/svitlo/search/api:/run/search:ro,/etc/svitlo/billing/api:/run/billing:ro,/etc/svitlo/sources/api:/run/sources:ro,/etc/svitlo/notifications/api:/run/notifications:ro]
   api-b:
     <<: *runtime
     ports: [127.0.0.1:18767:8080]
-    volumes: [/var/lib/svitlo-stage/unresolved-addresses:/app-logs,/etc/svitlo/search/api:/run/search:ro,/etc/svitlo/billing/api:/run/billing:ro,/etc/svitlo/sources/api:/run/sources:ro]
+    volumes: [/var/lib/svitlo-stage/unresolved-addresses:/app-logs,/etc/svitlo/search/api:/run/search:ro,/etc/svitlo/billing/api:/run/billing:ro,/etc/svitlo/sources/api:/run/sources:ro,/etc/svitlo/notifications/api:/run/notifications:ro]
     profiles: [second-slot]
   worker:
     <<: *runtime
     environment:
       <<: *environment
       SOURCE_HISTORY_ENABLED: 'true'
-    volumes: [/etc/svitlo/search/worker:/run/search:ro,/etc/svitlo/billing/worker:/run/billing:ro,/etc/svitlo/sources/worker:/run/sources:ro]
+    volumes: [/etc/svitlo/search/worker:/run/search:ro,/etc/svitlo/billing/worker:/run/billing:ro,/etc/svitlo/sources/worker:/run/sources:ro,/etc/svitlo/notifications/worker:/run/notifications:ro]
     command: [node,--use-system-ca,vps/worker.mjs]
     secrets: [worker_password,session_secret,pilot_vapid]
     healthcheck: {disable: true}

@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {NotificationService,notificationKey} from './notifications/service.js';
 import {redirectTarget} from './redirects.js';
 import {readFile,stat} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
@@ -22,6 +23,7 @@ import {metrics,permitsMetrics} from './observability/metrics.js';
 const rt=await runtime(),sessionPool=pool('session',2),sessions=new Sessions(sessionPool,rt.secret,{secure:process.env.SVITLO_SESSION_SECURE==='true'});
 const identity=new IdentityService({pool:sessionPool,provider:configuredGoogle(),sessions});
 const billing=new BillingService({bridge:rt.bridge,vault:configuredVault(),packageName:process.env.GOOGLE_PLAY_PACKAGE||'',products:(process.env.GOOGLE_PLAY_PRODUCTS||'').split(',').filter(Boolean),pushProof:new PubSubProof({audience:process.env.GOOGLE_PLAY_RTDN_AUDIENCE||'',email:process.env.GOOGLE_PLAY_RTDN_EMAIL||'',subscription:process.env.GOOGLE_PLAY_RTDN_SUBSCRIPTION||''})});
+const notifications=new NotificationService({bridge:rt.bridge,key:notificationKey(),channels:{webpush:rt.delivery==='pilot-enabled',fcm:!!process.env.FIREBASE_PROJECT_ID}});
 const telemetry=new Telemetry(rt.bridge,rt.secret);
 const sensorSecret=(await readFile('/run/secrets/sensor_access_secret','utf8')).trim();
 if(!/^[a-f0-9]{64}$/.test(sensorSecret))throw Error('Sensor access secret unavailable');
@@ -128,6 +130,10 @@ const server=http.createServer(async(req,res)=>{
       if(!s)return json(res,401,{error:'Потрібна сесія'});
       if(req.method!=='POST')return json(res,405,{error:'Method not allowed'});
       if(!sessions.validCsrf(req,s))return json(res,403,{error:'CSRF rejected'});
+      if(path==='/api/v1/notifications'){
+        if(url.search)throw problem(400,'query_not_allowed');if(!budget('notifications:'+s.owner,60))throw problem(429,'notification_rate_limited','rate');
+        const data=await body(req,12000);return json(res,200,await ownerContext.run(s.owner,()=>notifications.handle(s,data)));
+      }
       if(path==='/api/v1/billing'){
         if(url.search)throw problem(400,'query_not_allowed');if(!budget('billing:'+s.owner,30))throw problem(429,'billing_rate_limited','rate');
         const data=await body(req,6000);return json(res,200,await ownerContext.run(s.owner,()=>billing.handle(s.owner,data)));

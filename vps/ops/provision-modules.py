@@ -17,7 +17,7 @@ def private(path,value,uid=0):
  with os.fdopen(fd,'w') as f:f.write(value+'\n')
  os.chown(path,uid,uid);return value
 def prepare():
- for kind in ['search','billing','sources']:
+ for kind in ['search','billing','sources','notifications']:
   directory=S/kind;marker=directory/'.arch-mod-01'
   if directory.exists() and not marker.exists():raise RuntimeError('Unowned module directory: '+kind)
   directory.mkdir(mode=0o755,exist_ok=True);private(marker,'ARCH-MOD-01')
@@ -29,6 +29,9 @@ def prepare():
  purchase=private(S/'billing/purchase-key',secrets.token_hex(32))
  for role in ['api','worker']:
   if private(S/('billing/'+role+'/purchase-key'),purchase,1000)!=purchase:raise RuntimeError('Purchase encryption key mismatch')
+ delivery=private(S/'notifications/delivery-key',secrets.token_hex(32))
+ for role in ['api','worker']:
+  if private(S/('notifications/'+role+'/delivery-key'),delivery,1000)!=delivery:raise RuntimeError('Notification encryption key mismatch')
  data=Path('/var/lib/svitlo-search');data.mkdir(mode=0o700,exist_ok=True);os.chown(data,1000,1000)
  prepare_report={'prepared':True,'generatedCredentialsPrinted':False,'paidModeChanged':False};return prepare_report
 class NoRedirect(urllib.request.HTTPRedirectHandler):
