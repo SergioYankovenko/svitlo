@@ -1,0 +1,29 @@
+[global]
+repo1-type=posix
+repo1-path=/var/lib/pgbackrest/repository
+repo1-retention-full=2
+repo1-cipher-type=aes-256-cbc
+# repo1-cipher-pass comes from the mounted private config, never this example.
+start-fast=y
+process-max=1
+compress-type=zst
+compress-level=3
+log-level-console=warn
+log-level-file=off
+archive-async=n
+
+[svitlo]
+pg1-path=/var/lib/postgresql/data
+pg1-user=svitlo_owner
+pg1-database=svitlo_staging
+pg1-socket-path=/var/run/postgresql
+
+# Enable repo2 only after an owned bucket and its credentials are provisioned.
+# repo2-type=s3
+# repo2-path=/svitlo/postgres
+# repo2-s3-endpoint=<provider endpoint>
+# repo2-s3-bucket=<owned bucket>
+# repo2-s3-region=<region>
+# repo2-retention-full=4
+# repo2-cipher-type=aes-256-cbc
+# repo2-s3-key / repo2-s3-key-secret / repo2-cipher-pass are private config.

@@ -48,7 +48,7 @@ jobs:
       - run: node --test vps/identity/*.test.mjs
       - run: node --test vps/modules/*.test.mjs
       - run: node --test vps/billing/*.test.mjs
-      - run: node --test vps/planning/*.test.mjs
+      - run: node --test vps/planning/*.test.mjs vps/notifications/*.test.mjs vps/migration/*.test.mjs vps/charging/*.test.mjs
       - run: node admin/build.mjs
       - run: node --test vps/search/*.test.mjs
       - run: node vps/search/ci.mjs
@@ -65,5 +65,28 @@ jobs:
         with:
           name: vps-stage-${{ github.sha }}
           path: artifact/
+          retention-days: 1
+          compression-level: 0
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Build PostgreSQL extensions outside VPS
+        run: |
+          docker build --build-arg SOURCE_COMMIT="$GITHUB_SHA" -f vps/database/Dockerfile -t svitlo-database-ci:artifact .
+          docker run -d --name database-module-qa -e POSTGRES_HOST_AUTH_METHOD=trust svitlo-database-ci:artifact -c shared_preload_libraries=pg_stat_statements
+          for attempt in $(seq 1 30); do if docker exec database-module-qa pg_isready -U postgres; then break; fi; sleep 1; done
+          docker exec database-module-qa psql -v ON_ERROR_STOP=1 -U postgres -c 'create extension postgis; create extension pg_stat_statements; select postgis_version(); select count(*) from pg_stat_statements;'
+          mkdir database-artifact
+          docker save svitlo-database-ci:artifact | gzip > database-artifact/image.tar.gz
+          docker image inspect svitlo-database-ci:artifact --format '{{.Id}}' > database-artifact/image-id.txt
+          docker exec database-module-qa pgbackrest version > database-artifact/pgbackrest-version.txt
+          sha256sum database-artifact/image.tar.gz > database-artifact/SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: database-modules-${{ github.sha }}
+          path: database-artifact/
           retention-days: 1
           compression-level: 0

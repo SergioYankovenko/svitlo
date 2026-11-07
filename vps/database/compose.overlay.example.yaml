@@ -1,0 +1,9 @@
+# Applied only with a tested immutable database image and a recovery receipt.
+services:
+  postgres:
+    image: ${SVITLO_DATABASE_IMAGE:?Exact CI image ID required}
+    command: [postgres,-c,shared_preload_libraries=pg_stat_statements,-c,pg_stat_statements.track=top,-c,pg_stat_statements.track_utility=off,-c,archive_mode=on,-c,archive_timeout=60s,-c,"archive_command=pgbackrest --stanza=svitlo archive-push %p"]
+    volumes:
+      - /etc/svitlo/pgbackrest:/etc/pgbackrest:ro
+      - /var/lib/svitlo-pgbackrest:/var/lib/pgbackrest
+    stop_grace_period: 90s
