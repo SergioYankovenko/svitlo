@@ -4,7 +4,7 @@ import {retainPublishedDays} from './core/lib/universal-history.js';
 import {createBackgroundAddresses} from './core/lib/background-addresses.js';
 import {subscribeWithTimeout} from './live-push.js';
 import {rememberReloadView,takeReloadView} from './reload-state.js';
-import {identity,ensureIdentity,request,universalRequest,sensorRequest,onIdentityChange} from './core/api.js';
+import {identity,ensureIdentity,request,universalRequest,sensorRequest,onIdentityChange,identityRequest,confirmRotatedIdentity} from './core/api.js';
 import {scheduleFor,contextFor,profileView,labels,officialSource,refreshDeadline,planView,summaryVisible,canSharePlan,planClock} from './live-model.js';
 import {dayKey,clock,stamp} from './core/lib/time.js';
 import {sensorSignalView} from './core/lib/map-sensor.js';
@@ -143,9 +143,13 @@ export async function createLive(){
     profile:current,profiles:()=>profiles,owner:()=>owner,sensors:()=>sensors,sensorFetched:()=>sensorFetched,signalView:sensorSignalView,refreshSensors,
     sensor:async(action,data,options={})=>{const who=await session(true);try{return await sensorRequest(action,data,{owner:who,...options});}catch(error){if(action==='connect_qr')error.message=sensorConnectError(error);throw error;}},
     capabilities:()=>cap,elapsedMinutes:()=>{const d=scheduleFor(current(),dayKey());return (Date.now()-d.from)/60000;},
+    async startGoogle(mode){const who=await session(true);return {owner:who,...await identityRequest('challenge',{mode},{owner:who})};},
+    async completeGoogle(challenge,credential){return identityRequest('complete',{nonce:challenge.nonce,idToken:credential},{owner:challenge.owner});},
+    async confirmGoogle(challenge,reviewToken){return identityRequest('confirm_switch',{reviewToken,confirmed:true},{owner:challenge.owner});},
+    async finishGoogle(result){await confirmRotatedIdentity(result);await session(false);await sync();},
     openSource(preferred){const url=officialSource(current(),preferred);if(url)window.open(url,'_blank','noopener');},
     async diagnostic(packet,signal){const who=await session(true);const response=await fetch('/api/session',{credentials:'same-origin',cache:'no-store',signal});const body=await response.json();if(body.session?.user?.id!==who)throw Error('Сеанс змінився');const r=await fetch('/api/v1/diagnostic-reports',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Svitlo-CSRF':body.session.csrf_token,'X-Svitlo-Diagnostic-Consent':packet.reportId},body:JSON.stringify(packet),signal});if(!r.ok)throw Error('Не вдалося надіслати звіт');return r.json();},
-    start(){sync().catch(()=>{});universalRequest('capabilities').then(v=>cap=v).catch(()=>{});refreshSensors().catch(()=>{});
+    start(){sync().catch(()=>{});universalRequest('capabilities').then(v=>{cap=v;if(v.identity?.google||v.charging?.enabled)emit();}).catch(()=>{});refreshSensors().catch(()=>{});
       const refresh=()=>{if(!document.hidden&&Date.now()>=retryAfter&&(!lastSync||Date.now()>=refreshDeadline(current(),lastSync)))sync().catch(()=>{});if(!document.hidden&&Date.now()-sensorFetched>=60000)refreshSensors().catch(()=>{});};
       setInterval(refresh,60000);document.addEventListener('visibilitychange',refresh);window.addEventListener('online',()=>sync().catch(()=>{}));
       // The notification already contains identity. Reading auth again here would recurse.

@@ -32,6 +32,14 @@ async function privateVps(route,data,{owner,signal}={}){
 }
 export const notificationRequest=(action,data={},options)=>privateVps('notifications',{action,...data},options);
 export const identityRequest=(action,data={},options)=>privateVps('identity',{action,...data},options);
+export async function confirmRotatedIdentity(result){
+  if(!universalEnabled||result?.state!=='authenticated'||!result.account?.accountId||!result.session?.csrf_token)throw recoveryErrorForIdentity();
+  await sessionController.invalidate();
+  const current=await sessionController.read();
+  if(current?.user.id!==result.account.accountId||current.csrf_token!==result.session.csrf_token)throw recoveryErrorForIdentity();
+  return current.user.id;
+}
+const recoveryErrorForIdentity=()=>Error('Не вдалося перевірити нову сесію. Спробуйте ще раз.');
 export const billingRequest=(action,data={},options)=>privateVps('billing',{action,...data},options);
 export const migrationRequest=(action,data={},options)=>privateVps('migration',{action,...data},options);
 export const mapSearch=(data,options)=>privateVps('map-search',data,options);

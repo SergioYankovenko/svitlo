@@ -33,7 +33,7 @@ try{
  const prefixes=[];
  for(const q of ['','с','к','ч','п','м','в','л'])if(indexed((await post({kind:'cities',q,limit:2})).value))prefixes.push(q);
  assert(prefixes.length>=2,'Meili index path not proven');
- const times=[],active=new Set();let exactCorrect=0,indexedCorrect=0,firstError;const start=performance.now();
+ const times=[],exactTimes=[],indexedTimes=[],active=new Set();let exactCorrect=0,indexedCorrect=0,firstError;const start=performance.now();
  for(let i=0;i<400;i++){
   const wait=start+i*50-performance.now();if(wait>0)await sleep(wait);
   if(active.size>=8)await Promise.race(active);if(firstError)throw firstError;
@@ -42,13 +42,15 @@ try{
    const {ms,value}=await post(isExact?{kind:'houses',parentId:e.parent_id,q:e.label,limit:20}:{kind:'cities',q:prefixes[Math.floor(i/2)%prefixes.length],limit:2});
    if(isExact){assert(value.items.some(x=>x.id===e.id));assert(value.items.every(x=>x.house.normalize('NFC').trim().toLocaleLowerCase('uk-UA')===e.label.normalize('NFC').trim().toLocaleLowerCase('uk-UA')));exactCorrect++;}
    else{assert(indexed(value));indexedCorrect++;}
-   times.push(ms);
+   times.push(ms);(isExact?exactTimes:indexedTimes).push(ms);
   })().catch(e=>{firstError??=e;}).finally(()=>active.delete(job));active.add(job);
  }
  await Promise.all(active);if(firstError)throw firstError;
- const duration=performance.now()-start;times.sort((a,b)=>a-b);const p95ms=Math.round(times[Math.floor(times.length*.95)]);
+ const duration=performance.now()-start;
+ const p95=values=>Math.round(values.sort((a,b)=>a-b)[Math.floor(values.length*.95)]);
+ const p95ms=p95(times);
  assert.equal(exactCorrect,200);assert.equal(indexedCorrect,200);
- const report={status:p95ms<=200?'pass':'threshold_missed',measurement:'full-http-api',requestsPerSecond:20,elapsedMs:Math.round(duration),p95ms,
+ const report={status:p95ms<=200&&duration<=20500?'pass':'threshold_missed',measurement:'full-http-api',requestsPerSecond:20,observedRequestsPerSecond:Math.round(times.length/duration*10000)/10,elapsedMs:Math.round(duration),p95ms,exactP95ms:p95(exactTimes),indexedP95ms:p95(indexedTimes),
   exactCases:200,exactCorrect,indexedCases:200,indexedCorrect,providerRequests:0,productionDataWritten:false};
  await writeFile('/qa-output/report.json',JSON.stringify(report));console.log(JSON.stringify(report));
 }finally{if(api.exitCode===null){api.kill('SIGTERM');await new Promise(resolve=>api.once('exit',resolve));}await db.end();}

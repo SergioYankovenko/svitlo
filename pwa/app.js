@@ -441,7 +441,7 @@
 
   function home() {
     if (wizard) return setup();
-    if (needsAddress()) return journey.welcome(scheduleCard(true));
+    if (needsAddress()) return journey.welcome(scheduleCard(true)) + (live.capabilities()?.identity?.google ? '<button class="action" data-action="google-restore">Відновити акаунт через Google</button>' : "");
     const a = address();
     const lineGuide=lineGuideActive();if(lineGuide)expanded=true;
     const city = a.city,
@@ -593,7 +593,7 @@
         ? home()
         : tab === "messages"
           ? (sensor?.messagesHTML() || "") + messages()
-          : optionEntryCards() + options();
+          : optionEntryCards() + accountAndCharging() + options();
     window.SvitloMascot?.sync();
     window.SvitloNativeUI?.fit();
     app.classList.toggle("in-onboarding", !!onboarding?.active());
@@ -648,7 +648,9 @@
     $("status").innerHTML = `<div class="status-message">${esc(text)}</div>`;
     toastTimer = setTimeout(() => $("status").replaceChildren(), 2500);
   }
+  let googleFlow=0;
   function closeDialog() {
+    googleFlow++;
     window.SvitloSensorScanner?.dispose();
     window.SvitloSensorOverview?.dispose();
     diagnostics?.cancel();
@@ -743,6 +745,46 @@
     const intervals = merged.map((e) => `${live.planClock(d,e.start)}–${live.planClock(d,e.end)}`);
     return `Графік · ${date.getUTCDate()} ${monthNames[date.getUTCMonth()]}${address().queue ? " · Черга " + address().queue : ""}\n${d.unknown ? "Немає точних даних" : `Зі світлом: ${duration(d.clear)}\nБез світла: ${duration(d.out)}`}\n${intervals.join(", ")}\n-----------------\nВстановити собі\nhttps://www.svitlo.guru`;
   }
+  function accountAndCharging(){
+    return (live.capabilities()?.identity?.google?'<section class="card outlined"><h2>Акаунт</h2><div class="actions"><button class="action" data-action="google-link">Пов’язати з Google</button><button class="action" data-action="google-restore">Увійти до іншого акаунта</button></div></section>':'')+
+      (live.capabilities()?.charging?.enabled?'<section class="card outlined"><a class="action" href="./charging.html">Карта зарядок</a></section>':'');
+  }
+  async function openGoogle(mode) {
+    if(!live.capabilities()?.identity?.google)return;
+    const token=++googleFlow;
+    dialog('Акаунт Google','<div id="google-signin" role="status">Підключення до Google…</div>','<button class="action" data-action="close">Скасувати</button>');
+    const slot=$('google-signin');
+    try{
+      const {loadGoogleIdentity}=await import('./google-account.js');
+      const [challenge,google]=await Promise.all([live.startGoogle(mode),loadGoogleIdentity()]);
+      if(token!==googleFlow||!slot?.isConnected)return;
+      if(!/^[A-Za-z0-9_-]{43}$/.test(challenge.nonce)||!(/^[A-Za-z0-9._-]+[.]apps[.]googleusercontent[.]com$/).test(challenge.serverClientId))throw Error('Вхід поки недоступний');
+      let submitted=false;
+      const finish=async result=>{
+        await live.finishGoogle(result);
+        if(token===googleFlow){closeDialog();toast('Ви увійшли до акаунта');}
+      };
+      google.initialize({client_id:challenge.serverClientId,nonce:challenge.nonce,ux_mode:'popup',auto_select:false,callback:async value=>{
+        if(token!==googleFlow||!slot.isConnected||submitted||typeof value.credential!=='string'||value.credential.length>12000)return;
+        submitted=true;
+        try{
+          const result=await live.completeGoogle(challenge,value.credential);
+          if(result.state!=='confirmation_required'){await finish(result);return;}
+          if(token!==googleFlow||!slot.isConnected)return;
+          dialog('Перейти до іншого акаунта','<p>Поточні адреси й доступи лишаться у своєму акаунті. Об’єднання акаунтів не виконується.</p>',
+            '<button class="action primary" id="google-confirm">Перейти до акаунта</button><button class="action" data-action="close">Скасувати</button>');
+          $('google-confirm').addEventListener('click',async event=>{
+            if(token!==googleFlow)return;
+            event.currentTarget.disabled=true;
+            try{await finish(await live.confirmGoogle(challenge,result.reviewToken));}
+            catch{if(token===googleFlow){closeDialog();toast('Не вдалося підтвердити вхід');}}
+          },{once:true});
+        }catch{if(token===googleFlow){closeDialog();toast('Не вдалося підтвердити вхід');}}
+      }});
+      slot.replaceChildren();
+      google.renderButton(slot,{theme:'outline',size:'large',text:'continue_with',locale:'uk'});
+    }catch{if(token===googleFlow&&slot?.isConnected)slot.textContent='Не вдалося відкрити вхід. Спробуйте пізніше.';}
+  }
   async function action(name, element) {
     try { return await performAction(name, element); } catch(error) { toast(error.message || "Не вдалося виконати дію. Спробуйте ще раз."); }
   }
@@ -752,6 +794,8 @@
     if (onboarding?.handleAction(name, element)) return;
     const id = element?.dataset.id;
     switch (name) {
+      case "google-link": await openGoogle("link"); break;
+      case "google-restore": await openGoogle("sign_in"); break;
       case "guide-start":
         state.guideTour = {
           status: "active",

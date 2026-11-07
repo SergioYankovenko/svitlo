@@ -54,10 +54,24 @@ class NextApi(context:Context){
             return json
         }finally{conn.disconnect()}
     }
-    fun owned(path:String,data:JSONObject):JSONObject=synchronized(privateLock){
+    fun owned(path:String,data:JSONObject,expectedOwner:String?=null):JSONObject=synchronized(privateLock){
         if(vault.read("csrf")==null||vault.read("cookie")==null){val session=call("/api/session",JSONObject(),true).getJSONObject("session");vault.write("csrf",session.getString("csrf_token"));vault.write("subject",session.getJSONObject("user").getString("id"))}
-        try{call(path,data,true)}catch(e:NextApiException){if(e.status==401){vault.write("csrf",null);vault.write("cookie",null)};throw e}
+        if(expectedOwner!=null&&expectedOwner!=vault.read("subject"))throw NextApiException(409,code="identity_changed")
+        try{
+            val result=call(path,data,true)
+            if(path=="/api/v1/identity"&&result.optString("state")=="authenticated"){
+                val session=result.getJSONObject("session");val owner=session.getJSONObject("user").getString("id")
+                val csrf=session.getString("csrf_token")
+                if(!UUID_RE.matches(owner)||!csrf.matches(Regex("[a-f0-9]{64}"))||result.getJSONObject("account").getString("accountId")!=owner){
+                    vault.write("csrf",null);vault.write("cookie",null);vault.write("subject",null);throw NextApiException(503,code="invalid_identity_session")
+                }
+                vault.write("csrf",csrf);vault.write("subject",owner)
+            }
+            result
+        }catch(e:NextApiException){if(e.status==401&&!(path=="/api/v1/identity"&&e.code in setOf("identity_proof_rejected","identity_challenge_expired"))){vault.write("csrf",null);vault.write("cookie",null);vault.write("subject",null)};throw e}
     }
+    fun identity(action:String,data:JSONObject=JSONObject(),owner:String?=null)=owned("/api/v1/identity",data.put("schemaVersion",1).put("action",action),owner)
+    fun billing(action:String,data:JSONObject=JSONObject(),owner:String?=null)=owned("/api/v1/billing",data.put("schemaVersion",1).put("action",action),owner)
     fun sensors(action:String,fields:JSONObject=JSONObject())=owned("/api/v1/sensors",fields.put("schemaVersion",1).put("action",action))
     fun search(kind:String,parent:String?,q:String,cursor:String?=null):JSONObject=call("/api/v1/search",JSONObject().put("schemaVersion",1).put("kind",kind).put("q",q.take(120)).put("limit",50).apply{if(parent!=null)put("parentId",parent);if(cursor!=null)put("cursor",cursor)})
     fun resolve(address:String,line:String?=null)=call("/api/v1/resolve",JSONObject().put("schemaVersion",1).put("addressId",address).apply{if(line!=null)put("lineId",line)})
@@ -109,6 +123,33 @@ class NextRepository(context:Context){
         val selected=active()?.id;val saved=save(profile.copy(serverId=id));if(selected!=null)select(selected);return saved
     }
     fun ownerSubscription():MainAppSubscription {val value=MainAppSubscription.parse(api.sensors("entitlement"));check(prefs.edit().putLong("premiumUntil",if(value.active)value.validUntil?.toEpochMilli()?:0 else 0).commit());return value}
+    fun synchronizeAccountHomes(){
+        val owner=api.vault.read("subject") ?: throw NextApiException(401)
+        val existing=api.owned("/api",JSONObject().put("action","bootstrap"),owner).getJSONArray("profiles").objects()
+        val savedHomes=existing.mapNotNull{it.optJSONObject("address")?.optString("canonicalAddressId")}.toSet()
+        for(profile in profiles().filter{!it.mapOnly&&it.addressId !in savedHomes}.distinctBy{it.addressId}){
+            api.owned("/api",JSONObject().put("action","save").put("confirmed",true).put("name",profile.name)
+                .put("address",JSONObject().put("canonicalAddressId",profile.addressId)),owner)
+        }
+        val remote=api.owned("/api",JSONObject().put("action","bootstrap"),owner).getJSONArray("profiles").objects()
+        val restored=remote.mapNotNull {row ->
+            val address=row.optJSONObject("address") ?:return@mapNotNull null
+            val house=address.optString("canonicalAddressId");val line=address.optString("lineId").takeIf{UUID_RE.matches(it)}
+            val id=row.optString("id");if(!UUID_RE.matches(id)||!UUID_RE.matches(house))return@mapNotNull null
+            val city=address.optString("city");val street=address.optString("street");val number=address.optString("house")
+            val label=listOf(city,street,number).filter{it.isNotBlank()}.joinToString(", ").ifBlank{"Збережена адреса"}
+            NextProfile(id,row.optString("name"),house,line,label,city,street,number,address.optString("operatorId"),id)
+        }
+        synchronized(lock){
+            if(api.vault.read("subject")!=owner)throw NextApiException(409,code="identity_changed")
+            val local=profiles();val byKey=local.associateBy{it.addressId to it.lineId}
+            val merged=restored.map{r->byKey[r.addressId to r.lineId]?.copy(serverId=r.serverId)?:r}+
+                local.filter{l->restored.none{r->r.addressId==l.addressId&&r.lineId==l.lineId}}
+            val selected=active()?.id?.takeIf{id->merged.any{it.id==id}}?:merged.firstOrNull()?.id
+            check(prefs.edit().putString("profiles",JSONArray(merged.map{it.json()}).toString()).putString("active",selected).commit())
+        }
+        ownerSubscription();loadMemberships()
+    }
     fun memberships():List<JSONObject> = runCatching{JSONArray(api.vault.read("memberships") ?: "[]").objects()}.getOrDefault(emptyList())
     fun loadMemberships():List<JSONObject>{val result=api.sensors("list");require(result.get("complete")==true);val list=result.getJSONArray("sensors");require(list.length()<=320);val incoming=list.objects();for(m in incoming){require(UUID_RE.matches(m.getString("sensorId"))&&m.getString("role") in setOf("owner","viewer")&&m.get("bindingEpoch") is Number&&m.getLong("bindingEpoch") in 1..999999999)};for(old in memberships())if(incoming.none{it.getString("sensorId")==old.getString("sensorId")&&it.getLong("bindingEpoch")==old.getLong("bindingEpoch")})clearSensorCache(old);api.vault.write("memberships",list.toString());return incoming}
     private fun clearSensorCache(m:JSONObject){val id=m.getString("sensorId");api.vault.write("signal-$id",null);api.vault.removePrefix("overview-$id-")}

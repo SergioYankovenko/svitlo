@@ -44,8 +44,10 @@ function json(res,status,data,reason){if(res.telemetryMeta)telemetry.reject({...
 async function body(req,limit=16384,legacyLimit=0){let size=0,parts=[];for await(const c of req){size+=c.length;if(size<=limit)parts.push(c);}if(size>limit)throw problem(413,'payload_too_large','size');let value;try{value=JSON.parse(Buffer.concat(parts).toString());}catch{if(legacyLimit&&size>legacyLimit)throw problem(413,'payload_too_large','size');throw problem(400,'invalid_json');}if(legacyLimit&&value?.schemaVersion!==3&&size>legacyLimit)throw problem(413,'payload_too_large','size');if(!value||typeof value!=='object'||Array.isArray(value))throw problem(400,'invalid_json');return value;}
 const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Robots-Tag','noindex, nofollow');res.setHeader('X-Content-Type-Options','nosniff');
-  res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Cross-Origin-Resource-Policy','same-origin');
-  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://tiles.openfreemap.org; font-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+  const allowGoogle=identity.provider.configured&&req.method==='GET'&&/^\/app\/(?:index\.html)?(?:\?.*)?$/.test(req.url);
+  res.setHeader('Referrer-Policy',allowGoogle?'strict-origin-when-cross-origin':'no-referrer');res.setHeader('Cross-Origin-Resource-Policy','same-origin');
+  if(allowGoogle)res.setHeader('Cross-Origin-Opener-Policy','same-origin-allow-popups');
+  res.setHeader('Content-Security-Policy',`default-src 'self'; script-src 'self'${allowGoogle?' https://accounts.google.com/gsi/client':''}; style-src 'self' 'unsafe-inline'${allowGoogle?' https://accounts.google.com/gsi/style':''}; img-src 'self' data:; connect-src 'self' https://tiles.openfreemap.org${allowGoogle?' https://accounts.google.com/gsi/':''}; font-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'${allowGoogle?'; frame-src https://accounts.google.com/gsi/':''}`);
   const start=Date.now();let path,leave=()=>{};
   res.once('finish',()=>metrics.http(path,res.statusCode,(Date.now()-start)/1000));
   try{

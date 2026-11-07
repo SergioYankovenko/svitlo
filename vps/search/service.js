@@ -10,9 +10,21 @@ export class AddressSearch {
   const {signature,...data}=value;if(typeof signature!=='string'||!/^[a-f0-9]{64}$/.test(signature)||!timingSafeEqual(Buffer.from(signature),Buffer.from(this.signature(data)))||data.kind!==query.kind||data.parentId!==query.parentId||data.q!==query.q||data.engine==='meili'&&(!Number.isInteger(data.offset)||data.offset<0||data.offset>20000)||data.engine==='exact'&&(typeof data.lastLabel!=='string'||typeof data.lastId!=='string'))throw invalidCursor();return data;
  }
  async exact(query,limit,after){
-  const rows=(await this.bridge.query(`select e.*,case when e.kind='city' then svitlo_vps.catalog_city_state(e.id) end route_state
-   from svitlo_vps.catalog e where e.kind=$1 and e.parent_id is not distinct from $2::uuid and e.redirect_to is null
-    and (svitlo_search.search_key(e.label)=svitlo_search.search_key($3) or ($1<>'address' and exists(select from svitlo_catalog.name_aliases a where a.entity_id=e.id and a.reviewed and a.valid_from<=now() and (a.valid_until is null or a.valid_until>now()) and svitlo_search.search_key(a.label)=svitlo_search.search_key($3))))
+  // The label and approved alias paths have separate expression indexes. An
+  // OR across those paths makes PostgreSQL walk the entire catalogue first.
+  const parent=query.parentId?'candidate.parent_id=$2::uuid':'candidate.parent_id is null and $2::uuid is null';
+  const rows=(await this.bridge.query(`with matches as materialized (
+    select candidate.id from svitlo_vps.catalog candidate
+    where candidate.kind=$1 and ${parent} and candidate.redirect_to is null
+      and svitlo_search.search_key(candidate.label)=svitlo_search.search_key($3)
+    union
+    select a.entity_id from svitlo_catalog.name_aliases a
+    where $1<>'address' and a.reviewed and a.valid_from<=now() and (a.valid_until is null or a.valid_until>now())
+      and svitlo_search.search_key(a.label)=svitlo_search.search_key($3)
+   )
+   select e.*,case when e.kind='city' then svitlo_vps.catalog_city_state(e.id) end route_state
+   from matches m join svitlo_vps.catalog e on e.id=m.id
+   where e.kind=$1 and e.parent_id is not distinct from $2::uuid and e.redirect_to is null
     and e.operator_id is distinct from 'map-only' and svitlo_vps.catalog_allowed(e.id)
     and (e.metadata->>'regionOperator' is null or coalesce(e.metadata->>'sourceActive','true')<>'false')
     and (e.kind<>'city' or svitlo_vps.catalog_city_state(e.id)<>'empty')

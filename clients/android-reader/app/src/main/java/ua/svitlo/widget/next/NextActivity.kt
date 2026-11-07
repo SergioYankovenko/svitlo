@@ -33,6 +33,8 @@ class NextActivity:Activity(){
     private var weatherHost:LinearLayout?=null;private var weatherFor:String?=null;private var tour:NativeTour?=null;private var supportHint:NativeSupportHint?=null;private var closed=false;private var refreshPending=false
     private var homeRoot:LinearLayout?=null;private var lastSnapshotRevision:String?=null;private var observationPending=false;private var lastSensorPoll=0L;private var transition=0;private var versionPending=false
     private var foreground=false
+    private var googleAvailable=false;private var playAvailable=false;private var commerceCheckedAt=0L;private var commercePending=false
+    private var googleAccount:NextGoogleAccount?=null;private var playBilling:NextPlayBilling?=null
     private val ticker=object:Runnable{override fun run(){if(closed)return;if(foreground&&!journey&&tab=="home"){val signature=daySignature();if(signature!=lastSnapshotRevision){updateDay(false);refreshTabs()};updateHeader();refreshLiveTiles();if(repo.refreshDue())refresh(false);loadSensors(false);loadHomeObservation()};handler.postDelayed(this,30000)}}
     override fun attachBaseContext(base:Context){super.attachBaseContext(AppAppearance.context(base))}
     override fun onCreate(saved:Bundle?){super.onCreate(saved);repo=NextRepository(this);u=NextUi(this);window.statusBarColor=u.p.background;window.navigationBarColor=u.p.background;window.decorView.systemUiVisibility=if(AppAppearance.light(this))View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR else 0
@@ -45,17 +47,45 @@ class NextActivity:Activity(){
         if(repo.api.ready()){refresh(false);loadSensors(false)}
     }
     override fun onSaveInstanceState(out:Bundle){out.putString("tab",tab);out.putString("date",date.toString());super.onSaveInstanceState(out)}
-    override fun onResume(){super.onResume();foreground=true;NextNotices.retryPending(this);if(::repo.isInitialized){loadVersion();if(repo.api.ready()&&repo.profiles().isNotEmpty())refresh(false)};if(::frame.isInitialized)frame.post{if(!closed&&!journey&&tour==null&&repo.prefs.getString("tour",null)=="active"){tour=NativeTour(this,frame,repo,::tourNavigate){tour=null};tour?.start()}else if(!journey&&tab=="home")prepareSupportHint()}}
+    override fun onResume(){super.onResume();foreground=true;NextNotices.retryPending(this);if(::repo.isInitialized){loadVersion();loadCommerce();playBilling?.refreshOnResume();if(repo.api.ready()&&repo.profiles().isNotEmpty())refresh(false)};if(::frame.isInitialized)frame.post{if(!closed&&!journey&&tour==null&&repo.prefs.getString("tour",null)=="active"){tour=NativeTour(this,frame,repo,::tourNavigate){tour=null};tour?.start()}else if(!journey&&tab=="home")prepareSupportHint()}}
     override fun onNewIntent(value:Intent){super.onNewIntent(value);intent=value;value.getStringExtra("profile")?.let{runCatching{repo.select(it)}};value.getStringExtra("date")?.let{runCatching{date=LocalDate.parse(it);week=date.with(DayOfWeek.MONDAY)}};tab="home";render();refresh(false)}
     override fun onPause(){foreground=false;if(::repo.isInitialized&&journey)saveJourney();supportHint?.close();supportHint=null;SensorWindows.pause(this);super.onPause()}
     override fun onWindowFocusChanged(hasFocus:Boolean){super.onWindowFocusChanged(hasFocus);if(!hasFocus){supportHint?.close();supportHint=null}else if(::repo.isInitialized&&!journey&&tab=="home")prepareSupportHint()}
-    override fun onDestroy(){closed=true;generation++;lookupSequence++;handler.removeCallbacksAndMessages(null);tour?.close();SensorWindows.close(this);executor.shutdownNow();super.onDestroy()}
+    override fun onDestroy(){closed=true;generation++;lookupSequence++;handler.removeCallbacksAndMessages(null);tour?.close();googleAccount?.close();playBilling?.close();SensorWindows.close(this);executor.shutdownNow();super.onDestroy()}
     override fun onRequestPermissionsResult(requestCode:Int,permissions:Array<out String>,grantResults:IntArray){super.onRequestPermissionsResult(requestCode,permissions,grantResults);if(requestCode==941)SensorWindows.permission(this,grantResults.firstOrNull()==PackageManager.PERMISSION_GRANTED);if(requestCode==91&&journey&&journeyPhase=="preferences"){preferencePermission=NextNotices.allowed(this);preferencesStep()}}
     @Deprecated("native back") override fun onBackPressed(){when{tour!=null->{tour?.dismiss();tour=null};journey->{lookupSequence++;busy=false;pendingProfile=null;repo.prefs.edit().remove("journeyDraft").remove("journey").commit();journey=false;if(repo.profiles().isEmpty())welcome()else render()};tab!="home"->{tab="home";render()};else->super.onBackPressed()}}
     private fun async(block:()->Unit){executor.submit{try{block()}catch(_:InterruptedException){}catch(e:Exception){runOnUiThread{if(!closed)toast(e.message?.takeIf{it.length<160} ?:"Не вдалося виконати дію")}}}}
     private fun loadVersion(){if(versionPending)return;versionPending=true;val old=NextNotices.items(this).map{it.getString("id")};executor.submit{try{NextWork.scheduleVersionRetry(this,NextWork.checkVersion(this))}catch(_:Exception){}finally{ui{versionPending=false;if(!journey&&tab=="messages"&&old!=NextNotices.items(this).map{it.getString("id")})render()}}}}
     private fun ui(block:()->Unit){runOnUiThread{if(!closed)block()}}
     private fun toast(message:String){Toast.makeText(this,message,Toast.LENGTH_SHORT).show()}
+    private fun loadCommerce(){
+        val now=SystemClock.elapsedRealtime()
+        if(!repo.api.ready()||commercePending||commerceCheckedAt>0&&now-commerceCheckedAt<60000)return
+        commercePending=true;commerceCheckedAt=now
+        executor.submit {
+            val result=runCatching { repo.api.call("/api/v1/capabilities") }.getOrNull()
+            ui {
+                commercePending=false
+                val google=result?.optJSONObject("identity")?.optBoolean("google")==true
+                val play=result?.optJSONObject("billing")?.let{it.optBoolean("ready")&&it.optBoolean("accepting")}==true
+                val changed=google!=googleAvailable||play!=playAvailable
+                googleAvailable=google;playAvailable=play
+                if(changed&&!journey&&tour==null){
+                    if(repo.profiles().isEmpty())welcome() else if(tab=="options")render()
+                }
+            }
+        }
+    }
+    private fun google(restore:Boolean){
+        val controller=googleAccount?:NextGoogleAccount(this,repo,::async,::ui,::toast){
+            if(repo.profiles().isEmpty())welcome()else{render();refresh(true);loadSensors(true)}
+        }.also{googleAccount=it}
+        controller.open(restore)
+    }
+    private fun billing(restore:Boolean){
+        val controller=playBilling?:NextPlayBilling(this,repo,::async,::ui,::toast){if(!journey&&tab=="options")render()}.also{playBilling=it}
+        controller.open(restore)
+    }
     private fun hideKeyboard(){getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(frame.windowToken,0);currentFocus?.clearFocus()}
     private fun reset(nav:Boolean=true){
         supportHint?.close();supportHint=null
@@ -81,7 +111,7 @@ class NextActivity:Activity(){
         bar.setPadding(u.dp(6),u.dp(6),u.dp(6),u.dp(6));bar.setBackgroundColor(u.p.surface);shell.addView(bar,LinearLayout.LayoutParams(-1,-2))
     }
     private fun render(){frame.findViewWithTag<View>("tour_offer")?.let{frame.removeView(it)};if(journey)repo.prefs.edit().remove("journeyDraft").commit();journey=false;reset();when(tab){"messages"->messages();"options"->options();else->home()}}
-    private fun welcome(){journey=false;reset(false);logo();u.add(body,PrototypeScenes.welcome(this){startJourney()},24)}
+    private fun welcome(){journey=false;reset(false);logo();u.add(body,PrototypeScenes.welcome(this){startJourney()},24);if(googleAvailable)u.add(body,u.button("Відновити акаунт через Google"){google(true)})}
     private fun privacy(next:()->Unit){
         val welcome=body.findViewWithTag<View>("welcome_conversation")
         welcome?.visibility=View.INVISIBLE
@@ -454,6 +484,14 @@ class NextActivity:Activity(){
         val widgets=u.card();u.add(body,widgets);u.add(widgets,u.heading("Віджети"),0)
         u.add(widgets,u.actions(u.button("Детальний · 4×4"){NextWidgets.pin(this,true)},u.button("Компактний · 4×2"){NextWidgets.pin(this,false)}))
         sensorOptions()
+        if(googleAvailable||playAvailable){
+            val account=u.card();u.add(body,account);u.add(account,u.heading("Акаунт і підписка"),0)
+            if(googleAvailable)u.add(account,u.button("Пов’язати з Google"){google(false)})
+            if(playAvailable){
+                u.add(account,u.button("Підписка Google Play"){billing(false)})
+                u.add(account,u.button("Відновити покупки"){billing(true)})
+            }
+        }
         if(!repo.prefs.getBoolean("preferencesComplete",false))u.add(body,u.button("Завершити налаштування"){preferenceChoice=listOf("before","restore","emergency","changes").any{repo.prefs.getBoolean(it,false)};preferencePermission=NextNotices.allowed(this);preferenceRange=AppAppearance.twoRows(this);preferencesStep()})
         u.add(body,u.button(if(repo.prefs.getString("tour",null)=="completed")"Повторити навчання"else"Як користуватися додатком"){tab="home";render();startTour()})
         u.add(body,u.divider(),20);u.add(body,u.heading("Умовні позначення"),20)
