@@ -1,10 +1,10 @@
 import {notificationPayload} from './worker.js';
 import {createHmac,createHash} from 'node:crypto';import {readFileSync,existsSync} from 'node:fs';
-import {PurchaseVault} from '../billing/vault.js';import {validSubscription} from '../../server/service.js';
+import {SecretVault} from '../modules/secret-vault.js';import {validSubscription} from '../../server/service.js';
 const fail=(code,status=400)=>Object.assign(Error(code),{code,status});
 const uuid=s=>typeof s==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(s);
 export class NotificationService {
- constructor({bridge,key=null,channels={fcm:false,webpush:false}}){Object.assign(this,{bridge,key,channels});this.vault=key?new PurchaseVault(key):null;}
+ constructor({bridge,key=null,channels={fcm:false,webpush:false}}){Object.assign(this,{bridge,key,channels});this.vault=key?new SecretVault(key,'notifications'):null;}
  credential(session,id,requestId){return 'ni_'+createHmac('sha256',Buffer.from(this.key,'hex')).update(['notification-installation-v1',session.owner,session.token,id,requestId].join(':')).digest('base64url');}
  hash(s){return createHash('sha256').update(s).digest('hex');}
  async handle(session,d){

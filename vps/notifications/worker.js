@@ -1,4 +1,4 @@
-import {createHash} from 'node:crypto';import {DomainJobs} from '../events/domain-jobs.js';import {PurchaseVault} from '../billing/vault.js';
+import {createHash} from 'node:crypto';import {DomainJobs} from '../events/domain-jobs.js';import {SecretVault} from '../modules/secret-vault.js';
 import {nextPlanEvent,isQuiet} from '../../app/lib/planning.js';import {planKey,canonicalJson} from '../planning/service.js';
 const digest=v=>createHash('sha256').update(canonicalJson(v)).digest('hex');
 export function notificationPlan(profile,now=Date.now()){
@@ -22,7 +22,7 @@ export function notificationPayload(job,profile,now=Date.now()){
  return {schemaVersion:1,intentId:job.intentId,profileId:job.profileId,planKey:job.planKey,kind:job.kind,targetAt:job.targetAt,expiresAt:job.expiresAt,title:'Світло',body,tag:'plan:'+job.intentId};
 }
 export class NotificationWorker {
- constructor({pool,key=null,channels={},onError=()=>{}}){Object.assign(this,{pool,key,channels,onError});this.jobs=new DomainJobs(pool);this.vault=key?new PurchaseVault(key):null;}
+ constructor({pool,key=null,channels={},onError=()=>{}}){Object.assign(this,{pool,key,channels,onError});this.jobs=new DomainJobs(pool);this.vault=key?new SecretVault(key,'notifications'):null;}
  async tick({stopping=()=>false}={}){
   if(!this.vault)return {state:'not_configured'};
   const profiles=(await this.pool.query('select svitlo_notifications.due_profiles() value')).rows[0].value;

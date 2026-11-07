@@ -1,8 +1,8 @@
 import {readFileSync,existsSync} from 'node:fs';
-import {GooglePlay,boundedJson} from '../billing/google-play.js';
+async function boundedJson(response,max){let size=0;const chunks=[];for await(const c of response.body||[]){size+=c.byteLength;if(size>max)throw Error('fcm_response_too_large');chunks.push(c);}return JSON.parse(Buffer.concat(chunks));}
 // Separate OAuth scope and credentials from Play billing. No arbitrary URLs.
-export class FcmChannel extends GooglePlay {
- constructor({projectId='',serviceAccount=null,fetcher=fetch,now=Date.now}={}){super({serviceAccount,fetcher,now});this.projectId=projectId;}
+export class FcmChannel {
+ constructor({projectId='',serviceAccount=null,fetcher=fetch,now=Date.now}={}){Object.assign(this,{projectId,serviceAccount,fetcher,now});this.cached=null;this.refresh=null;}
  get configured(){return /^[a-z][a-z0-9-]{4,62}$/.test(this.projectId)&&this.serviceAccount?.project_id===this.projectId&&!!this.serviceAccount?.private_key;}
  async accessToken(){
   // GooglePlay's fixed OAuth implementation is deliberately not reused: it

@@ -4,8 +4,6 @@ create schema svitlo_notifications authorization svitlo_notifications_owner;
 grant usage on schema public,auth,svitlo_events,svitlo_admin to svitlo_notifications_owner;
 grant execute on function auth.uid(),svitlo_admin.account_allowed(uuid) to svitlo_notifications_owner;
 grant execute on function svitlo_events.publish(text,text,bigint,jsonb,timestamptz,integer) to svitlo_notifications_owner;
-grant select,delete on public.svitlo_subscriptions to svitlo_notifications_owner;
-create policy notification_legacy_switch on public.svitlo_subscriptions for all to svitlo_notifications_owner using(owner=auth.uid()) with check(owner=auth.uid());
 grant select on public.svitlo_profiles to svitlo_notifications_owner;
 grant update(snapshot_revision) on public.svitlo_profiles to svitlo_notifications_owner;
 create policy notification_planner_lock on public.svitlo_profiles for update to svitlo_notifications_owner using(true) with check(false);
@@ -37,6 +35,7 @@ create function svitlo_notifications.profile_changed() returns trigger language 
 begin update svitlo_notifications.plans set next_at=clock_timestamp() where profile_id=new.id;return null;end $$;
 create trigger notification_plan_dirty after update of snapshot,preferences,address on public.svitlo_profiles for each row execute function svitlo_notifications.profile_changed();
 
+create function svitlo_notifications.remove_legacy(endpoint text) returns void language sql security definer set search_path='' as $$ delete from public.svitlo_subscriptions where owner=auth.uid() and subscription->>'endpoint'=endpoint $$;
 create function svitlo_notifications.status() returns jsonb language sql stable security definer set search_path='' as $$
  select jsonb_build_object('enabled',(select enabled from svitlo_notifications.control where id),'installations',coalesce((select jsonb_agg(jsonb_build_object('id',id,'channel',channel,'permission',permission,'revision',revision,'revoked',revoked_at is not null)) from svitlo_notifications.installations where owner=auth.uid()),'[]'::jsonb))
 $$;
@@ -58,7 +57,7 @@ declare subject uuid:=auth.uid();prior svitlo_notifications.installations;begin
  values(installation_id,subject,delivery_channel,token_fingerprint,encrypted_token,new_proof,request,payload_hash,permission_state,quiet_hours)
  on conflict(id) do update set channel=excluded.channel,token_hash=excluded.token_hash,cipher=excluded.cipher,credential_hash=excluded.credential_hash,request_id=excluded.request_id,request_hash=excluded.request_hash,registered_at=clock_timestamp(),permission=excluded.permission,quiet=excluded.quiet,revoked_at=null,revision=svitlo_notifications.installations.revision+1;
  update svitlo_notifications.plans set next_at=clock_timestamp() where profile_id in(select id from public.svitlo_profiles where owner=subject);
- if delivery_channel='webpush' and legacy_endpoint is not null then delete from public.svitlo_subscriptions where owner=subject and subscription->>'endpoint'=legacy_endpoint;end if;
+ if delivery_channel='webpush' and legacy_endpoint is not null then perform svitlo_notifications.remove_legacy(legacy_endpoint);end if;
  return jsonb_build_object('ok',true,'revision',coalesce(prior.revision,0)+1);
 end $$;
 create function svitlo_notifications.installation_action(installation_id uuid,credential text,action text,intent uuid,receipt text) returns jsonb language plpgsql security definer set search_path='' as $$
@@ -142,3 +141,10 @@ do $$ declare r record;begin
  end loop;
 end $$;
 grant usage on schema svitlo_notifications to svitlo_stage_api,svitlo_stage_worker;
+
+-- Execute the existing subscription-trigger path with its existing API role.
+-- This narrow delegate has no owner argument; auth.uid() remains the caller's
+-- authenticated owner. Notification owner receives no broad profile writes.
+alter function svitlo_notifications.remove_legacy(text) owner to svitlo_stage_api;
+revoke all on function svitlo_notifications.remove_legacy(text) from public,svitlo_stage_worker;
+grant execute on function svitlo_notifications.remove_legacy(text) to svitlo_notifications_owner;

@@ -7,15 +7,13 @@ create table svitlo_migration.cohort(subject uuid primary key references auth.us
 create table svitlo_migration.transfers(nonce uuid primary key,source_subject uuid not null,target_subject uuid not null references auth.users(id),digest text not null,payload jsonb not null,expires_at timestamptz not null,receipt jsonb,created_at timestamptz not null default clock_timestamp());
 create unique index migration_one_source on svitlo_migration.transfers(source_subject) where receipt is not null;
 grant usage on schema public,auth to svitlo_migration_owner;
-grant execute on function auth.uid(),public.svitlo_profile_create_universal(uuid,uuid,jsonb,text,jsonb),public.svitlo_profile_group_create(uuid,jsonb,text,jsonb) to svitlo_migration_owner;
--- Invoker creation RPCs retain owner RLS, quota and exact-line validation.
-grant select,insert,update on public.svitlo_profiles to svitlo_migration_owner;
-create policy migration_profiles on public.svitlo_profiles to svitlo_migration_owner using(owner=auth.uid()) with check(owner=auth.uid());
-grant usage on schema svitlo_vps,svitlo_sensors to svitlo_migration_owner;
-grant select on svitlo_vps.catalog,svitlo_vps.address_lines to svitlo_migration_owner;
-grant select on public.svitlo_shared_plans to svitlo_migration_owner;
-create policy migration_shared_plans on public.svitlo_shared_plans for select to svitlo_migration_owner using(true);
-grant execute on function public.svitlo_address_group(jsonb),svitlo_sensors.address_limit(uuid),public.svitlo_hydrate(public.svitlo_profiles),public.svitlo_profile_quota_allows(uuid,jsonb),svitlo_sensors.profile_has_sensor(uuid) to svitlo_migration_owner;
+grant execute on function auth.uid() to svitlo_migration_owner;
+create function svitlo_migration.create_profiles(addresses jsonb,display_name text,preferences jsonb) returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+ if auth.uid() is null or jsonb_typeof(addresses)<>'array' or jsonb_array_length(addresses) not between 1 and 32 then raise exception 'invalid transfer profile';end if;
+ if jsonb_array_length(addresses)>1 then return public.svitlo_profile_group_create(auth.uid(),addresses,display_name,preferences);end if;
+ return public.svitlo_profile_create_universal(auth.uid(),gen_random_uuid(),addresses->0,display_name,preferences);
+end $$;
 create function svitlo_migration.status() returns jsonb language sql stable security definer set search_path='' as $$ select jsonb_build_object('allowed',coalesce((select c.enabled and x.enabled from svitlo_migration.control c join svitlo_migration.cohort x on x.subject=auth.uid() where c.id),false)) $$;
 create function svitlo_migration.prepare(nonce_id uuid,source_id uuid,fingerprint text,data jsonb,deadline timestamptz) returns boolean language plpgsql security definer set search_path='' as $$
 begin
@@ -33,8 +31,7 @@ declare t svitlo_migration.transfers;p jsonb;saved jsonb;items jsonb:='[]';resul
  if exists(select from svitlo_migration.transfers where source_subject=t.source_subject and receipt is not null) then return '{"error":"source_already_transferred"}';end if;
  for p in select * from jsonb_array_elements(t.payload->'profiles') loop
   if p->>'status'<>'resolved' or jsonb_array_length(p->'addresses') not between 1 and 32 then raise exception 'unresolved transfer';end if;
-  if jsonb_array_length(p->'addresses')>1 then saved:=public.svitlo_profile_group_create(auth.uid(),p->'addresses',p->>'name',p->'preferences');
-  else saved:=public.svitlo_profile_create_universal(auth.uid(),gen_random_uuid(),p->'addresses'->0,p->>'name',p->'preferences');end if;
+  saved:=svitlo_migration.create_profiles(p->'addresses',p->>'name',p->'preferences');
   if saved->>'status' is not null then raise exception 'transfer quota or binding conflict';end if;
   items:=items||jsonb_build_array(jsonb_build_object('legacyId',p->>'legacyId','targetProfiles',coalesce(saved->'profiles',jsonb_build_array(saved->'profile'))));
  end loop;
@@ -46,3 +43,9 @@ do $$ declare r record;begin
  for r in select p.oid::regprocedure f from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='svitlo_migration' loop execute format('alter function %s owner to svitlo_migration_owner',r.f);execute format('revoke all on function %s from public',r.f);execute format('grant execute on function %s to svitlo_stage_api',r.f);end loop;
 end $$;
 grant usage on schema svitlo_migration to svitlo_stage_api;
+
+-- Reuse the reviewed owner-scoped invoker/trigger path; migration owner cannot
+-- edit arbitrary public profiles, sensor ACLs, epochs or subscription rights.
+alter function svitlo_migration.create_profiles(jsonb,text,jsonb) owner to svitlo_stage_api;
+revoke all on function svitlo_migration.create_profiles(jsonb,text,jsonb) from public;
+grant execute on function svitlo_migration.create_profiles(jsonb,text,jsonb) to svitlo_migration_owner;

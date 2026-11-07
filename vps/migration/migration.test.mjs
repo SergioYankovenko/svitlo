@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {randomUUID,generateKeyPairSync} from 'node:crypto';import {readFile} from 'node:fs/promises';
 import {billingFixture} from '../billing/fixture.mjs';import {MigrationService} from './service.js';import {SupabaseMigrationSource} from './source.js';
-async function fixture(){const f=await billingFixture(),{c}=f;await c.exec(`alter table public.svitlo_profiles add column address jsonb,add column name text,add column preferences jsonb;create table public.svitlo_shared_plans(id text,plans jsonb);alter table public.svitlo_shared_plans enable row level security;
+async function fixture(){const f=await billingFixture(),{c}=f;await c.exec(`alter table public.svitlo_profiles add column address jsonb,add column name text,add column preferences jsonb;grant select,insert,update on public.svitlo_profiles to svitlo_stage_api;create policy api_owner on public.svitlo_profiles to svitlo_stage_api using(owner=auth.uid()) with check(owner=auth.uid());create table public.svitlo_shared_plans(id text,plans jsonb);alter table public.svitlo_shared_plans enable row level security;
  create table svitlo_vps.catalog(id uuid);create table svitlo_vps.address_lines(id uuid);
  create function public.svitlo_address_group(jsonb) returns text language sql as $$select $1->>'canonicalAddressId'$$;
  create or replace function svitlo_sensors.address_limit(subject uuid) returns integer language sql as $$select 2$$;
