@@ -1,5 +1,6 @@
 import pg from 'pg';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import {randomUUID} from 'node:crypto';
 import {pool} from '../db.js';import {SourceHistory} from './source-history.js';import {historicalPlan} from './historical-plan.js';
+import {GroupPlans} from './group-plans.js';
 import {civil,addDays,dayKey} from '../../app/lib/time.js';
 if(!/^svitlo_sources_qa_\d+$/.test(process.env.PGDATABASE||''))throw Error('Disposable restored source-history QA database required');
 const ci=process.env.SOURCE_HISTORY_CI==='true';if(ci&&process.env.PGHOST!=='127.0.0.1')throw Error('CI history credentials are localhost-only');
@@ -24,7 +25,7 @@ const moveCurrent=async()=>{await admin.query('begin');try{
  await admin.query('delete from svitlo_source_history.cycles where slot=(select max(slot) from svitlo_source_history.cycles)');await admin.query('commit');
  }catch(e){await admin.query('rollback');throw e;}};
 try{
- await admin.query('truncate svitlo_source_history.cycles,svitlo_source_history.observations,svitlo_source_history.payloads');
+ await admin.query('truncate svitlo_source_history.cherkasy_group_plans,svitlo_source_history.cycles,svitlo_source_history.observations,svitlo_source_history.payloads');
  await check('API has no history access; worker can only use constrained functions, not edit evidence or assume owner',async()=>{
   for(const sql of ['select * from svitlo_source_history.cycles','select svitlo_source_history.claim()'])await assert.rejects(()=>api.p.query(sql),e=>e.code==='42501');
   await assert.rejects(()=>a.p.query('select * from svitlo_source_history.payloads'),e=>e.code==='42501');await assert.rejects(()=>a.p.query('set role svitlo_region_owner'),e=>e.code==='42501');
@@ -75,6 +76,22 @@ try{
   assert.equal(rows.length,3);assert.equal(historicalPlan(rows,date).periods[0].end,from+300000);assert.ok(!JSON.stringify(rows).includes('must-not-leak'));
   for(const sql of ['select * from svitlo_source_history.cycles','select * from svitlo_source_history.payloads','select svitlo_source_history.claim()'])await assert.rejects(()=>api.p.query(sql),e=>e.code==='42501');
   await assert.rejects(()=>api.p.query('select svitlo_source_history.plan_observations($1,$2::date) value',['GPV99.1','2000-01-01']));
+  assert.deepEqual(await digest(),before);
+ });
+ await check('one cycle stores the group feeds without exposing reference houses or permitting API writes',async()=>{
+  await admin.query('truncate svitlo_source_history.cherkasy_group_plans,svitlo_source_history.cycles,svitlo_source_history.observations,svitlo_source_history.payloads');
+  yasnoFail=false;
+  const groupPlans=new GroupPlans(a.bridge),reader=new GroupPlans(api.bridge);
+  let loads=0;
+  const cherkasySource={loadFeed:async now=>{loads++;return {plans:[],emergencies:[],maintenance:[],checkedAt:now,partial:false};}};
+  const collector=new SourceHistory({bridge:a.bridge,regions,groupPlans,cherkasySource,enabled:true,fetcher});
+  assert.equal((await collector.runDue()).cherkasy,'ok');
+  assert.equal((await collector.runDue()).state,'not_due');assert.equal(loads,1);
+  assert.equal((await reader.cherkasy()).partial,false);
+  const group=await reader.dtek('ua-kyiv-dtek');assert.ok(group.primary.fact.data);assert.equal(group.primary.fresh,true);assert.ok(group.secondary.groups);
+  assert.ok(!JSON.stringify(group).includes('Хрещатик'));
+  await assert.rejects(()=>api.p.query('select * from svitlo_source_history.cherkasy_group_plans'),e=>e.code==='42501');
+  await assert.rejects(()=>api.p.query('select svitlo_source_history.finish_group_cycle(null,null,null,null,null,null)'),e=>e.code==='42501');
   assert.deepEqual(await digest(),before);
  });
  console.log(JSON.stringify({scope:'paired-source-history-isolated-postgresql',passed:checks.length,realOperatorRequests:0,originalProfiles:before.n,originalConfigurationDigest:before.digest,liveProfileWrites:0}));

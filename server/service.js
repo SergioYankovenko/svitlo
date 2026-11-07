@@ -79,11 +79,11 @@ export class Service {
     }
     return registryMatch(await this.db.registry?.(), address, now);
   }
-  async prepareSnapshot(profile, prepared = null, { signal, feedResult } = {}) {
+  async prepareSnapshot(profile, prepared = null, { signal, feedResult, groupSchedule } = {}) {
     const now = this.now(),
       old = profile.snapshot || {};
     const [address, registry] = await Promise.all([
-      prepared ? Promise.resolve(structuredClone(prepared)) : this.source.address(profile.address, now, old, { signal }),
+      prepared ? Promise.resolve(structuredClone(prepared)) : this.source.address(profile.address, now, old, { signal, groupSchedule }),
       this.queueResolution(profile.address, now).catch(() => ({ queue: null, status: "unavailable" })),
     ]);
     const cachedApiQueue = address.failures.includes("hourly") ? address.queue : null;
@@ -134,6 +134,7 @@ export class Service {
       feedCheckedAt: feed.checkedAt || null,
       feedFailed,
       feedError,
+      ...(feed.groupSchedule?{groupSchedule:true}:{}),
       maintenance:
         (feed.maintenance || []).find((m) => m.from <= now && m.until > now) ||
         null,

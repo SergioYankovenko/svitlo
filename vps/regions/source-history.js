@@ -69,8 +69,8 @@ export function historyTransitions(rows){
 }
 
 export class SourceHistory {
- constructor({bridge,regions,enabled=false,now=Date.now,fetcher=fetch,compare=compareHistory}){
-  Object.assign(this,{bridge,regions,enabled,now,fetcher,compare});this.clients=new Map();
+ constructor({bridge,regions,groupPlans=null,cherkasySource=null,enabled=false,now=Date.now,fetcher=fetch,compare=compareHistory}){
+  Object.assign(this,{bridge,regions,groupPlans,cherkasySource,enabled,now,fetcher,compare});this.clients=new Map();
  }
  async capture(target){
   const startedAt=this.now(),trace=[];let raw,requestCount=0;
@@ -99,13 +99,20 @@ export class SourceHistory {
   if(!claim.granted)return {state:'not_due'};
   // Every leg persists independently. Upstream quotas/403 cooldowns are shared
   // with the main reader, and one refused source never suppresses the other leg.
-  const observations=await Promise.all(HISTORY_TARGETS.map(target=>this.capture(target)));
+  const [observations,cherkasy]=await Promise.all([
+   Promise.all(HISTORY_TARGETS.map(target=>this.capture(target))),
+   this.groupPlans?.captureCherkasy(this.cherkasySource),
+  ]);
   let comparisons=[],comparisonError=null;
   try{comparisons=this.compare(observations,this.now());}catch(e){comparisonError='comparison_error';}
-  const result=(await this.bridge.query('select svitlo_source_history.finish($1,$2,$3::jsonb,$4::jsonb,$5) value',
-   [claim.slot,claim.token,JSON.stringify(observations),JSON.stringify(comparisons),comparisonError])).rows[0].value;
+  const params=[claim.slot,claim.token,JSON.stringify(observations),JSON.stringify(comparisons),comparisonError];
+  if(cherkasy)params.push(JSON.stringify(cherkasy));
+  const sql=cherkasy?'select svitlo_source_history.finish_group_cycle($1,$2,$3::jsonb,$4::jsonb,$5,$6::jsonb) value':
+   'select svitlo_source_history.finish($1,$2,$3::jsonb,$4::jsonb,$5) value';
+  const result=(await this.bridge.query(sql,params)).rows[0].value;
   await this.bridge.query('select svitlo_source_history.cleanup()');
-  return {...result,slot:claim.slot,sourceStates:Object.fromEntries(observations.map(x=>[x.source,x.state])),profileWrites:0};
+  return {...result,slot:claim.slot,sourceStates:Object.fromEntries(observations.map(x=>[x.source,x.state])),
+   ...(cherkasy?{cherkasy:cherkasy.error||'ok'}:{}),profileWrites:0};
  }
  async report({fromDate,toDate=fromDate,group='23.1',scheduleDate=fromDate}){
   const rows=(await this.bridge.query('select svitlo_source_history.timeline($1::date,$2::date,$3,$4::date) value',[fromDate,toDate,'GPV'+group,scheduleDate])).rows[0].value;

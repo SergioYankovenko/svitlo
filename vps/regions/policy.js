@@ -3,6 +3,7 @@ import {CATEGORIES} from '../../app/lib/universal-contract.js';
 import {seal,dates} from '../universal/normalize.js';
 import {REGIONS,regionError} from './dtek.js';
 import {reconcileDay,RECONCILIATION_VERSION} from './reconcile.js';
+import {GROUP_PLAN_MAX_AGE} from './group-plans.js';
 export const DTEK_SNAPSHOT_VERSION='dtek-publication-v1';
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
 const group=x=>typeof x==='string'&&/^GPV[1-9]\d{0,2}\.[1-9]\d?$/.test(x);
@@ -52,23 +53,29 @@ export function parseHours(hours,date){
  const merged=[];for(const value of intervals){const last=merged.at(-1);if(last?.end===value.start)last.end=value.end;else merged.push({...value});}
  return {state:certain?'published':'unknown',intervals:merged,...(!certain?{reason:'possible_outages_not_confirmed'}:{})};
 }
-export function dtekSnapshot(entity,resolution,range,data,cityStatus=null,now=Date.now()){
+export function dtekSnapshot(entity,resolution,range,data,cityStatus=null,now=Date.now(),groupPlan=null){
  const config=REGIONS[entity.operator_id],house=data.houses[entity.source_ref.house];if(!config||!house)throw regionError('address_requires_reselection',409);
- const sourceUpdatedAt=localStamp(data.fact?.update),freshUntil=data.checkedAt+120000,all=dates(range.fromDate,range.toDate),factDays=new Map();
- if(object(data.fact?.data))for(const [stamp,groups] of Object.entries(data.fact.data)){if(!/^\d{9,11}$/.test(stamp)||!object(groups))continue;const at=Number(stamp)*1000;if(!Number.isFinite(at))continue;factDays.set(dayKey(at),groups);}
- const statusFresh=!!cityStatus&&cityStatus.checkedAt+120000>now&&cityStatus.checkedAt<=now+300000;
- const noticeDates=new Map(),decisions={},sourceUnavailable=sourceUpdatedAt===null||sourceUpdatedAt>now+300000||data.checkedAt>now+300000;
+ const schedule=groupPlan||data,maxAgeMs=groupPlan?GROUP_PLAN_MAX_AGE:120000;
+ const sourceUpdatedAt=localStamp(schedule.fact?.update),freshUntil=data.checkedAt+120000,all=dates(range.fromDate,range.toDate),factDays=new Map();
+ const planUntil=groupPlan&&!groupPlan.fresh?Math.min(schedule.checkedAt,now):schedule.checkedAt+maxAgeMs;
+ if(object(schedule.fact?.data))for(const [stamp,groups] of Object.entries(schedule.fact.data)){if(!/^\d{9,11}$/.test(stamp)||!object(groups))continue;const at=Number(stamp)*1000;if(!Number.isFinite(at))continue;factDays.set(dayKey(at),groups);}
+ const statusFresh=!!cityStatus&&cityStatus.checkedAt+maxAgeMs>now&&cityStatus.checkedAt<=now+300000;
+ const noticeDates=new Map(),decisions={},sourceUnavailable=sourceUpdatedAt===null||sourceUpdatedAt>now+300000||schedule.checkedAt>now+300000;
  const lines=resolution.lines.map(line=>{
-  const categories={};for(const kind of CATEGORIES)categories[kind]={checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil,evidenceMode:kind==='hourly'?'daily_schedule':'positive_only',days:all.map(date=>{
+  const categories={};for(const kind of CATEGORIES)categories[kind]={checkedAt:kind==='hourly'?schedule.checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil:kind==='hourly'?planUntil:freshUntil,evidenceMode:kind==='hourly'?'daily_schedule':'positive_only',days:all.map(date=>{
    if(kind==='hourly'){
     const hours=factDays.get(date)?.[line.key],parsed=hours?parseHours(hours,date):{state:'not_published',intervals:[]};
-    const publication={state:sourceUnavailable?'unknown':parsed.state,intervals:parsed.intervals,checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil};
+    const publication={state:sourceUnavailable?'unknown':parsed.state,intervals:parsed.intervals,checkedAt:schedule.checkedAt,sourceUpdatedAt,freshUntil:planUntil};
     const pack=(state,intervals,applicability,reason)=>({date,state,intervals,publication,applicability:{state:applicability,reason}});
-    const hidden=data.flags.showTableSchedule===false||data.flags.showTableFact===false;
+    const hidden=[data.flags,schedule.flags].some(f=>f.showTableSchedule===false||f.showTableFact===false);
     const from=civil(date),until=civil(addDays(date,1)),addressEmergency=data.flags.showCurOutageParam!==false&&house.outages.some(o=>o.kind==='emergency'&&o.groups.includes(line.key)&&o.start!==null&&(o.end===null||o.end>o.start)&&o.start<until&&(o.end===null||o.end>from));
+    if(groupPlan&&planUntil<=now){
+     if(addressEmergency)return pack('suspended',[],'suspended','address_emergency');
+     return pack(schedule.checkedAt?'stale':'unknown',parsed.intervals,'unconfirmed','group_plan_unavailable');
+    }
     if(config.city){const status=cityStatus?.groups?.[line.key]?.[date],publishedAt=cityStatus?.groupUpdatedAt&&Object.hasOwn(cityStatus.groupUpdatedAt,line.key)?cityStatus.groupUpdatedAt[line.key]:cityStatus?.updatedAt??null;
      const detail=cityStatus?.daySchedules?.[line.key]?.[date];
-     const result=reconcileDay({date,primary:{...parsed,publishedAt:sourceUpdatedAt,checkedAt:data.checkedAt},secondary:cityStatus?{...detail,date:status===undefined?null:date,status,checkedAt:cityStatus.checkedAt,publishedAt}:null,addressEmergency,hidden,now});
+     const result=reconcileDay({date,primary:{...parsed,publishedAt:sourceUpdatedAt,checkedAt:schedule.checkedAt},secondary:cityStatus?{...detail,date:status===undefined?null:date,status,checkedAt:cityStatus.checkedAt,publishedAt}:null,addressEmergency,hidden,now,maxAgeMs});
      decisions[line.key+':'+date]={state:result.state,...result.evidence};if(result.state==='suspended'&&result.evidence.scope==='reported_group_day'){if(!noticeDates.has(date))noticeDates.set(date,{lineIds:[],publishedAt});const notice=noticeDates.get(date);notice.lineIds.push(line.id);notice.publishedAt=Math.max(notice.publishedAt,publishedAt);}
      return pack(result.state,result.intervals,result.evidence.applicability||(result.state==='published'?'reported':result.state==='suspended'?'suspended':'unconfirmed'),result.reason);
     }
@@ -84,9 +91,9 @@ export function dtekSnapshot(entity,resolution,range,data,cityStatus=null,now=Da
   return {id:line.id,label:line.label,groupCode:line.groupCode,supportedCategories:CATEGORIES,categories};
  });
  const conflictToday=Object.entries(decisions).some(([key,d])=>key.endsWith(':'+dayKey(now))&&['unknown','stale'].includes(d.state));
- const supportState=freshUntil<=now||sourceUnavailable||house.external||!resolution.complete||config.city&&(!statusFresh||conflictToday)?'degraded':'available';
+ const supportState=Math.min(freshUntil,planUntil)<=now||sourceUnavailable||house.external||!resolution.complete||config.city&&(!statusFresh||conflictToday)?'degraded':'available';
  return seal({schemaVersion:1,addressId:entity.id,operatorId:entity.operator_id,timeZone:'Europe/Kyiv',coverage:range,resolution:{state:resolution.state,complete:resolution.complete},lines,
   notices:[...noticeDates].map(([date,notice])=>({kind:'regional_emergency',scope:'reported_group_day',lineIds:notice.lineIds,active:date===dayKey(now),start:civil(date),end:civil(addDays(date,1)),sourceUpdatedAt:notice.publishedAt,checkedAt:cityStatus.checkedAt,url:'https://static.yasno.ua/kyiv/outages/',reason:'official_sources_emergency_override'})),
-  checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil:Math.min(freshUntil,cityStatus?cityStatus.checkedAt+120000:freshUntil),refreshAfter:now+60000,supportState,
+  checkedAt:data.checkedAt,sourceUpdatedAt,freshUntil:Math.min(freshUntil,planUntil,cityStatus?cityStatus.checkedAt+maxAgeMs:planUntil),refreshAfter:now+60000,supportState,
   provenance:[{operatorId:entity.operator_id,adapter:'dtek-public-v1',url:`https://${config.host}/ua/shutdowns`,allocation:resolution.provenance,categoryCoverage:'daily_hourly_and_positive_current_address_events',cityEmergencyStatus:cityStatus?'yasno-official':null,...(config.city?{reconciliation:{version:RECONCILIATION_VERSION,days:decisions}}:{})}],synthetic:false});
 }

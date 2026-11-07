@@ -1,17 +1,17 @@
 // Publication, applicability and actual power are independent. Mirrors are not extra votes.
 export const RECONCILIATION_VERSION='kyiv-sources-v4';
 const stamp=x=>Number.isFinite(x)&&x>0;
-export function reconcileDay({date,primary,secondary=null,addressEmergency=false,hidden=false,now=Date.now()}){
+export function reconcileDay({date,primary,secondary=null,addressEmergency=false,hidden=false,now=Date.now(),maxAgeMs=120000}){
  const secondaryIntervals=Array.isArray(secondary?.intervals)?secondary.intervals:[];
  const evidence={policy:RECONCILIATION_VERSION,date,primarySource:'dtek-address',primaryPublishedAt:primary.publishedAt??null,primaryCheckedAt:primary.checkedAt,
   secondarySource:'yasno-official',secondaryPublishedAt:secondary?.publishedAt??null,secondaryCheckedAt:secondary?.checkedAt??null,secondaryStatus:secondary?.status??null,powerState:'unknown',
   publicationAgeWarning:stamp(primary.publishedAt)&&primary.publishedAt<now-172800000};
  const decision=(state,reason,intervals=primary.intervals||[],extra={})=>({state,reason,intervals,evidence:{...evidence,...extra,reason}});
  if(!stamp(primary.checkedAt)||primary.checkedAt>now+300000)return decision('unknown','invalid_primary_clock',[]);
- if(primary.checkedAt+120000<=now)return decision('stale','primary_fetch_expired');
+ if(primary.checkedAt+maxAgeMs<=now)return decision('stale','primary_fetch_expired');
  if(addressEmergency)return decision('suspended','address_emergency',[],{scope:'address_line',publishedIntervals:primary.intervals||[]});
  if(hidden)return decision('suspended','primary_hides_daily_schedule',[],{scope:'primary_publication',publishedIntervals:primary.intervals||[]});
- const fresh=secondary&&stamp(secondary.checkedAt)&&secondary.checkedAt+120000>now&&secondary.checkedAt<=now+300000;
+ const fresh=secondary&&stamp(secondary.checkedAt)&&secondary.checkedAt+maxAgeMs>now&&secondary.checkedAt<=now+300000;
  const applicable=fresh&&secondary.date===date&&stamp(secondary.publishedAt)&&secondary.publishedAt<=now+300000;
  if(primary.state==='not_published'){
   if(applicable&&secondary.status==='EmergencyShutdowns')return decision('suspended','reported_emergency_without_primary_plan',[],{scope:'reported_group_day',publication:'not_published',applicability:'suspended',publishedIntervals:[]});

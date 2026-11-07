@@ -20,6 +20,7 @@ import {Regions} from './regions/service.js';
 import {DepartmentSchedules} from './department-cache.js';
 import {pilotPush} from './push.js';
 import {SourceHistory} from './regions/source-history.js';
+import {GroupPlans} from './regions/group-plans.js';
 import {Geography} from './geography/service.mjs';
 import {DiscoveryCatalog} from './discovery/catalog.mjs';
 import {RegionalDiscoverySources} from './discovery/regional-sources.mjs';
@@ -37,6 +38,7 @@ export class PrivateSource extends Source {
     return safe;
   }
   async address(a,...args){const account=this.accounts.get(this.key(a));return super.address(account?.until>Date.now()?{...a,account:account.account}:a,...args);}
+  async feed(...args){return this.groupPlans?this.groupPlans.cherkasy():super.feed(...args);}
 }
 export async function runtime(role='api'){
   const p=pool(role,role==='worker'?2:4),bridge=await new PgBridge(p).init();
@@ -47,15 +49,17 @@ export async function runtime(role='api'){
   const secret=readFileSync('/run/secrets/session_secret','utf8').trim();
   const sourceEvidence=new SourceEvidence(bridge,{onError:code=>console.error(JSON.stringify({event:code}))}),fetcher=observedPublicFetch(operatorFetch,value=>sourceEvidence.record(value),async id=>(await bridge.query('select svitlo_admin.source_allowed($1) value',[id])).rows[0].value);
   const source=new PrivateSource(providerTransport(db,fetcher),{dictionaries:new SharedDictionaries(db),feed:new SharedFeed(db),categories:new SharedCategories(db,secret),departmentSchedules:new DepartmentSchedules({db,bridge,secret})});
+  const groupPlans=process.env.GROUP_PLANS_ENABLED==='true'?new GroupPlans(bridge):null;
+  source.groupPlans=groupPlans;
   const delivery=await pilotPush(p);
   const options={db,source,...delivery,jobBudgetMs:45000,
     defaultPreferences:{schedule:false,publication:false,change:false,emergency:false,reminder:false,restoration:false,lead:30}};
   const alertsEnergy=configuredAlerts({bridge,db,secret,fetcher});
-  const regions=new Regions({db,bridge,secret,fetcher}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions,sourceEvidence,alertsEnergy});
+  const regions=new Regions({db,bridge,secret,fetcher,groupPlans}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions,sourceEvidence,alertsEnergy});
   const addressSearch=new AddressSearch({bridge,client:configuredMeili('read'),secret});reader.catalog.searchPort=addressSearch;
   const regionalDiscovery=new RegionalDiscoverySources({fetcher,gate:op=>regions.gate(op),finish:(...args)=>regions.finish(...args)});
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
   const service=new UniversalService({...options,maps,unresolvedLog:role==='api'?unresolvedLog('/app-logs/unresolved-addresses.ndjson'):null},reader);
-  const sourceHistory=new SourceHistory({bridge,regions,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
+  const sourceHistory=new SourceHistory({bridge,regions,groupPlans,cherkasySource:source,fetcher,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
   return {ports:corePorts({reader,service,planning:new PlanningService()}),p,bridge,db,source,service,legacy,reader,maps,regions,regionalDiscovery,sourceHistory,sourceEvidence,addressSearch,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions,dictionarySearch:new DictionarySearch({bridge,client:configuredMeili('read'),secret})}),secret,...delivery};
 }

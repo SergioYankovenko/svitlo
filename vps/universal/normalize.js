@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {dayState} from '../../app/lib/schedule.js';
 import {dayKey,addDays,fresh} from '../../app/lib/time.js';
 import {CATEGORIES,validUniversal} from '../../app/lib/universal-contract.js';
+import {GROUP_PLAN_MAX_AGE} from '../regions/group-plans.js';
 export function dates(from,to){const result=[];for(let d=from;d<=to;d=addDays(d,1)){if(result.length>=14)throw Error('date_range');result.push(d);}return result;}
 export function revision(value){const {revision,...body}=value;return createHash('sha256').update(JSON.stringify(body)).digest('hex').slice(0,32);}
 export function seal(value){const result={...value,revision:revision(value)};if(!validUniversal(result))throw Error('invalid_adapter_snapshot');return result;}
@@ -10,6 +11,19 @@ export function normalizeLegacy(entity,legacy,resolution,range,now=Date.now()){
  for(const kind of CATEGORIES){
   const raw=legacy.categories?.[kind==='unplanned'?'planned':kind],checkedAt=raw?.checkedAt||0,sourceUpdatedAt=raw?.sourceAt||null;
   const freshUntil=Math.min(checkedAt||0,sourceUpdatedAt||0)+3600000;
+  if(kind==='hourly'&&legacy.groupSchedule&&resolution.state!=='excluded'){
+   const observedAt=legacy.feedCheckedAt||0,publicationAt=Math.max(0,...legacy.plans.map(p=>p.publishedAt))||null;
+   const planUntil=legacy.feedFailed?observedAt:observedAt+GROUP_PLAN_MAX_AGE;
+   categories[kind]={checkedAt:observedAt,sourceUpdatedAt:publicationAt,freshUntil:planUntil,evidenceMode:'daily_schedule',days:all.map(date=>{
+    const {plan,policy,events}=dayState(legacy,date,now);
+    const intervals=(plan?.events||[]).map(({start,end})=>({start,end}));
+    const state=!plan?legacy.feedFailed?'unknown':'not_published':plan.uncertain?'unknown':'published';
+    const publication={state,intervals,checkedAt:observedAt,sourceUpdatedAt:plan?.publishedAt||null,freshUntil:planUntil};
+    if(policy.validity!=='active')return {date,state:'suspended',intervals:events.filter(e=>e.category==='hourly').map(({start,end})=>({start,end})),publication};
+    return {date,state:state==='published'&&planUntil<=now?'stale':state,intervals,publication};
+   })};
+   continue;
+  }
   categories[kind]={checkedAt,sourceUpdatedAt,freshUntil,days:all.map(date=>{
    const d=dayState(legacy,date,now),plan=d.plan;
    let state;
@@ -25,7 +39,8 @@ export function normalizeLegacy(entity,legacy,resolution,range,now=Date.now()){
  const supportState=legacy.failures?.length||legacy.feedFailed?'degraded':'available';
  return seal({schemaVersion:1,addressId:entity.id,operatorId:entity.operator_id,timeZone:'Europe/Kyiv',coverage:range,resolution:{state:resolution.state,complete:resolution.complete},lines:normalLine?[normalLine]:[],
   notices:[...(legacy.maintenance?[{kind:'maintenance',...legacy.maintenance}]:[]),...(legacy.emergencies||[]).filter(e=>!e.queues?.length||e.queues.includes(legacy.queue)).map(e=>({kind:'regional_emergency',active:!e.ended&&fresh(legacy.feedCheckedAt,now)&&e.effectiveAt<=now&&now<(e.until??Math.max(e.effectiveAt,e.publishedAt)+7200000),start:e.effectiveAt,end:e.until||null,sourceUpdatedAt:e.publishedAt,url:e.url}))],
-  checkedAt:legacy.checkedAt||now,sourceUpdatedAt:sources.length?Math.min(...sources):null,freshUntil:Math.min(...untils),refreshAfter:now+300000,supportState,
+  checkedAt:legacy.checkedAt||now,sourceUpdatedAt:sources.length?Math.min(...sources):null,freshUntil:Math.min(...untils),
+  refreshAfter:legacy.groupSchedule?Math.max(now+60000,(Math.floor((legacy.feedCheckedAt||now)/300000)+1)*300000):now+300000,supportState,
   provenance:[{operatorId:entity.operator_id,adapter:'cherkasy-v1',allocation:resolution.provenance}],synthetic:false});
 }
 export function degraded(entity,range,previous,code,now=Date.now(),state='degraded'){

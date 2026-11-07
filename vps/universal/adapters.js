@@ -19,7 +19,10 @@ export class CherkasyAdapter {
    if(ids.length===1&&/^\d{11}$/.test(ids[0]))this.source.accounts.set(key,{account:ids[0],until:Date.now()+900000});
   }catch{/* Exact catalog address remains usable; never choose among multiple personal accounts. */}
   const prior=previous?universalEnvelope(previous,resolution.lines.find(l=>l.key==='main')?.id):{};
-  const {snapshot}=await this.legacy.prepareSnapshot({address:a,snapshot:prior,messages:[]},null,{signal});
+  const allocation=resolution.provenance;
+  const groupSchedule=!!this.source.groupPlans&&resolution.state==='resolved'&&resolution.complete&&allocation?.source==='official_registry'&&
+   allocation.estimated!==true&&!allocation.needsReview&&/^[1-6]\.[12]$/.test(allocation.queue||'');
+  const {snapshot}=await this.legacy.prepareSnapshot({address:a,snapshot:prior,messages:[]},null,{signal,groupSchedule});
   return {legacy:snapshot,value:normalizeLegacy(entity,snapshot,resolution,range)};
  }
 }

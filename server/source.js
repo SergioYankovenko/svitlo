@@ -10,7 +10,7 @@ import {
   plain,
   ORIGIN,
 } from "../app/lib/parsers.js";
-import { dayKey, addDays, civil } from "../app/lib/time.js";
+import { dayKey, addDays, civil, sourceTime } from "../app/lib/time.js";
 const CABINET = "https://cabinet.cherkasyoblenergo.com/api_new/disconn.php";
 export async function jsonFetch(url, fetcher = fetch, limit = 8_000_000, signal) {
   const r = await fetcher(url, {
@@ -206,12 +206,12 @@ export class Source {
       });
     return this.pending;
   }
-  async loadFeed(now, previous = {}, callerSignal) {
+  async loadFeed(now, previous = {}, callerSignal, { pages = 4, size = 10, publishedSince = 0 } = {}) {
     const signal = callerSignal ? AbortSignal.any([callerSignal, AbortSignal.timeout(25000)]) : AbortSignal.timeout(25000);
     const items = [];
-    for (let page = 0; page < 4; page++) {
+    for (let page = 0; page < pages; page++) {
       const r = await jsonFetch(
-        `${ORIGIN}/api/v1/posts/category/news?lang=uk&page=${page}&size=10`,
+        `${ORIGIN}/api/v1/posts/category/news?lang=uk&page=${page}&size=${size}`,
         this.fetcher,
         8_000_000,
         signal,
@@ -224,7 +224,7 @@ export class Source {
         .filter((x) =>
           /гпв|погодинн.*відключ|аварійн.*відключ|технічн.*робот/i.test(
             x.title || "",
-          ),
+          ) && (!publishedSince || sourceTime(x.publishedAt) >= publishedSince),
         )
         .slice(0, 24),
       plans = new Map(
@@ -309,7 +309,7 @@ export class Source {
       maintenance: [...new Map(maintenance.map(m => [m.url,m])).values()],
     };
   }
-  async address(a, now = Date.now(), previous = {}, { signal } = {}) {
+  async address(a, now = Date.now(), previous = {}, { signal, groupSchedule = false } = {}) {
     const format = (d) => d.split("-").reverse().join("."),
       base = {
         n_date: format(addDays(dayKey(now), -7)),
@@ -318,8 +318,10 @@ export class Source {
     const categories = { ...previous.categories },
       failures = [],
       errors = {};
+    if (groupSchedule) delete categories.hourly;
     await Promise.all(
       ["planned", "emergency", "hourly"].map(async (category, selector) => {
+        if (groupSchedule && category === "hourly") return;
         try {
           const load = async () => {
           const raw = await this.request({

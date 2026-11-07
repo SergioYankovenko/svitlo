@@ -8,8 +8,8 @@ import {projectStreet,resolveHouse,dtekSnapshot} from './policy.js';
 import {projectYasno} from './yasno.js';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 export class Regions {
- constructor({db,bridge,secret,fetcher=fetch,now=Date.now}){
-  Object.assign(this,{db,bridge,fetcher,now,secret});this.indexCache=new SharedCategories(db,secret,{ttl:86400000,now});this.streetCache=new SharedCategories(db,secret,{ttl:120000,now});this.snapshotCache=new SharedCategories(db,secret,{ttl:60000,boundFreshUntil:true,now});this.statusCache=new SharedCategories(db,secret,{ttl:120000,now});this.clients=new Map();this.historyCache=new SharedCategories(db,secret,{ttl:60000,now});
+ constructor({db,bridge,secret,fetcher=fetch,now=Date.now,groupPlans=null}){
+  Object.assign(this,{db,bridge,fetcher,now,secret,groupPlans});this.indexCache=new SharedCategories(db,secret,{ttl:86400000,now});this.streetCache=new SharedCategories(db,secret,{ttl:120000,now});this.snapshotCache=new SharedCategories(db,secret,{ttl:60000,boundFreshUntil:true,now});this.statusCache=new SharedCategories(db,secret,{ttl:120000,now});this.clients=new Map();this.historyCache=new SharedCategories(db,secret,{ttl:60000,now});
  }
  handles(op){return Object.hasOwn(REGIONS,op);}
  async gate(op){const deadline=Date.now()+6000;while(true){const r=(await this.bridge.query('select svitlo_regions.acquire($1) result',[op])).rows[0].result;if(r.granted)return r.ticket;if(r.reason==='cooldown')throw regionError(r.code==='forbidden'?'forbidden':'rate_limited',r.code==='forbidden'?503:429);if(Date.now()>=deadline)throw regionError('rate_limited',429);await pause(Math.min(500,r.waitMs||100));}}
@@ -43,7 +43,12 @@ export class Regions {
    }catch(e){error=e.code||'source_unavailable';throw e;}finally{await this.finish(op,ticket,{status,error,retry}).catch(()=>{});}
   });
  }
- async snapshot(entity,resolution,range){const data=await this.address(entity);let cityStatus=null;if(REGIONS[entity.operator_id]?.city)try{cityStatus=await this.cityStatus();}catch{/* Missing emergency state must not become a confirmed clear schedule. */}const value=dtekSnapshot(entity,resolution,range,data,cityStatus,this.now());
+ async snapshot(entity,resolution,range){
+  const data=await this.address(entity);
+  let cityStatus=null,groupPlan=null;
+  if(this.groupPlans){const group=await this.groupPlans.dtek(entity.operator_id);groupPlan=group.primary;cityStatus=group.secondary;}
+  else if(REGIONS[entity.operator_id]?.city)try{cityStatus=await this.cityStatus();}catch{/* Missing emergency state must not become a confirmed clear schedule. */}
+  const value=dtekSnapshot(entity,resolution,range,data,cityStatus,this.now(),groupPlan);
   // Archive absence/failure never grants certainty or blocks the current source.
   if(REGIONS[entity.operator_id]?.city)for(const line of value.lines)for(const day of line.categories.hourly.days){
    const past=day.date<dayKey(this.now()),missing=['not_published','unknown','stale'].includes(day.state);

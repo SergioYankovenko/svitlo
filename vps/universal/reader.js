@@ -40,11 +40,13 @@ export class UniversalReader {
   const entity=await this.catalog.entity(addressId);if(entity.kind!=='address')throw apiError(400,'not_an_address');
   const operator=await this.catalog.operator(entity.operator_id),adapter=operator&&adapterFor(operator,this);
   const scope=['universal-snapshot-v1',entity.operator_id,entity.id,range.fromDate,range.toDate];
-  if(this.regions?.handles(entity.operator_id))scope.push(RECONCILIATION_VERSION,DTEK_SNAPSHOT_VERSION,HISTORICAL_PLAN_VERSION);
+  const regional=this.regions?.handles(entity.operator_id),grouped=this.source?.groupPlans&&(regional||entity.operator_id==='ua-cherkasy');
+  if(regional)scope.push(RECONCILIATION_VERSION,DTEK_SNAPSHOT_VERSION,HISTORICAL_PLAN_VERSION);
+  if(grouped)scope.push('group-plan-v1');
   const key=createHmac('sha256',this.secret).update(JSON.stringify(scope)).digest('hex');
   const old=async()=>{const r=(await this.bridge.query('select value from public.svitlo_source_cache where key=$1',[key])).rows[0]?.value;return validSnapshot(r,entity)?r:null;};
   if(!adapter||operator.state==='disabled')return degraded(entity,range,await old(),!adapter?'adapter_unsupported':'operator_disabled',Date.now(),!adapter?'unsupported':'disabled');
-  const cache=this.regions?.handles(entity.operator_id)?this.regions.snapshotCache:this.shared;
+  const cache=regional||grouped?this.regions.snapshotCache:this.shared;
   return cache.load(scope,async()=>{
    const previous=await old();try{
     let resolution=(await this.resolveEntity(entity)).resolution;
