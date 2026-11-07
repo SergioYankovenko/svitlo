@@ -26,6 +26,7 @@ async function tick(){
   await rt.p.query('select svitlo_sensors.phone_cleanup()');
   await rt.p.query('select svitlo_sensors.expired_phone_qr_cleanup()');
   await rt.p.query('select svitlo_sources.cleanup()');
+  await rt.p.query('select svitlo_admin.cleanup()');
   await rt.p.query('select svitlo_events.domain_cleanup()');
   if(historyError)throw historyError;
   await rt.p.query('update svitlo_vps.worker_cycle set last_success=clock_timestamp(),error_code=null where id');

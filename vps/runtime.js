@@ -42,7 +42,7 @@ export async function runtime(role='api'){
     (select id from public.svitlo_profiles where coalesce(address->>'mapOnly','false')<>'true' and lease_until<$1 and ((next_check>0 and next_check<=$1) or (next_check=0 and last_checked<$1-3600000))
     order by next_check,last_checked limit least($2,4) for update skip locked) returning *`,[now,amount])).rows;
   const secret=readFileSync('/run/secrets/session_secret','utf8').trim();
-  const sourceEvidence=new SourceEvidence(bridge,{onError:code=>console.error(JSON.stringify({event:code}))}),fetcher=observedPublicFetch(operatorFetch,value=>sourceEvidence.record(value));
+  const sourceEvidence=new SourceEvidence(bridge,{onError:code=>console.error(JSON.stringify({event:code}))}),fetcher=observedPublicFetch(operatorFetch,value=>sourceEvidence.record(value),async id=>(await bridge.query('select svitlo_admin.source_allowed($1) value',[id])).rows[0].value);
   const source=new PrivateSource(providerTransport(db,fetcher),{dictionaries:new SharedDictionaries(db),feed:new SharedFeed(db),categories:new SharedCategories(db,secret),departmentSchedules:new DepartmentSchedules({db,bridge,secret})});
   const delivery=await pilotPush(p);
   const options={db,source,...delivery,jobBudgetMs:45000,

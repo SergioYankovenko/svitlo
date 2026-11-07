@@ -1,0 +1,30 @@
+name: svitlo-admin
+services:
+  console:
+    image: ${STAGE_IMAGE}
+    command: [node,--use-system-ca,vps/admin/http.mjs]
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: 0.25
+    ports: [127.0.0.1:18768:8080]
+    networks: [backend]
+    environment:
+      PGDATABASE: svitlo_staging
+      ADMIN_ORIGIN: ${ADMIN_ORIGIN:-http://localhost:18768}
+    secrets: [admin_password,admin_secret]
+    healthcheck:
+      test: [CMD,node,-e,"require('node:http').get({host:'127.0.0.1',port:8080,path:'/healthz',headers:{Host:new URL(process.env.ADMIN_ORIGIN).host}},r=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+networks:
+  backend: {external: true,name: svitlo_backend}
+secrets:
+  admin_password: {file: /etc/svitlo/admin-secrets/admin-password}
+  admin_secret: {file: /etc/svitlo/admin-secrets/admin-secret}

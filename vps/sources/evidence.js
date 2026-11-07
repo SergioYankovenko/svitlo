@@ -5,6 +5,7 @@ const sources=new Map(sourceRegistry.sources.map(s=>[s.id,s]));
 const hosts=new Map(sourceRegistry.sources.map(s=>[new URL(s.scheduleUrl).hostname,s.id]));
 hosts.set('cabinet.cherkasyoblenergo.com','ua-cherkasy');hosts.set('www.cherkasyoblenergo.com','ua-cherkasy');
 hosts.set('oblenergo.kharkiv.ua','ua-kharkiv');hosts.set('pa.oblenergo.kharkiv.ua','ua-kharkiv');hosts.set('interruptions.energy.cn.ua','ua-chernihiv');
+export function fetchSource(url){return sources.get(hosts.get(new URL(url).hostname))||null;}
 export function publicSource(url){
  const u=new URL(url),id=hosts.get(u.hostname);if(!id)return null;
  if(u.protocol!=='https:'||u.username||u.password)return null;
@@ -13,7 +14,8 @@ export function publicSource(url){
  return sources.get(id);
 }
 const outcome=(status,complete)=>status===403?'forbidden':status===429?'rate_limited':status>=500?'unavailable':!complete?'partial':'observed';
-export function observedPublicFetch(fetcher,record){return async(url,options)=>{
+export function observedPublicFetch(fetcher,record,allowed=async()=>true){return async(url,options)=>{
+ const configured=fetchSource(url);if(configured&&!await allowed(configured.id))throw Object.assign(Error('Source paused'),{status:503,code:'operator_paused'});
  const spec=publicSource(url);if(!spec)return fetcher(url,options);
  const observe=async value=>{try{await record(value);}catch{/* Optional diagnostics cannot alter the source wire contract. */}};
  let response;try{response=await fetcher(url,options);}catch(e){await observe({sourceId:spec.id,phase:'fetch',outcome:e.name==='TimeoutError'?'timeout':'unavailable',status:0,contentHash:null,bytes:0,parserVersion:spec.parserVersion});throw e;}

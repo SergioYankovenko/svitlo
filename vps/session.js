@@ -7,9 +7,9 @@ export class Sessions {
   validCsrf(req,session){const value=req.headers['x-svitlo-csrf'];return typeof value==='string'&&/^[a-f0-9]{64}$/.test(value)&&timingSafeEqual(Buffer.from(value),Buffer.from(session.csrf));}
   cookie(token,maxAge=2592000){return `svitlo_stage=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${this.secure?'; Secure':''}`;}
   async read(req){const token=this.token(req);if(!token)return null;
-    const r=await this.pool.query('select owner,expires_at from svitlo_vps.sessions where token_hash=$1 and expires_at>now()',[sha(token)]);
+    const r=await this.pool.query('select owner,expires_at from svitlo_vps.sessions where token_hash=$1 and expires_at>now() and svitlo_admin.account_allowed(owner)',[sha(token)]);
     let row=r.rows[0];if(!row)return null;let renewed=false;
-    if(row.expires_at.getTime()-Date.now()<7*86400000){const next=await this.pool.query("update svitlo_vps.sessions set expires_at=now()+interval '30 days' where token_hash=$1 and expires_at>now() returning owner,expires_at",[sha(token)]);if(!next.rows[0])return null;row=next.rows[0];renewed=true;}
+    if(row.expires_at.getTime()-Date.now()<7*86400000){const next=await this.pool.query("update svitlo_vps.sessions set expires_at=now()+interval '30 days' where token_hash=$1 and expires_at>now() and svitlo_admin.account_allowed(owner) returning owner,expires_at",[sha(token)]);if(!next.rows[0])return null;row=next.rows[0];renewed=true;}
     return {owner:row.owner,expiresAt:row.expires_at.getTime(),csrf:this.csrf(token),token,...(renewed?{renewed:true}:{})};
   }
   public(s){return {user:{id:s.owner},access_token:s.csrf,csrf_token:s.csrf,expires_at:Math.floor(s.expiresAt/1000)};}

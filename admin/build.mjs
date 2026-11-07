@@ -1,0 +1,3 @@
+import {build} from 'esbuild';import {mkdir,writeFile} from 'node:fs/promises';
+await mkdir('dist/admin',{recursive:true});await build({entryPoints:['admin/main.jsx'],bundle:true,minify:true,format:'esm',platform:'browser',target:['es2022'],outdir:'dist/admin',alias:{'decode-uri-component':'./admin/decode-compat.cjs'},define:{'process.env.NODE_ENV':'"production"'},legalComments:'external'});
+await writeFile('dist/admin/index.html','<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Світло · адміністрування</title></head><body><div id="root"></div><script type="module" src="/main.js"></script></body></html>');
