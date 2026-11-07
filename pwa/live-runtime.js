@@ -117,7 +117,7 @@ export async function createLive(){
     pushRestore=(async()=>{const generation=epoch,who=owner,id=active,registration=await navigator.serviceWorker.getRegistration();if(!registration?.active)return;const sub=await registration.pushManager.getSubscription();if(!sub)return;
       const bytes=sub.options?.applicationServerKey,actual=bytes?btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll('+','-').replaceAll('/','_').replaceAll('=',''):null;
       if(actual&&actual!==vapid){await sub.unsubscribe();pushSubscribed=false;return;}
-      const key=[who,id,sub.endpoint].join('|');if(key!==pushBinding){const modern=await modernInstallation(who);if(!modern?.ready)await mutate('subscribe',{id,subscription:sub.toJSON()});if(generation!==epoch||id!==active)return;pushBinding=key;}
+      const key=[who,id,sub.endpoint].join('|');if(key!==pushBinding){const modern=await modernInstallation(who);if(!modern)await mutate('subscribe',{id,subscription:sub.toJSON()});if(generation!==epoch||id!==active)return;pushBinding=key;}
       pushSubscribed=true;emit();
     })().finally(()=>pushRestore=null);return pushRestore;
   }

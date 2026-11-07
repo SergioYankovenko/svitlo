@@ -1,0 +1,55 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { PGlite } from '@electric-sql/pglite';
+import { readFile, readdir } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+
+test('source bridge exports a whitelisted revision and enforces terminal per-owner fences', async () => {
+ const c=new PGlite(),owner=randomUUID(),session=randomUUID(),other=randomUUID(),target=randomUUID(),profile=randomUUID(),nonce=randomUUID(),digest='d'.repeat(64);
+ const schema='svitlo_migration_source',directory=new URL('./source-project/supabase/migrations/',import.meta.url);
+ const version=(await readdir(directory)).find(n=>n.endsWith('_source_migration_fence.sql'));
+ const query=async(sql,...params)=>(await c.query(sql,params)).rows[0]?.v;
+ const exportProfile=()=>query('select '+schema+'.export_profiles($1,$2) v',owner,session);
+ const freeze=(n,revision)=>query('select '+schema+'.freeze($1,$2,$3,$4,$5,$6) v',owner,session,n,target,revision,digest);
+ const finish=(n,action,proof=null,to=target)=>query('select '+schema+'.finish($1,$2,$3,$4,$5,$6,$7) v',owner,session,n,digest,action,proof,to);
+ try{
+  await c.exec(`create role anon;create role authenticated;create role service_role;create schema auth;
+   create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);
+   create table public.svitlo_profiles(id uuid primary key,owner uuid,address jsonb,name text,preferences jsonb,snapshot jsonb);`);
+  await c.exec(await readFile(new URL(version,directory),'utf8'));
+  await query('insert into auth.sessions values($1,$2,null)',session,owner);
+  await query('insert into public.svitlo_profiles values($1,$2,$3,$4,$5,$6)',profile,owner,{house:'12A',deviceSecret:'private'},'Дім',{reminder:true,deviceToken:'private'},{plan:1});
+  await query('insert into public.svitlo_profiles values($1,$2,$3,$4,$5,$6)',randomUUID(),other,{house:'2'},'Other',{},null);
+  await assert.rejects(exportProfile,/disabled/);
+  assert.equal(await query("select has_schema_privilege('authenticated',$1,'usage') v",schema),false);
+  assert.equal(await query("select has_schema_privilege('service_role',$1,'usage') v",schema),false);
+  await c.exec('update '+schema+'.control set enabled=true');
+  const original=await exportProfile();
+  assert.deepEqual(original.profiles,[{id:profile,name:'Дім',address:{house:'12A'},preferences:{reminder:true}}]);
+  await query("update public.svitlo_profiles set snapshot='{}' where id=$1",profile);
+  assert.equal((await exportProfile()).revision,original.revision);
+  await query("update public.svitlo_profiles set name='Нове' where id=$1",profile);
+  await assert.rejects(freeze(nonce,original.revision),/source_changed/);
+  const changed=await exportProfile();
+  assert.equal((await freeze(nonce,changed.revision)).sourceSubject,owner);
+  await c.exec('update '+schema+'.control set enabled=false');
+  await query("update public.svitlo_profiles set snapshot='{}' where id=$1",profile);
+  await assert.rejects(query("update public.svitlo_profiles set name='Blocked' where id=$1",profile),/fenced/);
+  assert.equal(await finish(nonce,'aborted',null,other),false);
+  assert.equal(await finish(nonce,'aborted'),true);
+  await query("update public.svitlo_profiles set name='Restored' where id=$1",profile);
+  await c.exec('update '+schema+'.control set enabled=true');
+  const latest=await exportProfile();
+  await assert.rejects(freeze(nonce,latest.revision),/conflict/);
+  const late=randomUUID();
+  assert.equal(await finish(late,'aborted'),true);
+  await assert.rejects(freeze(late,latest.revision),/conflict/);
+  const committed=randomUUID();
+  assert.equal((await freeze(committed,latest.revision)).fenced,true);
+  assert.equal(await finish(committed,'committed','e'.repeat(64)),true);
+  assert.equal(await finish(committed,'aborted'),false);
+  await assert.rejects(query('delete from public.svitlo_profiles where id=$1',profile),/fenced/);
+  await query("update auth.sessions set not_after=now()-interval '1 second' where id=$1",session);
+  await assert.rejects(exportProfile,/session no longer active/);
+ }finally{await c.close();}
+});

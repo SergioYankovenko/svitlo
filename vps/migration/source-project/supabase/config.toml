@@ -1,0 +1,5 @@
+project_id = "svitlo-migration-source-local"
+
+[functions.svitlo-migration-v1]
+# Separate bridge bearer plus fresh user Auth/session proof on every request.
+verify_jwt = false

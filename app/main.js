@@ -460,7 +460,7 @@ async function subscriptionData(){
   }
   if(!lifecycle.current(scope))return null;
   const modern=universalEnabled&&await modernInstallation(scope.owner);
-  state.push=!!sub;state.subscription=modern?.ready?null:sub?.toJSON()||null;return state.subscription;
+  state.push=!!sub;state.subscription=modern?null:sub?.toJSON()||null;return state.subscription;
 }
 async function checkPush(force=false){
   if(pushCheck)return pushCheck;

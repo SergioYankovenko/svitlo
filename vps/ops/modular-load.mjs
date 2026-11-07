@@ -12,8 +12,8 @@ const q=(sql,p)=>admin.query(sql,p),token=p=>p+'_'+randomBytes(32).toString('bas
 const check=(name,fn)=>Promise.resolve(fn()).then(()=>{checks.push(name);console.log(JSON.stringify({check:name,status:'pass'}));});
 const event=(seq=1)=>({eventId:randomUUID(),sequence:seq,eventType:'sample',powerState:'on',observedAt:new Date().toISOString(),clockQuality:'synchronized',bootId:boot,elapsedRealtimeMs:Math.floor(performance.now())+1000,monitorId:monitor,coverage:null});
 const packet=(d,e)=>({schemaVersion:3,sensorId:d.sensorId,bindingEpoch:d.bindingEpoch,streamId:d.streamId,events:[e]});
-async function request(path,data,auth){const start=performance.now(),r=await fetch('http://127.0.0.1:8080'+path,{method:'POST',headers:{Host:'localhost:18765','content-type':'application/json',...(auth?{authorization:'Bearer '+auth}:{})},body:JSON.stringify(data),signal:AbortSignal.timeout(20000)});const value=await r.json();return {status:r.status,ms:performance.now()-start,value};}
-async function start(){child=spawn(process.execPath,['vps/http.mjs'],{stdio:['ignore','ignore','pipe'],env:{...process.env,STAGE_ORIGIN:'http://localhost:18765'}});let log='';child.stderr.on('data',d=>{log=(log+d).slice(-1000);});for(let i=0;i<80;i++){try{const r=await fetch('http://127.0.0.1:8080/readyz',{headers:{Host:'localhost:18765'}});if(r.ok)return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('QA server not ready '+log.replace(/\b[spdt]_[A-Za-z0-9_-]+/g,'[redacted]'));}
+async function request(path,data,auth){const start=performance.now(),r=await fetch('http://127.0.0.1:8080'+path,{method:'POST',headers:{'content-type':'application/json',...(auth?{authorization:'Bearer '+auth}:{})},body:JSON.stringify(data),signal:AbortSignal.timeout(20000)});const value=await r.json();return {status:r.status,ms:performance.now()-start,value};}
+async function start(){child=spawn(process.execPath,['vps/http.mjs'],{stdio:['ignore','ignore','pipe'],env:{...process.env,STAGE_ORIGIN:'http://127.0.0.1:8080'}});let log='',lastStatus=null;child.stderr.on('data',d=>{log=(log+d).slice(-1000);});for(let i=0;i<80;i++){try{const r=await fetch('http://127.0.0.1:8080/readyz');lastStatus=r.status;if(r.ok)return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('QA server not ready HTTP '+lastStatus+' '+log.replace(/\b[spdt]_[A-Za-z0-9_-]+/g,'[redacted]'));}
 async function stop(){if(!child)return;const c=child;child=null;c.kill('SIGTERM');await new Promise(r=>c.once('exit',r));}
 try{
  await q('insert into auth.users(id) select unnest($1::uuid[])',[actors]);
@@ -38,11 +38,18 @@ try{
  console.log(JSON.stringify({seedSeconds:Math.round((performance.now()-seedStart)/1000)}));
  // Preserve metadata receipts for the complete replay horizon; no raw body is retained.
  const d=devices[0],binding=(await q('select binding_id from svitlo_sensors.bindings where sensor_id=$1',[d.sensorId])).rows[0].binding_id;
- const before=Number((await q("select pg_total_relation_size('svitlo_sensors.phone_receipts') n")).rows[0].n);
- await q("insert into svitlo_sensors.phone_receipts select $1::uuid,$2::uuid,gen_random_uuid(),s+1000,repeat('a',64),now()-(s||' minutes')::interval,'stored' from generate_series(1,25920) s",[binding,d.streamId]);
- const after=Number((await q("select pg_total_relation_size('svitlo_sensors.phone_receipts') n")).rows[0].n),bytesPerRow=(after-before)/25920;
+ const storage=async()=>Number((await q("select pg_total_relation_size('svitlo_sensors.phone_receipts_compact')+pg_total_relation_size('svitlo_sensors.phone_receipt_streams') n")).rows[0].n);
+ const before=await storage();
+ // Bulk physical fixture in this explicitly disposable database. Keep the
+ // compact compatibility trigger enabled for every actual HTTP ingest.
+ await q('begin');try{
+  const stream=(await q('insert into svitlo_sensors.phone_receipt_streams(binding_id,stream_id) values($1,$2) on conflict(binding_id,stream_id) do update set stream_id=excluded.stream_id returning stream_key',[binding,d.streamId])).rows[0].stream_key;
+  await q("insert into svitlo_sensors.phone_receipts_compact select $1::bigint,gen_random_uuid(),s+1000,decode(repeat('a',64),'hex'),case when s=1 then now()-interval '90 days 12 hours' when s between 2 and 1105 then now()-interval '92 days' else now()-(s||' minutes')::interval end,1::smallint from generate_series(1,25920) s",[stream]);
+  await q('update svitlo_sensors.phone_receipt_streams set receipt_count=receipt_count+25920 where stream_key=$1',[stream]);await q('commit');
+ }catch(e){await q('rollback');throw e;}
+ const after=await storage(),bytesPerRow=(after-before)/25920;
  console.log(JSON.stringify({storageSampleRows:25920,incrementalBytes:after-before,bytesPerReceipt:Math.round(bytesPerRow),estimatedReceiptsFor3000Devices91Days:3000*288*91,estimatedGiBFor3000Devices91Days:Math.round(bytesPerRow*3000*288*91/2**30*10)/10,isProjection:true,includesOtherTablesOrBackups:false}));
- await check('retention keeps boundary receipts and expires only bounded older rows',async()=>{await q("update svitlo_sensors.phone_receipts set received_at=now()-interval '90 days 12 hours' where binding_id=$1 and sequence=1001",[binding]);await q("update svitlo_sensors.phone_receipts set received_at=now()-interval '92 days' where binding_id=$1 and sequence between 1002 and 2105",[binding]);const r=(await q('select svitlo_sensors.phone_cleanup() r')).rows[0].r;assert.equal(r.expiredPhoneReceipts,1000);assert.equal((await q('select count(*)::int n from svitlo_sensors.phone_receipts where binding_id=$1 and sequence=1001',[binding])).rows[0].n,1);});
+ await check('retention keeps boundary receipts and expires only bounded older rows',async()=>{const r=(await q('select svitlo_sensors.phone_cleanup() r')).rows[0].r;assert.equal(r.expiredPhoneReceipts,1000);assert.equal((await q('select count(*)::int n from svitlo_sensors.phone_receipts where binding_id=$1 and sequence=1001',[binding])).rows[0].n,1);});
  await start();const durations=[],readDurations=[],statuses={},sequences=new Map(),pending=new Set();let started=performance.now(),completed=0;
  for(let i=0;i<seconds*20;i++){
   const wait=started+i*50-performance.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));
