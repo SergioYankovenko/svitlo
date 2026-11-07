@@ -8,3 +8,10 @@ test('correct latency and completeness evidence cannot close gates for a differe
  assert.equal(r.gates.searchSlo,false);assert.equal(r.gates.soak24h,false);
  assert.equal(acceptance({release:{image},soak:{image,observedSeconds:86400,unexpectedErrors:0}}).gates.soak24h,true);
 });
+
+test('test-only search overlay cannot attest to the deployed image',()=>{
+ const image='sha256:'+'a'.repeat(64);
+ const search={image,status:'pass',measurement:'full-http-api',requestsPerSecond:20,observedRequestsPerSecond:20,p95ms:71,exactCases:200,exactCorrect:200,indexBytes:50_000_000,peakMemoryBytes:160_000_000};
+ assert.equal(acceptance({release:{image},search}).gates.searchSlo,true);
+ assert.equal(acceptance({release:{image},search:{...search,candidateOverlay:true}}).gates.searchSlo,false);
+});
