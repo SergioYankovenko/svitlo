@@ -34,6 +34,10 @@ try{
  const indexMs=performance.now()-started,latencies=[];let checks=0;
  for(const item of corpus){const at=performance.now(),result=await client.search(generation,{kind:'address',parentId:item.parentId,q:item.query,limit:50});latencies.push(performance.now()-at);assert.deepEqual(result.ids,[item.id]);checks++;}
  const port=new AddressSearch({bridge:{query:(...args)=>api.query(...args)},client,secret:'isolated-search-cursor'});
+ const cityPage=await port.search({kind:'city',parentId:null,q:'Пілот',limit:1});
+ assert.equal(cityPage?.rows.length,1);assert.ok(cityPage.nextCursor,'Root city results must come from the Meili projection');
+ const cityNext=await port.search({kind:'city',parentId:null,q:'Пілот',limit:1,cursor:cityPage.nextCursor});
+ assert.deepEqual(new Set([...cityPage.rows,...cityNext.rows].map(r=>r.id)),new Set([city,other]));checks++;
  for(const q of ['Шевченк','Шевченко','Незалежнос','Січових Стрільц','Грушевськ']){
   const result=await port.search({kind:'street',parentId:city,q,limit:50});assert.ok(result?.rows.length,'Fuzzy query must return a scoped candidate: '+q);assert.ok(result.rows.every(r=>r.parent_id===city));checks++;
  }

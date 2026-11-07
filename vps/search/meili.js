@@ -47,7 +47,9 @@ export class MeiliClient {
  }
  async search(name,{kind,parentId,q='',offset=0,limit=50}){
   if(this.now()<this.retryAt)throw searchError('search_cooldown');
-  const filter=['kind = '+JSON.stringify(kind),'parentId = '+JSON.stringify(parentId||''),'allowed = true'];
+  // Meilisearch equality does not match an empty string. Cities are root
+  // documents with an explicitly empty parentId.
+  const filter=['kind = '+JSON.stringify(kind),parentId?'parentId = '+JSON.stringify(parentId):'parentId IS EMPTY','allowed = true'];
   if(kind==='address'&&q.trim()){const key=houseKey(q);if(key===null)return {ids:[],more:false,consumed:0};filter.push('houseKey = '+JSON.stringify(key));}
   try{const result=await this.request(this.index(name)+'/search',{method:'POST',timeout:2000,body:{q:kind==='address'?'':q,filter,sort:['sortLabel:asc','id:asc'],offset,limit:limit+1,attributesToRetrieve:['id','fingerprint']}});
    if(!Array.isArray(result.hits)||result.hits.length>limit+1||result.hits.some(h=>typeof h.id!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(h.id)))throw searchError('invalid_search_response');
