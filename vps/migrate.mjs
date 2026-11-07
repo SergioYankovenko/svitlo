@@ -63,6 +63,7 @@ try{
   migrations.push(['1038_alerts_energy.sql',await readFile('vps/sql/alerts-energy.sql','utf8')]);
   migrations.push(['1039_dictionary_source_proof.sql',await readFile('vps/sql/dictionary-source-proof.sql','utf8')]);
   migrations.push(['1040_notifications.sql',await readFile('vps/sql/notifications.sql','utf8')]);
+  migrations.push(['1041_migration_transfer.sql',await readFile('vps/sql/migration-transfer.sql','utf8')]);
   for(const [name,sql] of migrations){
     const hash=createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex');
     const old=(await c.query('select sha256 from svitlo_vps.migrations where name=$1',[name])).rows[0];

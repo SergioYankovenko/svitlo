@@ -40,11 +40,11 @@ services:
   api-a:
     <<: *runtime
     ports: [127.0.0.1:18766:8080]
-    volumes: [/var/lib/svitlo-stage/unresolved-addresses:/app-logs,/etc/svitlo/search/api:/run/search:ro,/etc/svitlo/billing/api:/run/billing:ro,/etc/svitlo/sources/api:/run/sources:ro,/etc/svitlo/notifications/api:/run/notifications:ro]
+    volumes: [/var/lib/svitlo-stage/unresolved-addresses:/app-logs,/etc/svitlo/search/api:/run/search:ro,/etc/svitlo/billing/api:/run/billing:ro,/etc/svitlo/sources/api:/run/sources:ro,/etc/svitlo/notifications/api:/run/notifications:ro,/etc/svitlo/migration/api:/run/migration:ro]
   api-b:
     <<: *runtime
     ports: [127.0.0.1:18767:8080]
-    volumes: [/var/lib/svitlo-stage/unresolved-addresses:/app-logs,/etc/svitlo/search/api:/run/search:ro,/etc/svitlo/billing/api:/run/billing:ro,/etc/svitlo/sources/api:/run/sources:ro,/etc/svitlo/notifications/api:/run/notifications:ro]
+    volumes: [/var/lib/svitlo-stage/unresolved-addresses:/app-logs,/etc/svitlo/search/api:/run/search:ro,/etc/svitlo/billing/api:/run/billing:ro,/etc/svitlo/sources/api:/run/sources:ro,/etc/svitlo/notifications/api:/run/notifications:ro,/etc/svitlo/migration/api:/run/migration:ro]
     profiles: [second-slot]
   worker:
     <<: *runtime

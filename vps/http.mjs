@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {configuredMigration} from './migration/runtime.js';
 import {NotificationService,notificationKey} from './notifications/service.js';
 import {redirectTarget} from './redirects.js';
 import {readFile,stat} from 'node:fs/promises';
@@ -32,7 +33,7 @@ const phone=new PhoneSensors({bridge:rt.bridge,secret:phoneSecret});
 const sensors=new SensorAccess({bridge:rt.bridge,db:rt.db,secret:sensorSecret,phone});
 const sensorIngest=new SensorIngest(rt.bridge);
 const root=resolve('dist/app'),origin=process.env.STAGE_ORIGIN||'http://localhost:18765';
-const release=process.env.RELEASE_ID||'development';
+const release=process.env.RELEASE_ID||'development',migration=configuredMigration(rt,origin);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.woff2':'font/woff2','.ttf':'font/ttf','.ico':'image/x-icon','.txt':'text/plain; charset=utf-8'};
 // Session metadata has a separate bounded pool; mutations/devices keep 32/s.
 const admission=new HttpAdmission();
@@ -130,6 +131,10 @@ const server=http.createServer(async(req,res)=>{
       if(!s)return json(res,401,{error:'Потрібна сесія'});
       if(req.method!=='POST')return json(res,405,{error:'Method not allowed'});
       if(!sessions.validCsrf(req,s))return json(res,403,{error:'CSRF rejected'});
+      if(path==='/api/v1/migration'){
+        if(url.search)throw problem(400,'query_not_allowed');if(!budget('migration:'+s.owner,10))throw problem(429,'migration_rate_limited','rate');
+        const data=await body(req,280000);return json(res,200,await ownerContext.run(s.owner,()=>migration.handle(s,data)));
+      }
       if(path==='/api/v1/notifications'){
         if(url.search)throw problem(400,'query_not_allowed');if(!budget('notifications:'+s.owner,60))throw problem(429,'notification_rate_limited','rate');
         const data=await body(req,12000);return json(res,200,await ownerContext.run(s.owner,()=>notifications.handle(s,data)));
