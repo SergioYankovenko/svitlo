@@ -1,3 +1,4 @@
+import {configuredAlerts} from './sources/alerts-energy.js';
 import {corePorts} from './modules/ports.js';
 import {unresolvedLog} from './universal/unresolved-log.js';
 import {adapterFor} from './universal/adapters.js';
@@ -48,7 +49,8 @@ export async function runtime(role='api'){
   const delivery=await pilotPush(p);
   const options={db,source,...delivery,jobBudgetMs:45000,
     defaultPreferences:{schedule:false,publication:false,change:false,emergency:false,reminder:false,restoration:false,lead:30}};
-  const regions=new Regions({db,bridge,secret,fetcher}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions,sourceEvidence});
+  const alertsEnergy=configuredAlerts({bridge,db,secret,fetcher});
+  const regions=new Regions({db,bridge,secret,fetcher}),legacy=new Service(options),reader=new UniversalReader({db,bridge,legacy,source,secret,regions,sourceEvidence,alertsEnergy});
   const addressSearch=new AddressSearch({bridge,client:configuredMeili('read'),secret});reader.catalog.searchPort=addressSearch;
   const regionalDiscovery=new RegionalDiscoverySources({fetcher,gate:op=>regions.gate(op),finish:(...args)=>regions.finish(...args)});
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});

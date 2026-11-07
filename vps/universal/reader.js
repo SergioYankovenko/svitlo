@@ -10,7 +10,7 @@ import {RECONCILIATION_VERSION} from '../regions/reconcile.js';
 import {HISTORICAL_PLAN_VERSION} from '../regions/historical-plan.js';
 import {DTEK_SNAPSHOT_VERSION} from '../regions/policy.js';
 export class UniversalReader {
- constructor({db,bridge,legacy,source,secret,regions,adapterRegistry,sourceEvidence}){Object.assign(this,{db,bridge,legacy,source,secret,regions,adapterRegistry,sourceEvidence});this.catalog=new Catalog(bridge,regions);this.shared=new SharedCategories(db,secret,{ttl:300000});}
+ constructor({db,bridge,legacy,source,secret,regions,adapterRegistry,sourceEvidence,alertsEnergy}){Object.assign(this,{db,bridge,legacy,source,secret,regions,adapterRegistry,sourceEvidence,alertsEnergy});this.catalog=new Catalog(bridge,regions);this.shared=new SharedCategories(db,secret,{ttl:300000});}
  async capabilities(){const operators=await this.catalog.operators();return {schemaVersion:1,apiVersion:'1.0.0',featureSet:'universal',timeZones:['Europe/Kyiv'],
   categories:['hourly','planned','unplanned','emergency'],limits:{search:50,batch:10,days:14},addressFallback:{source:'visicom',requiresSession:true,approximate:true,preserveHouse:true},operators:operators.map(o=>({id:o.id,label:o.label,supportState:adapterFor(o,this)?o.state:'unsupported',synthetic:o.is_test,coverage:o.config.coverage,unitSupported:o.config.unitSupported===true})),push:false,sensors:false};}
  checkVersion(body){if(body.schemaVersion!==undefined&&body.schemaVersion!==1)throw apiError(400,'unsupported_schema','Ця версія формату не підтримується');}
@@ -22,7 +22,7 @@ export class UniversalReader {
   const op=await this.catalog.operator(entity.operator_id),adapter=op&&adapterFor(op,this);
   if(!op||!adapter||op.state==='disabled')return {address:this.catalog.public(entity),operator:{id:entity.operator_id,label:op?.label||'',supportState:!adapter?'unsupported':'disabled',synthetic:!!op?.is_test},resolution:{state:'unknown',complete:false,lines:[],checkedAt:0,provenance:{}},unitSupported:false};
   const value=await adapter.resolve(entity);
-  if(!validResolution(value)){await this.sourceEvidence?.rejected(op.id,'invalid_adapter_resolution');throw apiError(503,'invalid_adapter_resolution');}
+  if(!validResolution(value)){await this.sourceEvidence?.rejected(op.id,'invalid_adapter_resolution',op.adapter_key);throw apiError(503,'invalid_adapter_resolution');}
   const resolution=await this.catalog.lines(entity.id,value);
   return {address:this.catalog.public(entity),operator:{id:op.id,label:op.label,supportState:op.state,synthetic:op.is_test},resolution,unitSupported:op.config.unitSupported===true&&typeof adapter.selectUnit==='function'};
  }
@@ -56,7 +56,7 @@ export class UniversalReader {
     if(!validSnapshot(result.value,entity)||result.value.coverage.fromDate!==range.fromDate||result.value.coverage.toDate!==range.toDate)throw Error('invalid_adapter_snapshot');
     await this.sourceEvidence?.accepted(result.value,operator.adapter_key);
     return result.value;
-   }catch(e){await this.sourceEvidence?.rejected(entity.operator_id,e.code||e.message);return degraded(entity,range,previous,['forbidden','rate_limited','timeout','synthetic_unavailable'].includes(e.code)?e.code:'source_unavailable');}
+   }catch(e){await this.sourceEvidence?.rejected(entity.operator_id,e.code||e.message,operator?.adapter_key);return degraded(entity,range,previous,['forbidden','rate_limited','timeout','synthetic_unavailable'].includes(e.code)?e.code:'source_unavailable');}
   });
  }
  async batch(body){this.checkVersion(body);const range=this.range(body);

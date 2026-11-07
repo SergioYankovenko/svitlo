@@ -10,6 +10,7 @@ export function publicSource(url){
  const u=new URL(url),id=hosts.get(u.hostname);if(!id)return null;
  if(u.protocol!=='https:'||u.username||u.password)return null;
  if(u.hostname==='cabinet.cherkasyoblenergo.com'&&!['department_list','city_list','street_list','house_list','disconn_by_dept'].includes(u.searchParams.get('op')))return null;
+ if(u.hostname==='alerts.energy'&&!u.pathname.startsWith('/api/v1/source-registry/'))return null;
  if(u.hostname==='app.yasno.ua'&&!u.pathname.startsWith('/api/blackout-service/public/'))return null;
  return sources.get(id);
 }
@@ -38,14 +39,15 @@ export class SourceEvidence {
   catch{if(this.now()-this.lastError>60000){this.lastError=this.now();this.onError('source_evidence_write_failed');}}
  }
  async accepted(snapshot,parserVersion){
-  if(!sources.has(snapshot.operatorId))return;
+  const sourceId=parserVersion==='alerts-energy-v1'?'aux-alerts-energy':snapshot.operatorId;if(!sources.has(sourceId))return;
   const value={coverage:snapshot.coverage,resolution:snapshot.resolution,lines:snapshot.lines.map(l=>({id:l.id,groupCode:l.groupCode,categories:Object.fromEntries(Object.entries(l.categories).map(([k,c])=>[k,c.days]))}))};
   const fresh=snapshot.supportState==='available'&&snapshot.resolution.complete&&snapshot.freshUntil>this.now();
-  await this.record({sourceId:snapshot.operatorId,phase:'normalize',outcome:fresh?'accepted':'partial',status:200,
+  await this.record({sourceId,phase:'normalize',outcome:fresh?'accepted':'partial',status:200,
    contentHash:createHash('sha256').update(JSON.stringify(value)).digest('hex'),bytes:Buffer.byteLength(JSON.stringify(value)),parserVersion,
    checkedAt:Math.min(snapshot.checkedAt,snapshot.sourceUpdatedAt??snapshot.checkedAt)});
  }
- async rejected(sourceId,code){
+ async rejected(sourceId,code,parserVersion){
+  if(parserVersion==='alerts-energy-v1')sourceId='aux-alerts-energy';
   const spec=sources.get(sourceId);if(!spec)return;
   await this.record({sourceId,phase:'normalize',outcome:['forbidden','rate_limited','timeout'].includes(code)?code:/^invalid_/.test(code||'')?'invalid':'unavailable',status:0,contentHash:null,bytes:0,parserVersion:spec.parserVersion});
  }

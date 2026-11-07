@@ -3,6 +3,7 @@ import {civil} from '../../app/lib/time.js';
 import {CATEGORIES,universalEnvelope} from '../../app/lib/universal-contract.js';
 import {normalizeLegacy,seal,dates} from './normalize.js';
 import {DtekAdapter} from '../regions/service.js';
+import {AlertsEnergyAdapter} from '../sources/alerts-energy.js';
 import {AdapterRegistry} from './adapter-registry.js';
 export class CherkasyAdapter {
  constructor({legacy,source}){Object.assign(this,{legacy,source});}
@@ -40,6 +41,7 @@ export class QaAdapter {
  }
 }
 export function createAdapterRegistry(){return new AdapterRegistry()
+ .register({key:'alerts-energy-v1',supports:(op,ctx)=>ctx.alertsEnergy?.configured===true,create:ctx=>new AlertsEnergyAdapter(ctx.alertsEnergy)})
  .register({key:'dtek-public-v1',supports:(op,ctx)=>!!ctx.regions?.handles(op.id),create:ctx=>new DtekAdapter(ctx.regions)})
  .register({key:'cherkasy-v1',operatorIds:['ua-cherkasy'],create:ctx=>new CherkasyAdapter(ctx)})
  .register({key:'qa-grid-v1',testOnly:true,create:()=>new QaAdapter()})

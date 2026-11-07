@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "ministryOperators": 27,
-  "registryAsOf": "2026-11-06",
+  "registryAsOf": "2026-11-07",
   "sourceArchiveSha256": "49e989704365b332a082c2d96d83c52257e26f2585a6a222bad1bff199389375",
   "sources": [
     {
@@ -339,6 +339,19 @@
       "endpointVerified": false,
       "userFacing": false,
       "verificationState": "adapter_tested"
+    },
+    {
+      "id": "aux-alerts-energy",
+      "operatorId": "aggregate",
+      "label": "Alerts Energy · додатковий API",
+      "scheduleUrl": "https://alerts.energy/api/v1/source-registry/summary",
+      "family": "alerts-energy",
+      "parserVersion": "alerts-energy-v1",
+      "registryEvidence": "documented-openapi-20261107",
+      "endpointVerified": false,
+      "userFacing": false,
+      "verificationState": "credential_pending"
     }
-  ]
+  ],
+  "ministryArchiveAsOf": "2026-11-06"
 }
