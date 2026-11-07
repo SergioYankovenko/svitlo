@@ -20,6 +20,12 @@ jobs:
           POSTGRES_PASSWORD: isolated-history-ci
         ports: ['5432:5432']
         options: --health-cmd "pg_isready -U svitlo_owner" --health-interval 5s --health-timeout 5s --health-retries 12
+      meilisearch:
+        image: getmeili/meilisearch@sha256:b7ba431bf6f9b26cc86132798f3640964147a699cf23f026b74c6c05dbb1d60d
+        env:
+          MEILI_MASTER_KEY: isolated-search-ci-key
+          MEILI_NO_ANALYTICS: 'true'
+        ports: ['7700:7700']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
@@ -38,6 +44,8 @@ jobs:
       - run: node --test vps/observability/*.test.mjs
       - run: node --test vps/sources/*.test.mjs
       - run: node --test vps/catalog/*.test.mjs
+      - run: node --test vps/search/*.test.mjs
+      - run: node vps/search/ci.mjs
       - run: node vps/events/ci.mjs
       - name: Build once outside VPS; no server credentials or deployment
         run: |

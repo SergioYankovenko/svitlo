@@ -2,7 +2,7 @@ import {validResolution} from './validate.js';
 const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
 export const apiError=(status,code,message=code)=>Object.assign(Error(message),{status,code});
 export class Catalog {
- constructor(bridge,regions){this.db=bridge;this.regions=regions;}
+ constructor(bridge,regions){this.db=bridge;this.regions=regions;this.searchPort=null;}
  async operators(){return (await this.db.query("select * from svitlo_vps.operators where id<>'map-only' order by id")).rows;}
  async operator(id){return (await this.db.query('select * from svitlo_vps.operators where id=$1',[id])).rows[0];}
  async entity(id){if(!uuid(id))throw apiError(400,'invalid_id','Некоректний ідентифікатор');
@@ -22,6 +22,8 @@ export class Catalog {
   const map={cities:'city',streets:'street',houses:'address'};if(!map[kind]||typeof q!=='string'||q.length>120||!Number.isInteger(limit)||limit<1||limit>50)throw apiError(400,'invalid_search');
   if(kind!=='cities'&&!uuid(parentId))throw apiError(400,'invalid_parent');
   let source=null;if(kind!=='cities'){const parent=await this.entity(parentId);if(parent.kind!==(kind==='streets'?'city':'street'))throw apiError(400,'invalid_parent');parentId=parent.id;source=await this.regions?.ensureSearch(parent,kind);}
+  const indexed=await this.searchPort?.search({kind:map[kind],parentId,q,cursor,limit});
+  if(indexed)return this.searchPage(kind,parentId,indexed.rows,indexed.nextCursor,indexed.complete,source);
   let after=null;if(cursor){try{if(typeof cursor!=='string'||cursor.length>1024)throw Error();after=JSON.parse(Buffer.from(cursor,'base64url'));if(after.kind!==kind||after.parentId!==parentId||after.q!==q||!uuid(after.id)||typeof after.label!=='string')throw Error();}catch{throw apiError(400,'invalid_cursor');}}
   const text='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
   const r=await this.db.query(`select e.*,case when e.kind='city' then svitlo_vps.catalog_city_state(e.id) end as route_state from svitlo_vps.catalog e where e.kind=$1 and e.parent_id is not distinct from $2::uuid
@@ -32,8 +34,11 @@ export class Catalog {
    and ($4::text is null or (e.label collate "C",e.id)>($4 collate "C",$5::uuid))
    order by e.label collate "C",e.id limit $6`,[map[kind],parentId,text,after?.label||null,after?.id||null,limit+1]);
   const page=r.rows.slice(0,limit),last=page.at(-1),more=r.rows.length>limit;
+  return this.searchPage(kind,parentId,page,more?Buffer.from(JSON.stringify({kind,parentId,q,id:last.id,label:last.label})).toString('base64url'):null,!more,source);
+ }
+ async searchPage(kind,parentId,page,nextCursor,complete,source){
   const coverage=kind==='streets'?(await this.db.query('select svitlo_vps.catalog_city_state($1) state',[parentId])).rows[0].state:'imported_subset';
-  return {schemaVersion:1,items:page.map(e=>({...this.public(e),...(e.route_state?{routeState:e.route_state}:{})})),nextCursor:more?Buffer.from(JSON.stringify({kind,parentId,q,id:last.id,label:last.label})).toString('base64url'):null,complete:!more,coverage:source?.state==='cached'?'cached_subset':coverage,emptyConfirmed:!source&&page.length===0&&coverage==='empty',...(source?.state==='cached'?{sourceState:source.code,sourceCheckedAt:source.checkedAt,sourceFresh:false}:{})};
+  return {schemaVersion:1,items:page.map(e=>({...this.public(e),...(e.route_state?{routeState:e.route_state}:{})})),nextCursor,complete,coverage:source?.state==='cached'?'cached_subset':coverage,emptyConfirmed:!source&&page.length===0&&coverage==='empty',...(source?.state==='cached'?{sourceState:source.code,sourceCheckedAt:source.checkedAt,sourceFresh:false}:{})};
  }
  async legacy(ref){if(!ref||['department','cityId','streetId','house'].some(k=>typeof ref[k]!=='string'||!ref[k]||ref[k].length>120))throw apiError(400,'invalid_legacy');
   const r=(await this.db.query("select entity_id from svitlo_vps.catalog_aliases where operator_id='ua-cherkasy' and kind='address' and provider_key=$1::jsonb::text",[JSON.stringify([ref.department,ref.cityId,ref.streetId,ref.house])])).rows[0];
