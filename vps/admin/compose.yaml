@@ -13,7 +13,7 @@ services:
     mem_limit: 128m
     cpus: 0.25
     ports: [127.0.0.1:18768:8080]
-    networks: [backend]
+    networks: [backend,edge]
     environment:
       PGDATABASE: svitlo_staging
       ADMIN_ORIGIN: ${ADMIN_ORIGIN:-http://localhost:18768}
@@ -25,6 +25,7 @@ services:
       retries: 3
 networks:
   backend: {external: true,name: svitlo_backend}
+  edge: {}
 secrets:
   admin_password: {file: /etc/svitlo/admin-secrets/admin-password}
   admin_secret: {file: /etc/svitlo/admin-secrets/admin-secret}

@@ -21,7 +21,8 @@ def prepare():
   directory=S/kind;marker=directory/'.arch-mod-01'
   if directory.exists() and not marker.exists():raise RuntimeError('Unowned module directory: '+kind)
   directory.mkdir(mode=0o755,exist_ok=True);private(marker,'ARCH-MOD-01')
-  for role in ['api','worker']:(directory/role).mkdir(mode=0o755,exist_ok=True)
+  for role in ['api','worker']:
+   folder=directory/role;folder.mkdir(mode=0o700,exist_ok=True);os.chown(folder,1000,1000);os.chmod(folder,0o500)
  (S/'admin-secrets').mkdir(mode=0o700,exist_ok=True)
  private(S/'admin-secrets/admin-password',secrets.token_hex(32),1000);private(S/'admin-secrets/admin-secret',secrets.token_hex(32),1000)
  master=private(S/'search/master-key',secrets.token_hex(32));private(S/'search/engine.env','MEILI_MASTER_KEY='+master)
@@ -59,7 +60,7 @@ def start_search():
 def start_admin():
  password=(S/'admin-secrets/admin-password').read_text().strip()
  if len(password)!=64 or any(c not in '0123456789abcdef' for c in password):raise RuntimeError('Invalid admin role secret')
- sql="do $$ begin if exists(select from pg_roles where rolname='svitlo_stage_admin' and (rolsuper or rolbypassrls)) then raise exception 'invalid role';end if;end $$;alter role svitlo_stage_admin login connection limit 2 password '"+password+"';"
+ sql="do $$ begin if exists(select from pg_roles where rolname='svitlo_stage_admin' and (rolsuper or rolbypassrls)) then raise exception 'invalid role';end if;end $$;alter role svitlo_stage_admin login connection limit 2 password '"+password+"';grant connect on database svitlo_staging to svitlo_stage_admin;"
  command(['docker','exec','-i','svitlo-postgres-1','psql','-X','-q','-v','ON_ERROR_STOP=1','-U','svitlo_owner','-d','svitlo_staging'],input=sql.encode())
  command(['docker','compose','--env-file',str(ROOT/'vps/release.env'),'-f',str(ROOT/'vps/admin/compose.yaml'),'up','-d'])
  for _ in range(30):
