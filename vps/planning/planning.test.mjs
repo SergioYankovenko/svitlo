@@ -1,0 +1,24 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {civil,addDays} from '../../app/lib/time.js';import {unionIntervals,planWindows,nextPlanEvent,isQuiet} from '../../app/lib/planning.js';import {planKey} from './service.js';
+function snapshot(date='2026-11-07',days){const now=civil(date,540),until=civil(addDays(date,2)),line={id:'line-1',label:'Лінія',groupCode:'A-12',supportedCategories:['hourly'],categories:{hourly:{checkedAt:now,sourceUpdatedAt:now,freshUntil:now+3600000,days:days||[{date,state:'published',intervals:[{start:civil(date,600),end:civil(date,660)}]},{date:addDays(date,1),state:'published',intervals:[]}]}}};return {schemaVersion:1,revision:'wire-revision',addressId:'home-1',operatorId:'operator',timeZone:'Europe/Kyiv',coverage:{fromDate:date,toDate:addDays(date,1)},resolution:{state:'resolved',complete:true},lines:[line],notices:[],provenance:[],checkedAt:now,sourceUpdatedAt:now,freshUntil:now+3600000,refreshAfter:now+60000,supportState:'available'};}
+test('overlaps and adjacency count once; conservative possible policy is explicit and keeps separate evidence',()=>{
+ assert.deepEqual(unionIntervals([{start:10,end:20},{start:15,end:30},{start:30,end:40},{start:60,end:70}]),[{start:10,end:40},{start:60,end:70}]);
+ const s=snapshot(),date=s.coverage.fromDate,now=s.checkedAt;s.lines[0].categories.hourly.days[0].possibleIntervals=[{start:civil(date,570),end:civil(date,630)}];
+ assert.throws(()=>planWindows(s,'line-1',date,{now}));const conservative=planWindows(s,'line-1',date,{now,policy:'conservative'}),confirmed=planWindows(s,'line-1',date,{now,policy:'confirmed'});assert.equal(conservative.outages.confirmed[0].start,civil(date,600));assert.equal(conservative.outages.possible[0].start,civil(date,570));assert.equal(conservative.windows[0].end,civil(date,570));assert.equal(confirmed.windows[0].end,civil(date,600));assert.equal(confirmed.guaranteed,false);
+});
+test('stale, missing dates, partial bindings, emergency and open-ended observations do not produce future windows',()=>{
+ const s=snapshot(),date=s.coverage.fromDate,options={now:s.checkedAt,policy:'conservative'};
+ for(const mutate of [x=>x.freshUntil=0,x=>x.resolution.complete=false,x=>x.lines[0].categories.hourly.days=[],x=>x.notices=[{kind:'regional_emergency',active:true,start:0,end:null}],x=>x.lines[0].categories.hourly.days[0].intervals[0].end=null]){const value=structuredClone(s);mutate(value);assert.equal(planWindows(value,'line-1',date,options).state,'unknown');}
+ assert.equal(planWindows(s,'line-1','2026-11-09',options).state,'unknown');
+});
+test('midnight events merge across confirmed days; unknown following date cannot invent restoration at00:00',()=>{
+ const date='2026-11-07',next=addDays(date,1),s=snapshot(date,[{date,state:'published',intervals:[{start:civil(date,1380),end:civil(next,0)}]},{date:next,state:'published',intervals:[{start:civil(next,0),end:civil(next,60)}]}]);s.checkedAt=civil(date,1410);s.freshUntil=s.checkedAt+3600000;s.lines[0].categories.hourly.checkedAt=s.checkedAt;s.lines[0].categories.hourly.freshUntil=s.freshUntil;
+ assert.deepEqual(nextPlanEvent(s,'line-1',{now:s.checkedAt,policy:'conservative'}).event,{kind:'restoration',at:civil(next,60)});s.lines[0].categories.hourly.days[1].state='not_published';assert.equal(nextPlanEvent(s,'line-1',{now:s.checkedAt,policy:'conservative'}).event,null);
+});
+test('real epoch intervals retain23/25-hour Kyiv DST days and future windows exclude elapsed time',()=>{
+ for(const [date,hours]of [['2026-03-29',23],['2026-10-25',25]]){const s=snapshot(date,[{date,state:'published',intervals:[]}]),now=civil(date,0);s.checkedAt=now;s.freshUntil=now+3600000;s.lines[0].categories.hourly.checkedAt=now;s.lines[0].categories.hourly.sourceUpdatedAt=now;s.lines[0].categories.hourly.freshUntil=s.freshUntil;const result=planWindows(s,'line-1',date,{now,policy:'conservative'});assert.equal(result.windows[0].end-result.windows[0].start,hours*3600000);}
+ const s=snapshot();assert.ok(planWindows(s,'line-1',s.coverage.fromDate,{now:s.checkedAt+60000,policy:'conservative'}).windows.every(w=>w.start>=s.checkedAt+60000));
+});
+test('domain revision ignores rechecks but changes for a real plan/quality change; quiet hours cross midnight',()=>{
+ const s=snapshot(),key=planKey(s,'line-1'),copy=structuredClone(s);copy.checkedAt++;copy.freshUntil++;copy.lines[0].categories.hourly.checkedAt++;copy.lines[0].categories.hourly.freshUntil++;copy.revision='volatile-wire';assert.equal(planKey(copy,'line-1'),key);copy.lines[0].categories.hourly.days[0].intervals[0].end+=60000;assert.notEqual(planKey(copy,'line-1'),key);
+ assert.equal(isQuiet(civil('2026-11-07',1380),{startMinute:1320,endMinute:420}),true);assert.equal(isQuiet(civil('2026-11-08',360),{startMinute:1320,endMinute:420}),true);assert.equal(isQuiet(civil('2026-11-08',420),{startMinute:1320,endMinute:420}),false);
+});

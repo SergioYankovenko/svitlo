@@ -41,7 +41,7 @@ function keys(value,allowed){if(!object(value)||Object.keys(value).some(k=>!allo
 const publicKeys={search:['schemaVersion','kind','parentId','q','cursor','limit'],resolve:['schemaVersion','addressId','lineId','unit'],'legacy-resolve':['schemaVersion','legacy'],snapshots:['schemaVersion','fromDate','toDate','items']};
 const profileKeys={bootstrap:[],sync:['id','reason','subscription'],resolve_queue:['id','address'],dictionary:['kind','parent'],preview:['address'],save:['confirmed','address','name'],refresh:['id'],weather:['id'],delete:['id'],rename:['id','name'],preferences:['id','preferences'],subscribe:['id','subscription'],unsubscribe:['endpoint'],erase:[]};
 export const knownRoutes=new Set(['/api','/api/session','/api/v1/catalog','/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/map-search','/api/v1/sensors','/api/v1/sensor-events','/api/v1/sensor-devices/register','/api/v1/sensor-devices/control','/api/v1/diagnostic-reports','/diagnostic-reports']);
-knownRoutes.add('/api/v1/billing');knownRoutes.add('/api/integrations/google-play/rtdn');knownRoutes.add('/api/v1/identity');knownRoutes.add('/api/v1/openapi.json');knownRoutes.add('/api/v1/settlements');knownRoutes.add('/api/v1/settlement-routes');
+knownRoutes.add('/api/v1/plan-windows');knownRoutes.add('/api/v1/billing');knownRoutes.add('/api/integrations/google-play/rtdn');knownRoutes.add('/api/v1/identity');knownRoutes.add('/api/v1/openapi.json');knownRoutes.add('/api/v1/settlements');knownRoutes.add('/api/v1/settlement-routes');
 knownRoutes.add('/api/v1/settlement-catalog');knownRoutes.add('/api/v1/settlement-search');
 export const routeTag=path=>knownRoutes.has(path)?path:'unknown_api';
 export function validateRequest(route,p){

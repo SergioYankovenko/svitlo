@@ -85,7 +85,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(path.startsWith('/api')||path==='/diagnostic-reports'){
       const trace=telemetry.requestIds.issue();res.telemetryMeta={path:routeTag(path),correlationId:trace.id};res.setHeader('X-Svitlo-Request-ID',trace.token);
-      const publicReader=path.startsWith('/api/v1/')&&['/api/v1/capabilities','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/settlements','/api/v1/settlement-routes','/api/v1/settlement-catalog','/api/v1/settlement-search'].includes(path);
+      const publicReader=path.startsWith('/api/v1/')&&['/api/v1/capabilities','/api/v1/plan-windows','/api/v1/search','/api/v1/resolve','/api/v1/legacy-resolve','/api/v1/snapshots','/api/v1/settlements','/api/v1/settlement-routes','/api/v1/settlement-catalog','/api/v1/settlement-search'].includes(path);
       if(['/api/v1/settlements','/api/v1/settlement-routes','/api/v1/settlement-catalog','/api/v1/settlement-search'].includes(path)&&req.method!=='POST')return json(res,405,{error:'Method not allowed'});
       if(req.method!=='GET'&&req.headers.origin!==origin&&(!publicReader||req.headers.origin))return json(res,403,{error:'Origin rejected'});
       if(req.method!=='GET'&&req.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json')return json(res,415,{error:'JSON required'});
@@ -108,6 +108,11 @@ const server=http.createServer(async(req,res)=>{
       if(publicReader&&req.method==='POST'){
         if(path.endsWith('/capabilities'))return json(res,405,{error:'Method not allowed'});
         const data=await body(req);validateRequest(path,data);validateContract(path,data);rt.reader.checkVersion(data);
+        if(path==='/api/v1/plan-windows'){
+          if(url.search)throw problem(400,'query_not_allowed');if(!budget('planning:'+client,120))throw problem(429,'planning_rate_limited','rate');
+          const range=rt.reader.range({fromDate:data.date,toDate:data.date}),snapshot=await rt.ports.schedules.snapshot(data.addressId,range);
+          return json(res,200,{schemaVersion:1,...rt.ports.planning.windows(snapshot,data.lineId,data.date,{now:Date.now(),policy:data.policy,minimumMinutes:data.minimumMinutes||0})});
+        }
         if(path==='/api/v1/settlement-catalog'||path==='/api/v1/settlement-search'){
           if(url.search)throw problem(400,'settlement_query_not_allowed');
           if(!budget('settlement-catalog:'+client,600))throw problem(429,'settlement_catalog_limit','rate');

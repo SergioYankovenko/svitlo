@@ -1,16 +1,262 @@
 {
- "$schema":"https://json-schema.org/draft/2020-12/schema",
- "$id":"https://svitlo.guru/contracts/modular-requests-v1",
- "$defs":{
-  "uuid":{"type":"string","format":"uuid"},
-  "search":{"type":"object","additionalProperties":false,"required":["kind"],"properties":{"schemaVersion":{"const":1},"kind":{"enum":["cities","streets","houses"]},"parentId":{"oneOf":[{"$ref":"#/$defs/uuid"},{"type":"null"}]},"q":{"type":"string","maxLength":120},"cursor":{"oneOf":[{"type":"string","maxLength":1500},{"type":"null"}]},"limit":{"type":"integer","minimum":1,"maximum":50}}},
-  "resolve":{"type":"object","additionalProperties":false,"required":["addressId"],"properties":{"schemaVersion":{"const":1},"addressId":{"$ref":"#/$defs/uuid"},"lineId":{"oneOf":[{"$ref":"#/$defs/uuid"},{"type":"null"}]},"unit":{"type":"string","minLength":1,"maxLength":32}}},
-  "snapshots":{"type":"object","additionalProperties":false,"required":["items"],"properties":{"schemaVersion":{"const":1},"fromDate":{"type":"string","format":"date"},"toDate":{"type":"string","format":"date"},"items":{"type":"array","minItems":1,"maxItems":10,"items":{"type":"object","additionalProperties":false,"required":["addressId"],"properties":{"addressId":{"$ref":"#/$defs/uuid"},"revision":{"type":"string","maxLength":128}}}}}},
-  "identity":{"oneOf":[
-   {"type":"object","additionalProperties":false,"required":["schemaVersion","action"],"properties":{"schemaVersion":{"const":1},"action":{"const":"status"}}},
-   {"type":"object","additionalProperties":false,"required":["schemaVersion","action","mode"],"properties":{"schemaVersion":{"const":1},"action":{"const":"challenge"},"mode":{"enum":["sign_in","link"]}}},
-   {"type":"object","additionalProperties":false,"required":["schemaVersion","action","nonce","idToken"],"properties":{"schemaVersion":{"const":1},"action":{"const":"complete"},"nonce":{"type":"string","pattern":"^[A-Za-z0-9_-]{43}$"},"idToken":{"type":"string","minLength":1,"maxLength":12000}}},
-   {"type":"object","additionalProperties":false,"required":["schemaVersion","action","reviewToken","confirmed"],"properties":{"schemaVersion":{"const":1},"action":{"const":"confirm_switch"},"reviewToken":{"type":"string","pattern":"^[A-Za-z0-9_-]{43}$"},"confirmed":{"const":true}}}
-  ]}
- }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://svitlo.guru/contracts/modular-requests-v1",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "search": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "kind": {
+          "enum": [
+            "cities",
+            "streets",
+            "houses"
+          ]
+        },
+        "parentId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "q": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "cursor": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 1500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      }
+    },
+    "resolve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "addressId"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "addressId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "lineId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        }
+      }
+    },
+    "snapshots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "fromDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "toDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "addressId"
+            ],
+            "properties": {
+              "addressId": {
+                "$ref": "#/$defs/uuid"
+              },
+              "revision": {
+                "type": "string",
+                "maxLength": 128
+              }
+            }
+          }
+        }
+      }
+    },
+    "identity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schemaVersion",
+            "action"
+          ],
+          "properties": {
+            "schemaVersion": {
+              "const": 1
+            },
+            "action": {
+              "const": "status"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schemaVersion",
+            "action",
+            "mode"
+          ],
+          "properties": {
+            "schemaVersion": {
+              "const": 1
+            },
+            "action": {
+              "const": "challenge"
+            },
+            "mode": {
+              "enum": [
+                "sign_in",
+                "link"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schemaVersion",
+            "action",
+            "nonce",
+            "idToken"
+          ],
+          "properties": {
+            "schemaVersion": {
+              "const": 1
+            },
+            "action": {
+              "const": "complete"
+            },
+            "nonce": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            },
+            "idToken": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 12000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schemaVersion",
+            "action",
+            "reviewToken",
+            "confirmed"
+          ],
+          "properties": {
+            "schemaVersion": {
+              "const": 1
+            },
+            "action": {
+              "const": "confirm_switch"
+            },
+            "reviewToken": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            },
+            "confirmed": {
+              "const": true
+            }
+          }
+        }
+      ]
+    },
+    "plan-windows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "addressId",
+        "lineId",
+        "date",
+        "policy"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "addressId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "lineId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "policy": {
+          "enum": [
+            "confirmed",
+            "conservative"
+          ]
+        },
+        "minimumMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1440
+        }
+      }
+    }
+  }
 }

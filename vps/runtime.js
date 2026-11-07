@@ -1,3 +1,4 @@
+import {PlanningService} from './planning/service.js';
 import {configuredAlerts} from './sources/alerts-energy.js';
 import {corePorts} from './modules/ports.js';
 import {unresolvedLog} from './universal/unresolved-log.js';
@@ -56,5 +57,5 @@ export async function runtime(role='api'){
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
   const service=new UniversalService({...options,maps,unresolvedLog:role==='api'?unresolvedLog('/app-logs/unresolved-addresses.ndjson'):null},reader);
   const sourceHistory=new SourceHistory({bridge,regions,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
-  return {ports:corePorts({reader,service}),p,bridge,db,source,service,legacy,reader,maps,regions,regionalDiscovery,sourceHistory,sourceEvidence,addressSearch,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions,dictionarySearch:new DictionarySearch({bridge,client:configuredMeili('read'),secret})}),secret,...delivery};
+  return {ports:corePorts({reader,service,planning:new PlanningService()}),p,bridge,db,source,service,legacy,reader,maps,regions,regionalDiscovery,sourceHistory,sourceEvidence,addressSearch,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions,dictionarySearch:new DictionarySearch({bridge,client:configuredMeili('read'),secret})}),secret,...delivery};
 }

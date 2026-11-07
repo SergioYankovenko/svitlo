@@ -1,6 +1,6 @@
 // Runtime-checked boundaries; replacement adapters must satisfy the same port.
 export const portDefinitions=Object.freeze({
- AddressCatalog:['capabilities','search','resolve','legacy'],ScheduleService:['batch','snapshot'],Profiles:['handle'],
+ AddressCatalog:['capabilities','search','resolve','legacy'],ScheduleService:['batch','snapshot'],Profiles:['handle'],PlanningService:['windows','next','key'],
  IdentityProvider:['verify'],BillingProvider:['lookup','acknowledge'],NotificationChannel:['send'],
  ObjectStorage:['put','get','remove'],JobQueue:['claim','database','external','fail'],
  ChargeCatalog:['viewport','station'],AvailabilityForecast:['forecast']
@@ -10,9 +10,9 @@ export function port(name,implementation){
  if(!implementation||methods.some(m=>typeof implementation[m]!=='function'))throw Error('Invalid '+name+' implementation');
  return Object.freeze(Object.fromEntries(methods.map(m=>[m,implementation[m].bind(implementation)])));
 }
-export function corePorts({reader,service}){
+export function corePorts({reader,service,planning}){
  return Object.freeze({catalog:port('AddressCatalog',{capabilities:()=>reader.capabilities(),search:p=>reader.catalog.search(p),resolve:p=>reader.resolve(p),legacy:p=>reader.catalog.legacy(p)}),
-  schedules:port('ScheduleService',{batch:p=>reader.batch(p),snapshot:(...p)=>reader.snapshot(...p)}),profiles:port('Profiles',service)});
+  schedules:port('ScheduleService',{batch:p=>reader.batch(p),snapshot:(...p)=>reader.snapshot(...p)}),profiles:port('Profiles',service),...(planning?{planning:port('PlanningService',planning)}:{})});
 }
 export const domainStates=Object.freeze(['available','degraded','stale','unknown','blocked','captcha','quota_exceeded','rate_limited','unsupported','not_configured']);
 export function dependencyState(e){
