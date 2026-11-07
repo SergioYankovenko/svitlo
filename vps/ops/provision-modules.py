@@ -11,7 +11,8 @@ def command(args,**kw):
  return r.stdout.decode().strip()
 def private(path,value,uid=0):
  path.parent.mkdir(parents=True,exist_ok=True)
- if path.exists():return path.read_text().strip()
+ if path.exists():
+  value=path.read_text().strip();os.chown(path,uid,uid);os.chmod(path,0o400 if uid else 0o600);return value
  fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o400 if uid else 0o600)
  with os.fdopen(fd,'w') as f:f.write(value+'\n')
  os.chown(path,uid,uid);return value
@@ -22,7 +23,7 @@ def prepare():
   directory.mkdir(mode=0o755,exist_ok=True);private(marker,'ARCH-MOD-01')
   for role in ['api','worker']:(directory/role).mkdir(mode=0o755,exist_ok=True)
  (S/'admin-secrets').mkdir(mode=0o700,exist_ok=True)
- private(S/'admin-secrets/admin-password',secrets.token_hex(32));private(S/'admin-secrets/admin-secret',secrets.token_hex(32))
+ private(S/'admin-secrets/admin-password',secrets.token_hex(32),1000);private(S/'admin-secrets/admin-secret',secrets.token_hex(32),1000)
  master=private(S/'search/master-key',secrets.token_hex(32));private(S/'search/engine.env','MEILI_MASTER_KEY='+master)
  purchase=private(S/'billing/purchase-key',secrets.token_hex(32))
  for role in ['api','worker']:
@@ -61,5 +62,12 @@ def start_admin():
  sql="do $$ begin if exists(select from pg_roles where rolname='svitlo_stage_admin' and (rolsuper or rolbypassrls)) then raise exception 'invalid role';end if;end $$;alter role svitlo_stage_admin login connection limit 2 password '"+password+"';"
  command(['docker','exec','-i','svitlo-postgres-1','psql','-X','-q','-v','ON_ERROR_STOP=1','-U','svitlo_owner','-d','svitlo_staging'],input=sql.encode())
  command(['docker','compose','--env-file',str(ROOT/'vps/release.env'),'-f',str(ROOT/'vps/admin/compose.yaml'),'up','-d'])
+ for _ in range(30):
+  try:
+   with urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:18768/readyz',headers={'Host':'localhost:18768'}),timeout=3) as response:
+    if response.status==200 and json.load(response).get('status')=='ready':break
+  except OSError:pass
+  time.sleep(1)
+ else:raise RuntimeError('Admin database/readiness check failed')
  return {'adminStarted':True,'bind':'127.0.0.1:18768','separateRolePoolAndSecrets':True,'publicOriginChanged':False}
 print(json.dumps(prepare() if a.action=='prepare' else start_search() if a.action=='search' else start_admin()))
