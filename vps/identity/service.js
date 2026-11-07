@@ -1,8 +1,9 @@
+import {port} from '../modules/ports.js';
 import {createHash,randomBytes} from 'node:crypto';import {identityError} from './google.js';
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const exact=(p,fields)=>{if(!p||Array.isArray(p)||typeof p!=='object'||p.schemaVersion!==1||Object.keys(p).some(k=>!fields.includes(k))||fields.some(k=>!Object.hasOwn(p,k)))throw identityError(400,'invalid_identity_packet');};
 export class IdentityService {
- constructor({pool,provider,sessions}){Object.assign(this,{pool,provider,sessions});}
+ constructor({pool,provider,sessions}){Object.assign(this,{pool,provider,sessions});this.proofProvider=port('IdentityProvider',provider);}
  async call(sql,args){return (await this.pool.query(sql,args)).rows[0].value;}
  async handle(session,p){
   if(!session)throw identityError(401,'session_required');const proof=hash(session.token);
@@ -17,7 +18,7 @@ export class IdentityService {
   if(p.action==='complete'){
    exact(p,['schemaVersion','action','nonce','idToken']);if(typeof p.nonce!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(p.nonce))throw identityError(400,'invalid_identity_packet');
    if(!await this.call('select svitlo_identity.challenge_valid($1,$2) value',[proof,hash(p.nonce)]))throw identityError(401,'identity_challenge_expired');
-   const identity=await this.provider.verify(p.idToken,p.nonce),reviewToken=randomBytes(32).toString('base64url');
+   const identity=await this.proofProvider.verify(p.idToken,p.nonce),reviewToken=randomBytes(32).toString('base64url');
    result=await this.call('select svitlo_identity.finish($1,$2,$3,$4,$5) value',[proof,hash(p.nonce),identity.subject,hash(token),hash(reviewToken)]);
    if(result.state==='confirmation_required')return {schemaVersion:1,...result,reviewToken,expiresInSeconds:300};
   }else if(p.action==='confirm_switch'){

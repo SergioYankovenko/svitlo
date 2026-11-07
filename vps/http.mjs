@@ -2,6 +2,7 @@ import http from 'node:http';
 import {redirectTarget} from './redirects.js';
 import {readFile,stat} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
+import {validateContract,openApi} from './modules/contracts.js';
 import {runtime} from './runtime.js';
 import {pool,ownerContext} from './db.js';
 import {Sessions} from './session.js';
@@ -47,6 +48,7 @@ const server=http.createServer(async(req,res)=>{
       res.writeHead(200,{'Content-Type':metrics.registry.contentType,'Cache-Control':'no-store'});return res.end(await metrics.registry.metrics());
     }
     const target=redirectTarget(path);if(target&&['GET','HEAD'].includes(req.method)){res.writeHead(302,{Location:target,'Cache-Control':'no-store'});return res.end();}
+    if(path==='/api/v1/openapi.json'&&req.method==='GET')return json(res,200,openApi());
     if(path==='/healthz')return json(res,200,{status:'ok',scope:'isolated-staging',release});
     if(path==='/readyz'){
       const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1011_operations.sql') and exists(select 1 from svitlo_vps.migrations where name='1010_kyiv_regions.sql') and exists(select 1 from svitlo_vps.migrations where name='1008_map_addresses.sql') and exists(select 1 from svitlo_vps.migrations where name='1007_sensor_history.sql') and exists(select 1 from pg_proc where pronamespace='svitlo_sensors'::regnamespace and proname='phone_ingest') as universal_ready from svitlo_vps.release_state where id");
@@ -91,10 +93,10 @@ const server=http.createServer(async(req,res)=>{
         }
         return json(res,405,{error:'Method not allowed'});
       }
-      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.reader.capabilities(),identity:{schemaVersion:1,google:identity.provider.configured,recoverableAccounts:true},push:rt.delivery==='pilot-enabled',sensorAccess:{...sensorCapabilities,notifications:rt.delivery==='pilot-enabled'},sensorIngest:ingestCapabilities,phoneSensors:phoneCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
+      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.ports.catalog.capabilities(),identity:{schemaVersion:1,google:identity.provider.configured,recoverableAccounts:true},push:rt.delivery==='pilot-enabled',sensorAccess:{...sensorCapabilities,notifications:rt.delivery==='pilot-enabled'},sensorIngest:ingestCapabilities,phoneSensors:phoneCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
       if(publicReader&&req.method==='POST'){
         if(path.endsWith('/capabilities'))return json(res,405,{error:'Method not allowed'});
-        const data=await body(req);validateRequest(path,data);rt.reader.checkVersion(data);
+        const data=await body(req);validateRequest(path,data);validateContract(path,data);rt.reader.checkVersion(data);
         if(path==='/api/v1/settlement-catalog'||path==='/api/v1/settlement-search'){
           if(url.search)throw problem(400,'settlement_query_not_allowed');
           if(!budget('settlement-catalog:'+client,600))throw problem(429,'settlement_catalog_limit','rate');
@@ -104,7 +106,7 @@ const server=http.createServer(async(req,res)=>{
           if(url.search)throw problem(400,'settlement_query_not_allowed');
           return json(res,200,path==='/api/v1/settlements'?await rt.geography.search(data):await rt.geography.routes(data));
         }
-        const result=path.endsWith('/search')?await rt.reader.catalog.search(data):path.endsWith('/resolve')?await rt.reader.resolve(data):path.endsWith('/legacy-resolve')?await rt.reader.catalog.legacy(data.legacy):path.endsWith('/snapshots')?await rt.reader.batch(data):null;
+        const result=path.endsWith('/search')?await rt.ports.catalog.search(data):path.endsWith('/resolve')?await rt.ports.catalog.resolve(data):path.endsWith('/legacy-resolve')?await rt.ports.catalog.legacy(data.legacy):path.endsWith('/snapshots')?await rt.ports.schedules.batch(data):null;
         return json(res,200,result);
       }
       if(!s)return json(res,401,{error:'Потрібна сесія'});
@@ -113,7 +115,7 @@ const server=http.createServer(async(req,res)=>{
       if(path==='/api/v1/identity'){
         if(url.search)throw problem(400,'query_not_allowed');
         if(!budget('identity:'+s.owner,30))throw problem(429,'identity_rate_limited','rate');
-        const {setCookie,...value}=await identity.handle(s,await body(req,14000));if(setCookie)res.setHeader('Set-Cookie',setCookie);return json(res,200,value);
+        const data=await body(req,14000);validateContract(path,data);const {setCookie,...value}=await identity.handle(s,data);if(setCookie)res.setHeader('Set-Cookie',setCookie);return json(res,200,value);
       }
       if(path==='/api/v1/sensors'){
         if(url.search)throw problem(400,'sensor_query_not_allowed');
@@ -121,7 +123,7 @@ const server=http.createServer(async(req,res)=>{
       }
       if(path==='/api/v1/map-search'){
         if(url.search)throw problem(400,'query_not_allowed');
-        const data=await body(req,2048);validateRequest(path,data);rt.reader.checkVersion(data);
+        const data=await body(req,2048);validateRequest(path,data);validateContract(path,data);rt.reader.checkVersion(data);
         return json(res,200,await ownerContext.run(s.owner,()=>rt.maps.search(s.owner,data)));
       }
       const report=path==='/diagnostic-reports'||path==='/api/v1/diagnostic-reports';
@@ -141,7 +143,7 @@ const server=http.createServer(async(req,res)=>{
       });
       if(path!=='/api')return json(res,404,{error:'Unknown API route'});
       if(data.action==='subscribe'&&rt.delivery!=='pilot-enabled')return json(res,409,{error:'Доставка сповіщень вимкнена в тестовій версії'});
-      const result=await ownerContext.run(s.owner,async()=>{const value=await rt.service.handle(s.owner,data);if(data.action==='erase')await telemetry.forget();return value;});
+      const result=await ownerContext.run(s.owner,async()=>{const value=await rt.ports.profiles.handle(s.owner,data);if(data.action==='erase')await telemetry.forget();return value;});
       return json(res,200,result);
     }
     if(!['GET','HEAD'].includes(req.method))return json(res,405,{error:'Method not allowed'});
