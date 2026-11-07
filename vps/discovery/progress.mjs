@@ -10,7 +10,15 @@ export async function clusterProgress(c,{clusterCode=null}={}){
  const jobs=(await c.query(`select cluster_code,settlement_code,scope_status,kind,count(*)::int total,count(*) filter(where completed_at is not null)::int checked,count(*) filter(where attempts>0)::int attempted,count(*) filter(where last_error is not null)::int retrying,max(last_attempt_at) last_attempt from svitlo_discovery.jobs group by cluster_code,settlement_code,scope_status,kind`)).rows;
  const latest=(a,b)=>!a?b:!b?a:new Date(a)>new Date(b)?a:b;
  for(const j of jobs){const anchor=j.settlement_code||j.cluster_code;walk(anchor,n=>{n.tasks+=j.total;n.checked+=j.checked;n.attempted+=j.attempted;n.retrying+=j.retrying;n.lastAttemptAt=latest(n.lastAttemptAt,j.last_attempt);if(j.kind==='city'){n.rootRoutes+=j.total;n.rootRoutesHandled+=j.checked;if(j.scope_status==='unmatched')n.unmatchedRoots+=j.total;else n.rootRoutesChecked+=j.checked;}else{n.streetTasks+=j.total;n.streetTasksChecked+=j.checked;}});if(!j.settlement_code&&nodes.has(j.cluster_code))nodes.get(j.cluster_code).directScopeTasks+=j.total;}
- const events=(await c.query(`select cluster_code,settlement_code,outcome,grouping(outcome)::int summary,count(distinct (route_id,subject_key))::int subjects,count(distinct (route_id,subject_key)) filter(where kind='house')::int house_refs,max(last_seen_at) last_seen from svitlo_discovery.events group by grouping sets ((cluster_code,settlement_code,outcome),(cluster_code,settlement_code))`)).rows;
+ // Deduplicate explicit keys once per scope instead of sorting composite values in each distinct aggregate.
+ const events=(await c.query(`with subjects as (
+   select cluster_code,settlement_code,outcome,grouping(outcome)::int summary,route_id,subject_key,
+          bool_or(kind='house') house,max(last_seen_at) last_seen
+   from svitlo_discovery.events group by grouping sets
+     ((cluster_code,settlement_code,route_id,subject_key,outcome),(cluster_code,settlement_code,route_id,subject_key))
+  ) select cluster_code,settlement_code,outcome,summary,count(*)::int subjects,
+    count(*) filter(where house)::int house_refs,max(last_seen) last_seen
+  from subjects group by cluster_code,settlement_code,outcome,summary`)).rows;
  for(const e of events)walk(e.settlement_code||e.cluster_code,n=>{if(e.summary)n.houseReferencesChecked+=e.house_refs;else n.outcomes[e.outcome]=(n.outcomes[e.outcome]||0)+e.subjects;n.lastObservedAt=latest(n.lastObservedAt,e.last_seen);});
  const publicNode=n=>({code:n.code,name:n.name,level:n.level,category:n.category,parentCode:n.parent_code,regionCode:n.region_code,districtCode:n.district_code,communityCode:n.community_code,
   status:!n.tasks?(n.potentialRoutes.size?'mapping_ambiguous':'unrouted'):n.retrying?'waiting_source':n.checked===n.tasks?(n.settlementsWithoutRoute||n.directScopeTasks?'checked_with_routing_gaps':'checked_known_tasks'):!n.attempted?'queued':'in_progress',
