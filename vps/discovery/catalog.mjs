@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';import {geoProblem,normalizeName} from '.
 const code=/^UA[0-9]{17}$/,uuid=/^[a-f0-9-]{36}$/i;
 export function packet(p,fields){if(!p||Array.isArray(p)||typeof p!=='object'||p.schemaVersion!==1||Object.keys(p).some(k=>!fields.includes(k))||!code.test(p.settlementCode)||typeof p.routeId!=='string'||p.routeId.length>350||/[\x00-\x1f\x7f]/.test(p.routeId))throw geoProblem(400,'invalid_settlement_route_packet');}
 export class DiscoveryCatalog {
- constructor({bridge,source,reader,regions}){Object.assign(this,{bridge,source,reader,regions});}
+ constructor({bridge,source,reader,regions,dictionarySearch}){Object.assign(this,{bridge,source,reader,regions,dictionarySearch});}
  async route(p){const r=(await this.bridge.query(`select r.*,l.match_state,l.candidate_count from svitlo_geo.routes r join svitlo_geo.route_places l on l.route_id=r.id join svitlo_vps.operators o on o.id=r.operator_id where r.id=$1 and l.settlement_code=$2 and r.active and not o.is_test and o.state<>'disabled'`,[p.routeId,p.settlementCode])).rows[0];if(!r)throw geoProblem(404,'settlement_route_not_found');return r;}
  async cityId(r,p){
   if(r.operator_id==='ua-cherkasy')return (await this.bridge.query("select svitlo_discovery.catalog_entry($1,$2,'city',null,'',$3) id",[r.id,p.settlementCode,r.provider_city_name])).rows[0].id;
@@ -26,7 +26,12 @@ export class DiscoveryCatalog {
    const refs=aliases.map(x=>{try{return JSON.parse(x.provider_key);}catch{return [];}}).filter(a=>a[0]===r.branch_id&&a[1]===r.provider_city_id);
    if(refs.length!==1)throw geoProblem(400,'foreign_settlement_street');sourceParent=refs[0][2];
   }
-  const kind=p.kind==='streets'?'street':'house',rows=await this.source.dictionary(kind,{parent:sourceParent});
+  const kind=p.kind==='streets'?'street':'house';
+  const indexed=this.dictionarySearch?await this.dictionarySearch.search({scope:this.dictionarySearch.scope(r.id,p.settlementCode,kind,parent.id),kind,q,limit,cursor:p.cursor}):null;
+  if(indexed){const allocated=indexed.page.length?(await this.bridge.query('select svitlo_discovery.catalog_entries($1,$2,$3,$4,$5::jsonb) items',[r.id,p.settlementCode,kind==='house'?'address':'street',parent.id,JSON.stringify(indexed.page)])).rows[0].items:[];
+   return {schemaVersion:1,items:allocated.map(row=>{const item=this.reader.catalog.public(row);return {...item,label:kind==='house'?item.house:item.label};}),nextCursor:indexed.nextCursor,complete:!indexed.more,coverage:'provider_dictionary',addressCheckRequired:true};}
+  const rows=await this.source.dictionary(kind,{parent:sourceParent});
+  await this.dictionarySearch?.stage({route:r.id,settlement:p.settlementCode,kind,parent:parent.id,rows});
   const term=normalizeName(q),signature=createHash('sha256').update(JSON.stringify([r.id,p.settlementCode,p.kind,parent.id,term])).digest('hex');let after=null;
   if(p.cursor!==undefined)try{if(typeof p.cursor!=='string'||p.cursor.length>1500)throw Error();after=JSON.parse(Buffer.from(p.cursor,'base64url'));if(after.signature!==signature||typeof after.key!=='string'||typeof after.name!=='string')throw Error();}catch{throw geoProblem(400,'invalid_settlement_catalog_cursor');}
   const sorted=rows.filter(x=>typeof x.id==='string'&&typeof x.name==='string'&&x.name.length<=240&&normalizeName(x.name).includes(term)&&!/[\x00-\x1f]/.test(x.name)&&!/^\s*(?:\[?невідом|невизначен|без вулиці|\*)/iu.test(x.name)).map(x=>({...x,sortName:normalizeName(x.name)})).sort((a,b)=>a.sortName<b.sortName?-1:a.sortName>b.sortName?1:a.id<b.id?-1:a.id>b.id?1:0).filter(x=>!after||x.sortName>after.name||x.sortName===after.name&&x.id>after.key);

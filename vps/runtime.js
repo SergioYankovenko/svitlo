@@ -22,6 +22,7 @@ import {DiscoveryCatalog} from './discovery/catalog.mjs';
 import {RegionalDiscoverySources} from './discovery/regional-sources.mjs';
 import {SourceEvidence,observedPublicFetch} from './sources/evidence.js';
 import {AddressSearch} from './search/service.js';
+import {DictionarySearch} from './search/dictionary.js';
 import {configuredMeili} from './search/meili.js';
 
 // Accounts remain transient adapter inputs; they never enter the persistent address/profile/catalog.
@@ -52,5 +53,5 @@ export async function runtime(role='api'){
   const maps=new MapAddresses({bridge,catalog:reader.catalog,secret});
   const service=new UniversalService({...options,maps,unresolvedLog:role==='api'?unresolvedLog('/app-logs/unresolved-addresses.ndjson'):null},reader);
   const sourceHistory=new SourceHistory({bridge,regions,enabled:role==='worker'&&process.env.SOURCE_HISTORY_ENABLED==='true'});
-  return {p,bridge,db,source,service,legacy,reader,maps,regions,regionalDiscovery,sourceHistory,sourceEvidence,addressSearch,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions}),secret,...delivery};
+  return {p,bridge,db,source,service,legacy,reader,maps,regions,regionalDiscovery,sourceHistory,sourceEvidence,addressSearch,geography:new Geography(bridge,{supports:op=>!!adapterFor(op,reader)}),discoveryCatalog:new DiscoveryCatalog({bridge,source,reader,regions,dictionarySearch:new DictionarySearch({bridge,client:configuredMeili('read'),secret})}),secret,...delivery};
 }

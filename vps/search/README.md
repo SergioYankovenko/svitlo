@@ -25,8 +25,11 @@ The isolated real-service pilot (2026-11-07) indexed 25,600 public catalogue
 rows in 55.2 s; 209 checks passed, including 200 exact house cases, a rebuild
 under writes and dependency failure. Engine p95 was 13.38 ms, peak container
 memory 214,482,944 bytes. These are engine measurements, not the full-API
-20 requests/s, 60-minute acceptance gate. Existing Cherkasy provider-dictionary
-requests still use their bounded cache path until its own projection is ready.
+20 requests/s, 60-minute acceptance gate. Cherkasy provider dictionaries have a separate public projection, user-driven
+staging, version-isolated documents and fenced ACK. A miss keeps the existing
+source-cache path and starts background indexing; no national scan is added.
+A partition expires after 30 minutes; index loss requests a repair. Queue and
+partition counts are bounded; saturated indexing preserves source fallback.
 
 Run `node --test vps/search/*.test.mjs` locally. CI additionally runs the actual
 PostgreSQL and pinned Meilisearch integration. Never use a live/private database
