@@ -45,11 +45,13 @@ try{
  // Prove source/database fallback remains available when the optional engine is down.
  const unavailable=new AddressSearch({bridge:{query:(...args)=>api.query(...args)},client:{anchor:async()=>false},secret:'isolated-search-cursor'});
  assert.equal(await unavailable.search({kind:'street',parentId:city,q:'never-exact-query',limit:50}),null);checks++;
- await c.query('reset role');await c.query('create table svitlo_geo.routes(id text primary key,operator_id text,active boolean);create table svitlo_geo.route_places(route_id text,settlement_code text)');
+ await c.query('reset role');await c.query('create table svitlo_geo.routes(id text primary key,operator_id text,active boolean,branch_id text,provider_city_id text);create table svitlo_geo.route_places(route_id text,settlement_code text)');
  await c.query(await readFile(new URL('../sql/dictionary-search.sql',import.meta.url),'utf8'));
+ await c.query(await readFile(new URL('../sql/dictionary-source-proof.sql',import.meta.url),'utf8'));
  await c.query("insert into svitlo_vps.operators(id,adapter_key,label,state) values('ua-cherkasy','cherkasy-v1','Dictionary fixture','available') on conflict do nothing");
- const dictionaryCity=randomUUID();await c.query("insert into svitlo_vps.catalog(id,kind,label,operator_id) values($1,'city','Dictionary city','ua-cherkasy')",[dictionaryCity]);
- await c.query("insert into svitlo_geo.routes values('dictionary-fixture','ua-cherkasy',true);insert into svitlo_geo.route_places values('dictionary-fixture','UAfixture')");
+ const dictionaryCity=randomUUID();await c.query("insert into svitlo_vps.catalog(id,kind,label,operator_id) values($1,'city','Dictionary city',null)",[dictionaryCity]);
+ await c.query("insert into svitlo_geo.routes values('dictionary-fixture','ua-cherkasy',true,'18','dictionary-city');insert into svitlo_geo.route_places values('dictionary-fixture','UAfixture')");
+ await c.query("insert into svitlo_vps.catalog_aliases values('ua-cherkasy','city','[\"18\",\"dictionary-city\"]',$1)",[dictionaryCity]);
  const dictionary=new DictionarySearch({bridge:api,client,secret:'isolated-dictionary'}),scope=dictionary.scope('dictionary-fixture','UAfixture','street',dictionaryCity);
  await dictionary.stage({route:'dictionary-fixture',settlement:'UAfixture',kind:'street',parent:dictionaryCity,rows:names.map((name,i)=>({id:'street-'+i,name}))});
  await c.query('set role svitlo_stage_worker');await new DictionaryIndexer({pool:poolFor(c),client,secret:'isolated-dictionary'}).tick();
