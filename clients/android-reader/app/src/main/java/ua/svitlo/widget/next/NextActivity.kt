@@ -28,7 +28,7 @@ class NextActivity:Activity(){
     private val executor=Executors.newFixedThreadPool(3);private val handler=Handler(Looper.getMainLooper())
     private var preservingTour=false;private var generation=0;private var lookupSequence=0;private var tab="home";private var date=LocalDate.now(NEXT_ZONE);private var week=date.with(DayOfWeek.MONDAY)
     private var expanded=false;private var city:CatalogItem?=null;private var street:CatalogItem?=null;private var house:CatalogItem?=null;private var selectedLine:String?=null;private var resolution:JSONObject?=null
-    private var lastDiagnosticCode="temporary";private var journeyPhase="cities";private var editBackup:List<CatalogItem?>?=null;private val queries=mutableMapOf<String,String>();private var preferenceChoice:Boolean?=null;private var preferenceRange=false;private var pendingProfile:NextProfile?=null;private var reviewEditing:String?=null;private var draftName="";private var draftHouse="";private var journey=false;private var editAfterReview=false;private var busy=false
+    private var lastDiagnosticCode="temporary";private var journeyPhase="cities";private var editBackup:List<CatalogItem?>?=null;private val queries=mutableMapOf<String,String>();private var preferenceChoice:Boolean?=null;private var preferenceRange=false;private var pendingProfile:NextProfile?=null;private var pendingResolution:JSONObject?=null;private var reviewEditing:String?=null;private var draftName="";private var draftHouse="";private var journey=false;private var editAfterReview=false;private var busy=false
     private var statusHeader:StatusHeader?=null;private var summaryHost:LinearLayout?=null;private var headerValue:TextView?=null;private var headerContext:TextView?=null;private var dayHost:FrameLayout?=null;private var dayTabs:List<TextView> = emptyList();private var underline:View?=null
     private var weatherHost:LinearLayout?=null;private var weatherFor:String?=null;private var tour:NativeTour?=null;private var supportHint:NativeSupportHint?=null;private var closed=false;private var refreshPending=false
     private var homeRoot:LinearLayout?=null;private var lastSnapshotRevision:String?=null;private var observationPending=false;private var lastSensorPoll=0L;private var transition=0;private var versionPending=false
@@ -90,7 +90,7 @@ class NextActivity:Activity(){
     }
     private fun connection(next:()->Unit){if(repo.api.ready()){next();return};val panel=AppDialogPanel(this,"Тестова версія 1.7.0",prefix="pilot_setup");val col=u.column();u.add(col,u.text("Ця збірка працює з окремим приватним сервером. Введіть наданий ключ тестового доступу."),0);val field=u.input("Ключ тестового доступу").apply{inputType=android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD};u.add(col,field);panel.setBody(col);lateinit var d:AlertDialog;val connect=panel.button("Підключити","pilot_connect").apply{gravity=Gravity.CENTER};connect.setOnClickListener{val value=field.text.toString().trim();connect.isEnabled=false;async{try{repo.api.setPilot(value);ui{d.dismiss();next()}}catch(e:Exception){ui{connect.isEnabled=true;field.error=if(e is NextApiException)e.message else"Перевірте ключ і доступ до мережі"}}}};panel.footer(listOf(connect,panel.button("Скасувати","pilot_cancel",cancel=true).apply{setOnClickListener{d.dismiss()}}));d=panel.show()}
     private fun startJourney(){connection{if(!repo.prefs.getBoolean("privacy",false))privacy{beginJourney()}else beginJourney()}}
-    private fun beginJourney(){queries.clear();editBackup=null;pendingProfile=null;city=null;street=null;house=null;resolution=null;selectedLine=null;draftName="";reviewEditing=null;editAfterReview=false;journey=true;repo.prefs.edit().putBoolean("journey",true).commit();addressStep("cities")}
+    private fun beginJourney(){queries.clear();editBackup=null;pendingProfile=null;pendingResolution=null;city=null;street=null;house=null;resolution=null;selectedLine=null;draftName="";reviewEditing=null;editAfterReview=false;journey=true;repo.prefs.edit().putBoolean("journey",true).commit();addressStep("cities")}
     private var mascotWasLoading=false
     private var preferencePermission:Boolean?=null
     private fun mascot(parent:LinearLayout,text:String,asset:String="onboarding-guide-ready-extended-v1.webp",loading:Boolean=false){
@@ -192,12 +192,12 @@ class NextActivity:Activity(){
         executor.submit{try{
             val r=previousResolution ?: repo.api.resolve(selected.id,chosen)
             val lines=r.getJSONObject("resolution").getJSONArray("lines").objects()
-            require(r.getJSONObject("resolution").getBoolean("complete")){"Потрібно уточнити підключення цієї адреси"}
-            val selectedId=lines.firstOrNull()?.getString("id") ?: chosen ?: r.getJSONObject("selection").optString("lineId").takeUnless{it.isBlank()||it=="null"}
+            val confirmed=CanonicalHomes.confirmed(r,selected.id)?:throw IllegalStateException("Потрібно уточнити підключення цієї адреси")
+            val selectedId=confirmed.firstOrNull() ?: chosen ?: r.getJSONObject("selection").optString("lineId").takeUnless{it.isBlank()||it=="null"}
             if(selectedId==null&&lines.size>1){ui{if(seq==lookupSequence&&journey){busy=false;resolution=r;lookupFailure("Не вдалося завантажити дані."){submitAddress()}}};return@submit}
-            repo.ownerSubscription();val today=LocalDate.now(NEXT_ZONE);val monday=today.with(DayOfWeek.MONDAY);val result=repo.api.snapshots(listOf(selected.id),monday,monday.plusDays(13)).getJSONArray("results").getJSONObject(0);require(result.optString("status")=="snapshot"){"Графік поки не вдалося отримати"};val snapshot=Universal.parse(result.getJSONObject("snapshot"));require(SystemClock.elapsedRealtime()<=deadline){"Сервер відповідає надто довго"};val line=snapshot.line(selectedId);require(line!=null || snapshot.json.getJSONObject("resolution").getString("state")=="excluded"){"Потрібно ще раз уточнити лінію цієї адреси"}
+            repo.ownerSubscription();val today=LocalDate.now(NEXT_ZONE);val monday=today.with(DayOfWeek.MONDAY);val result=repo.api.snapshots(listOf(selected.id),monday,monday.plusDays(13)).getJSONArray("results").getJSONObject(0);require(result.optString("status")=="snapshot"){"Графік поки не вдалося отримати"};val snapshot=Universal.parse(result.getJSONObject("snapshot"));require(SystemClock.elapsedRealtime()<=deadline){"Сервер відповідає надто довго"};val line=snapshot.line(selectedId);require(snapshot.addressId==selected.id && (line!=null || selectedId in confirmed || snapshot.json.getJSONObject("resolution").getString("state")=="excluded")){"Потрібно ще раз уточнити лінію цієї адреси"}
                 val label=r.getJSONObject("address").optString("label").ifBlank{listOf(cityValue,streetValue,selected.house.ifBlank{selected.label}).joinToString(", ")};val profile=NextProfile(UUID.randomUUID().toString(),name,selected.id,line?.id ?: selectedId,label,cityValue,streetValue,selected.house.ifBlank{selected.label},snapshot.json.getString("operatorId"))
-                ui{if(seq!=lookupSequence||!journey)return@ui;try{repo.remember(snapshot);busy=false;date=today;week=monday;if(first){pendingProfile=profile;preferenceChoice=null;preferenceRange=AppAppearance.twoRows(this);preferencesStep()}else{repo.saveConfirmed(profile);journey=false;expanded=repo.profiles().size==2;render();if(expanded)offerAddressHint()};NextWork.schedule(this);NextWidgets.update(this)}catch(e:Exception){lookupFailure("Не вдалося зберегти адресу"){submitAddress()}}}
+                ui{if(seq!=lookupSequence||!journey)return@ui;try{repo.remember(snapshot);busy=false;date=today;week=monday;if(first){pendingProfile=profile;pendingResolution=r;preferenceChoice=null;preferenceRange=AppAppearance.twoRows(this);preferencesStep()}else{repo.saveConfirmed(profile,r);journey=false;expanded=repo.profiles().size==2;render();if(expanded)offerAddressHint()};NextWork.schedule(this);NextWidgets.update(this)}catch(e:Exception){lookupFailure("Не вдалося зберегти адресу"){submitAddress()}}}
             }catch(e:Exception){ui{if(seq!=lookupSequence||!journey)return@ui;busy=false;lookupFailure(e.message?.takeIf{it.length<140} ?:"Джерело тимчасово недоступне"){submitAddress()}}}}
     }
     private fun lookupFailure(message:String,retry:()->Unit){reset(false);journey=true;logo();mascot(body,message,"mascot-technician.webp");u.add(body,u.button("Спробувати ще"){retry()});u.add(body,u.button("Змінити адресу"){review()});u.add(body,u.button("Повідомити"){diagnosticDialog()});if(repo.profiles().isNotEmpty())u.add(body,u.button("До графіка",cancel=true){render()})}
@@ -223,7 +223,7 @@ class NextActivity:Activity(){
     }
     private fun finishPreferences(skipped:Boolean){
         val wasEmpty=repo.profiles().isEmpty()
-        pendingProfile?.let{repo.saveConfirmed(it)};pendingProfile=null
+        pendingProfile?.let{repo.saveConfirmed(it,pendingResolution?:throw IllegalStateException("Потрібно повторно перевірити адресу"))};pendingProfile=null;pendingResolution=null
         if(!skipped){
             val edit=repo.prefs.edit();val enabled=preferenceChoice==true
             for(key in listOf("before","restore","emergency","changes"))edit.putBoolean(key,enabled)
@@ -565,7 +565,7 @@ class NextActivity:Activity(){
     private fun diagnosticDialog(){NextDiagnosticWindow(this,repo,when(journeyPhase){"cities"->"city";"streets"->"street";"houses"->"house";else->"submit"},lastDiagnosticCode,::async,::ui).open()}
     private fun catalogJson(v:CatalogItem?)=v?.let{JSONObject().put("id",it.id).put("label",it.label).put("operatorId",it.operatorId).put("city",it.city).put("street",it.street).put("house",it.house)} ?:JSONObject.NULL
     private fun saveJourney(){
-        val d=JSONObject().put("phase",journeyPhase).put("city",catalogJson(city)).put("street",catalogJson(street)).put("house",catalogJson(house)).put("name",draftName).put("line",selectedLine ?:JSONObject.NULL).put("editing",reviewEditing ?:JSONObject.NULL).put("queries",JSONObject(queries.toMap())).put("range",preferenceRange).put("choice",preferenceChoice ?:JSONObject.NULL).put("profile",pendingProfile?.json() ?:JSONObject.NULL)
+        val d=JSONObject().put("phase",journeyPhase).put("city",catalogJson(city)).put("street",catalogJson(street)).put("house",catalogJson(house)).put("name",draftName).put("line",selectedLine ?:JSONObject.NULL).put("editing",reviewEditing ?:JSONObject.NULL).put("queries",JSONObject(queries.toMap())).put("range",preferenceRange).put("choice",preferenceChoice ?:JSONObject.NULL).put("profile",pendingProfile?.json() ?:JSONObject.NULL).put("pendingResolution",pendingResolution?:JSONObject.NULL)
         editBackup?.let{d.put("backup",JSONArray(it.map(::catalogJson)))}
         d.put("permission",preferencePermission ?:JSONObject.NULL)
         repo.prefs.edit().putString("journeyDraft",d.toString()).commit()
@@ -576,7 +576,8 @@ class NextActivity:Activity(){
         city=record("city");street=record("street");house=record("house");draftName=d.optString("name");selectedLine=d.optString("line").takeUnless{it=="null"||it.isBlank()};reviewEditing=d.optString("editing").takeUnless{it=="null"||it.isBlank()}
         d.optJSONObject("queries")?.let{q->q.keys().forEach{queries[it]=q.getString(it)}}
         d.optJSONArray("backup")?.let{b->editBackup=(0..2).map{b.optJSONObject(it)?.let(CatalogItem::parse)}}
-        preferenceRange=d.optBoolean("range");preferenceChoice=if(d.isNull("choice"))null else d.getBoolean("choice");preferencePermission=if(d.isNull("permission"))null else d.getBoolean("permission");pendingProfile=d.optJSONObject("profile")?.let(NextProfile::parse);journey=true
+        preferenceRange=d.optBoolean("range");preferenceChoice=if(d.isNull("choice"))null else d.getBoolean("choice");preferencePermission=if(d.isNull("permission"))null else d.getBoolean("permission");pendingProfile=d.optJSONObject("profile")?.let(NextProfile::parse);pendingResolution=d.optJSONObject("pendingResolution");journey=true
+        if(pendingProfile!=null&&pendingResolution==null){pendingProfile=null;review();return true}
         when(val phase=d.getString("phase")){"review"->review();"preferences"->preferencesStep();"cities","streets","houses"->addressStep(phase);else->return false};true
     }.getOrDefault(false)
     internal fun sensorScreenToken()=generation

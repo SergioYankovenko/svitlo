@@ -78,12 +78,9 @@ class NextRepository(context:Context){
     fun select(id:String){require(profiles().any{it.id==id});check(prefs.edit().putString("active",id).commit())}
     fun save(profile:NextProfile)=synchronized(lock){val old=profiles();val duplicate=old.find{it.addressId==profile.addressId&&it.lineId==profile.lineId};val value=profile.copy(id=duplicate?.id ?: profile.id);require(old.any{it.id==value.id}||old.any{it.addressId==value.addressId}||old.map{it.addressId}.distinct().size<homeLimit());val next=if(old.any{it.id==value.id})old.map{if(it.id==value.id)value else it}else old+value;check(prefs.edit().putString("profiles",JSONArray(next.map{it.json()}).toString()).putString("active",value.id).commit());value}
     private fun homeLimit()=if(prefs.getLong("premiumUntil",0)>System.currentTimeMillis())10 else 2
-    fun saveConfirmed(profile:NextProfile)=synchronized(lock){
-        val snapshot=snapshot(profile) ?:throw IllegalStateException("Потрібен актуальний графік")
-        val complete=snapshot.json.getJSONObject("resolution").getBoolean("complete")
-        require(complete&&snapshot.addressId==profile.addressId)
-        val lines=snapshot.lines
-        val incoming=if(lines.isEmpty())listOf(profile)else lines.map{line->profile.copy(id=UUID.randomUUID().toString(),lineId=line.id)}
+    fun saveConfirmed(profile:NextProfile,resolution:JSONObject)=synchronized(lock){
+        val ids=CanonicalHomes.confirmed(resolution,profile.addressId)?:throw IllegalStateException("Потрібно уточнити підключення адреси")
+        val incoming=if(ids.isEmpty())listOf(profile.copy(lineId=null))else ids.map{line->profile.copy(id=UUID.randomUUID().toString(),lineId=line)}
         val next=CanonicalHomes.merge(profiles(),incoming,homeLimit())
         val first=next.first{it.addressId==profile.addressId&&it.lineId==incoming.first().lineId}
         check(prefs.edit().putString("profiles",JSONArray(next.map{it.json()}).toString()).putString("active",first.id).commit());first
