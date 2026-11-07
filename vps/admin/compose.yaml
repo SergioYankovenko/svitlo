@@ -19,7 +19,7 @@ services:
       ADMIN_ORIGIN: ${ADMIN_ORIGIN:-http://localhost:18768}
     secrets: [admin_password,admin_secret]
     healthcheck:
-      test: [CMD,node,-e,"require('node:http').get({host:'127.0.0.1',port:8080,path:'/healthz',headers:{Host:new URL(process.env.ADMIN_ORIGIN).host}},r=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))}).on('error',()=>process.exit(1))"]
+      test: [CMD,node,-e,"require('node:http').get({host:'127.0.0.1',port:8080,path:'/readyz',headers:{Host:new URL(process.env.ADMIN_ORIGIN).host}},r=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))}).on('error',()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3

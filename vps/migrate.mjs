@@ -57,6 +57,9 @@ try{
   migrations.push(['1032_dictionary_search.sql',await readFile('vps/sql/dictionary-search.sql','utf8')]);
   migrations.push(['1033_admin_control.sql',await readFile('vps/sql/admin-control.sql','utf8')]);
   migrations.push(['1034_identity.sql',await readFile('vps/sql/identity.sql','utf8')]);
+  migrations.push(['1035_entitlements.sql',await readFile('vps/sql/entitlements.sql','utf8')]);
+  migrations.push(['1036_billing.sql',await readFile('vps/sql/billing.sql','utf8')]);
+  migrations.push(['1037_admin_domain_commands.sql',await readFile('vps/sql/admin-domain-commands.sql','utf8')]);
   for(const [name,sql] of migrations){
     const hash=createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex');
     const old=(await c.query('select sha256 from svitlo_vps.migrations where name=$1',[name])).rows[0];

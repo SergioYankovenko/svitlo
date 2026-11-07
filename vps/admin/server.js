@@ -17,6 +17,7 @@ export function createAdminServer({pool,secret,origin,root=resolve('dist/admin')
    if(req.headers.host!==configured.host)return json(res,421,{code:'admin_host_rejected'});
    const u=new URL(req.url,origin);if(u.search&&u.pathname.startsWith('/api/'))return json(res,400,{code:'admin_query_rejected'});
    if(u.pathname==='/healthz')return json(res,200,{status:'ok',module:'admin'});
+   if(u.pathname==='/readyz'){await call('select svitlo_admin.principal($1) value',['0'.repeat(64)]);return json(res,200,{status:'ready',module:'admin'});}
    if(u.pathname.startsWith('/api/')){
     if(inFlight>=4)return json(res,429,{code:'admin_busy'});inFlight++;admitted=true;
     if(!['GET','POST'].includes(req.method))return json(res,405,{code:'method_not_allowed'});

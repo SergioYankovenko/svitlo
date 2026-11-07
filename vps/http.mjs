@@ -2,10 +2,13 @@ import http from 'node:http';
 import {redirectTarget} from './redirects.js';
 import {readFile,stat} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
+import {checkSchema} from './modules/schema-state.js';
 import {validateContract,openApi} from './modules/contracts.js';
 import {runtime} from './runtime.js';
 import {pool,ownerContext} from './db.js';
 import {Sessions} from './session.js';
+import {BillingService,configuredVault} from './billing/service.js';
+import {PubSubProof} from './billing/google-play.js';
 import {IdentityService} from './identity/service.js';
 import {configuredGoogle} from './identity/google.js';
 import {Telemetry} from './telemetry/service.js';
@@ -18,6 +21,7 @@ import {HttpAdmission,clientKey} from './admission.js';
 import {metrics,permitsMetrics} from './observability/metrics.js';
 const rt=await runtime(),sessionPool=pool('session',2),sessions=new Sessions(sessionPool,rt.secret,{secure:process.env.SVITLO_SESSION_SECURE==='true'});
 const identity=new IdentityService({pool:sessionPool,provider:configuredGoogle(),sessions});
+const billing=new BillingService({bridge:rt.bridge,vault:configuredVault(),packageName:process.env.GOOGLE_PLAY_PACKAGE||'',products:(process.env.GOOGLE_PLAY_PRODUCTS||'').split(',').filter(Boolean),pushProof:new PubSubProof({audience:process.env.GOOGLE_PLAY_RTDN_AUDIENCE||'',email:process.env.GOOGLE_PLAY_RTDN_EMAIL||'',subscription:process.env.GOOGLE_PLAY_RTDN_SUBSCRIPTION||''})});
 const telemetry=new Telemetry(rt.bridge,rt.secret);
 const sensorSecret=(await readFile('/run/secrets/sensor_access_secret','utf8')).trim();
 if(!/^[a-f0-9]{64}$/.test(sensorSecret))throw Error('Sensor access secret unavailable');
@@ -51,6 +55,7 @@ const server=http.createServer(async(req,res)=>{
     if(path==='/api/v1/openapi.json'&&req.method==='GET')return json(res,200,openApi());
     if(path==='/healthz')return json(res,200,{status:'ok',scope:'isolated-staging',release});
     if(path==='/readyz'){
+      if(!await checkSchema(rt.p))throw Error('Modular schema/image mismatch');
       const r=await rt.p.query("select schema_version,delivery_mode,exists(select 1 from svitlo_vps.migrations where name='1011_operations.sql') and exists(select 1 from svitlo_vps.migrations where name='1010_kyiv_regions.sql') and exists(select 1 from svitlo_vps.migrations where name='1008_map_addresses.sql') and exists(select 1 from svitlo_vps.migrations where name='1007_sensor_history.sql') and exists(select 1 from pg_proc where pronamespace='svitlo_sensors'::regnamespace and proname='phone_ingest') as universal_ready from svitlo_vps.release_state where id");
       if(r.rows[0]?.schema_version!==1||r.rows[0]?.delivery_mode!=='disabled'||!r.rows[0].universal_ready)throw Error('Schema or delivery mode mismatch');
       if(!(await rt.p.query("select exists(select 1 from svitlo_vps.migrations where name='1014_main_app_subscription.sql') and to_regprocedure('svitlo_sensors.main_app_entitlement()') is not null ok")).rows[0]?.ok)throw Error('Main app subscription readiness mismatch');
@@ -62,6 +67,12 @@ const server=http.createServer(async(req,res)=>{
     }
     const client=clientKey(req,rt.secret);
     if(path.startsWith('/api')||path==='/diagnostic-reports')leave=admission.acquire(path,req.method);
+    if(path==='/api/integrations/google-play/rtdn'){
+      if(req.method!=='POST'||url.search||req.headers.origin!==undefined||req.headers.cookie!==undefined)throw problem(403,'machine_transport_required');
+      if(req.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json')throw problem(415,'json_required');
+      if(!budget('rtdn:'+client,300))throw problem(429,'rtdn_rate_limited','rate');
+      const result=await billing.rtdn(req.headers.authorization,await body(req,24000));return json(res,200,result);
+    }
     if(path==='/api/v1/sensor-events'||path==='/api/v1/sensor-devices/register'||path==='/api/v1/sensor-devices/control'){
       const trace=telemetry.requestIds.issue();res.telemetryMeta={path:routeTag(path),correlationId:trace.id};res.setHeader('X-Svitlo-Request-ID',trace.token);
       if(url.search)throw problem(400,'sensor_query_not_allowed');
@@ -93,7 +104,7 @@ const server=http.createServer(async(req,res)=>{
         }
         return json(res,405,{error:'Method not allowed'});
       }
-      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.ports.catalog.capabilities(),identity:{schemaVersion:1,google:identity.provider.configured,recoverableAccounts:true},push:rt.delivery==='pilot-enabled',sensorAccess:{...sensorCapabilities,notifications:rt.delivery==='pilot-enabled'},sensorIngest:ingestCapabilities,phoneSensors:phoneCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
+      if(path==='/api/v1/capabilities'&&req.method==='GET')return json(res,200,{...await rt.ports.catalog.capabilities(),identity:{schemaVersion:1,google:identity.provider.configured,recoverableAccounts:true},billing:{schemaVersion:1,...await billing.readiness()},push:rt.delivery==='pilot-enabled',sensorAccess:{...sensorCapabilities,notifications:rt.delivery==='pilot-enabled'},sensorIngest:ingestCapabilities,phoneSensors:phoneCapabilities,diagnostics:{schemaVersion:1,maxBytes:8192,maxEvents:8,explicitConsent:true,requiresSession:true}});
       if(publicReader&&req.method==='POST'){
         if(path.endsWith('/capabilities'))return json(res,405,{error:'Method not allowed'});
         const data=await body(req);validateRequest(path,data);validateContract(path,data);rt.reader.checkVersion(data);
@@ -112,6 +123,10 @@ const server=http.createServer(async(req,res)=>{
       if(!s)return json(res,401,{error:'Потрібна сесія'});
       if(req.method!=='POST')return json(res,405,{error:'Method not allowed'});
       if(!sessions.validCsrf(req,s))return json(res,403,{error:'CSRF rejected'});
+      if(path==='/api/v1/billing'){
+        if(url.search)throw problem(400,'query_not_allowed');if(!budget('billing:'+s.owner,30))throw problem(429,'billing_rate_limited','rate');
+        const data=await body(req,6000);return json(res,200,await ownerContext.run(s.owner,()=>billing.handle(s.owner,data)));
+      }
       if(path==='/api/v1/identity'){
         if(url.search)throw problem(400,'query_not_allowed');
         if(!budget('identity:'+s.owner,30))throw problem(429,'identity_rate_limited','rate');
@@ -155,7 +170,7 @@ const server=http.createServer(async(req,res)=>{
     const info=await stat(file);if(!info.isFile())return json(res,404,{error:'Not found'});
     res.writeHead(200,{'content-type':mime[extname(file)]||'application/octet-stream','cache-control':'no-cache','content-length':info.size});
     res.end(req.method==='HEAD'?undefined:await readFile(file));
-  }catch(e){const status=e.status||(e.code==='ENOENT'?404:503);if(e.retryAfter)res.setHeader('Retry-After',String(e.retryAfter));const unavailableCode=path==='/api/v1/identity'&&e.code==='identity_not_configured'?'identity_not_configured':path==='/api/v1/sensors'&&e.code==='subscription_check_unavailable'?'subscription_check_unavailable':'temporarily_unavailable';json(res,status,{error:status===503?'Сервіс тимчасово недоступний':e.message,code:status===503?unavailableCode:e.code||'request_rejected'},e instanceof SourceError?'upstream':e.reason);
+  }catch(e){const status=e.status||(e.code==='ENOENT'?404:503);if(e.retryAfter)res.setHeader('Retry-After',String(e.retryAfter));const unavailableCode=(path==='/api/v1/billing'||path==='/api/integrations/google-play/rtdn')&&['billing_not_configured','rtdn_not_configured'].includes(e.code)?e.code:path==='/api/v1/identity'&&e.code==='identity_not_configured'?'identity_not_configured':path==='/api/v1/sensors'&&e.code==='subscription_check_unavailable'?'subscription_check_unavailable':'temporarily_unavailable';json(res,status,{error:status===503?'Сервіс тимчасово недоступний':e.message,code:status===503?unavailableCode:e.code||'request_rejected'},e instanceof SourceError?'upstream':e.reason);
     if(status>=500)console.error(JSON.stringify({event:'request_failed',route:routeTag(path),code:'service_error'}));
   }finally{leave();if(res.telemetryMeta)console.log(JSON.stringify({event:'request',route:routeTag(path),status:res.statusCode,ms:Date.now()-start}));}
 });

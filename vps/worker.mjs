@@ -2,6 +2,9 @@ import {sensorPushTick} from './push.js';
 import {runtime} from './runtime.js';
 import {runLoggedJob} from '../server/operations.js';
 import {catalogProjectorLoop} from './events/worker.js';
+import {BillingWorker} from './billing/worker.js';
+import {configuredPlay} from './billing/google-play.js';
+import {configuredVault} from './billing/service.js';
 import {SearchIndexer} from './search/indexer.js';
 import {DictionaryIndexer} from './search/dictionary.js';
 import {configuredMeili} from './search/meili.js';
@@ -10,6 +13,7 @@ for(const s of ['SIGINT','SIGTERM'])process.on(s,()=>{stopping=true;});
 const projector=catalogProjectorLoop(rt.p,{stopping:()=>stopping,onError:code=>console.error(JSON.stringify({event:code}))});
 const searchClient=configuredMeili('write'),searchLoop=searchClient?new SearchIndexer({pool:rt.p,client:searchClient,onError:code=>console.error(JSON.stringify({event:code}))}).loop({stopping:()=>stopping}):Promise.resolve();
 const dictionaryLoop=searchClient?new DictionaryIndexer({pool:rt.p,client:searchClient}).loop({stopping:()=>stopping,onError:code=>console.error(JSON.stringify({event:code}))}):Promise.resolve();
+const billingLoop=new BillingWorker({pool:rt.p,provider:configuredPlay(),vault:configuredVault(),onError:code=>console.error(JSON.stringify({event:code}))}).loop({stopping:()=>stopping});
 async function tick(){
   await rt.p.query('update svitlo_vps.worker_cycle set last_attempt=clock_timestamp() where id');
   let historyError=null;
@@ -38,4 +42,4 @@ do{const start=Date.now();try{await tick();}catch(e){const code=/^[A-Z0-9_]{1,32
   // Short interruptible sleeps; every process restart resumes durable DB lease state.
   while(!stopping&&Date.now()-start<60000)await new Promise(r=>setTimeout(r,1000));
 }while(!stopping);
-stopping=true;await Promise.all([projector,searchLoop,dictionaryLoop]);await rt.p.end();
+stopping=true;await Promise.all([projector,searchLoop,dictionaryLoop,billingLoop]);await rt.p.end();
