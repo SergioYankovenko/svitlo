@@ -1,5 +1,5 @@
 -- ARCH-MOD-01-16. Catalog, connector observations and exact power bindings are separate.
-create role svitlo_charging_owner nologin nosuperuser nobypassrls;
+do $$ begin if not exists(select from pg_roles where rolname='svitlo_charging_owner') then create role svitlo_charging_owner nologin nosuperuser nobypassrls;end if;if exists(select from pg_roles where rolname='svitlo_charging_owner' and (rolsuper or rolbypassrls or rolcanlogin)) then raise exception 'unexpected module role privilege';end if;end $$;
 create schema svitlo_charging authorization svitlo_charging_owner;
 create table svitlo_charging.control(id boolean primary key check(id),enabled boolean not null default false);
 insert into svitlo_charging.control values(true,false);

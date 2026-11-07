@@ -1,0 +1,25 @@
+name: svitlo-observability
+services:
+  agent:
+    image: netdata/netdata@sha256:c7eab00e20901eb60595ebae0fbfe88e59464e663924461874719d40de0735d2
+    entrypoint: [/usr/sbin/netdata]
+    command: [-D,-c,/etc/netdata/netdata.conf]
+    user: '201:201'
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp:size=16m,mode=1777]
+    ports: [127.0.0.1:19999:19999]
+    environment: {DO_NOT_TRACK: '1',TZ: UTC}
+    volumes:
+      - /etc/svitlo/netdata:/etc/netdata:ro
+      - /var/lib/svitlo-netdata/cache:/var/cache/netdata
+      - /var/lib/svitlo-netdata/lib:/var/lib/netdata
+      - /var/lib/svitlo-netdata/log:/var/log/netdata
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    mem_limit: 192m
+    cpus: 0.25
+    pids_limit: 128
+    logging: {driver: json-file,options: {max-size: 5m,max-file: '2'}}

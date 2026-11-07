@@ -1,5 +1,5 @@
 -- ARCH-MOD-01-01/08/14. Bounded root-agent evidence, no arbitrary log/SQL viewer.
-create role svitlo_ops_owner nologin nosuperuser nobypassrls;
+do $$ begin if not exists(select from pg_roles where rolname='svitlo_ops_owner') then create role svitlo_ops_owner nologin nosuperuser nobypassrls;end if;if exists(select from pg_roles where rolname='svitlo_ops_owner' and (rolsuper or rolbypassrls or rolcanlogin)) then raise exception 'unexpected module role privilege';end if;end $$;
 create schema svitlo_ops authorization svitlo_ops_owner;
 create table svitlo_ops.snapshots(id text primary key check(id in ('release','backup','disk','memory','database','wal','netdata','independent_monitor')),status text not null check(status in ('ok','degraded','failed','unknown','not_configured')),observed_at timestamptz not null,details jsonb not null check(jsonb_typeof(details)='object' and octet_length(details::text)<=4096));
 create table svitlo_ops.logs(id bigint generated always as identity primary key,at timestamptz not null default clock_timestamp(),service text not null check(service in ('api','worker','discovery','admin')),event text not null check(event~'^[a-z_]{1,80}$'),status integer check(status between 100 and 599),duration_ms integer check(duration_ms between 0 and 300000));

@@ -1,5 +1,5 @@
 -- ARCH-MOD-01-15. Target half of dual-proof transfer. No source writes here.
-create role svitlo_migration_owner nologin nosuperuser nobypassrls;
+do $$ begin if not exists(select from pg_roles where rolname='svitlo_migration_owner') then create role svitlo_migration_owner nologin nosuperuser nobypassrls;end if;if exists(select from pg_roles where rolname='svitlo_migration_owner' and (rolsuper or rolbypassrls or rolcanlogin)) then raise exception 'unexpected module role privilege';end if;end $$;
 create schema svitlo_migration authorization svitlo_migration_owner;
 create table svitlo_migration.control(id boolean primary key check(id),enabled boolean not null default false);
 insert into svitlo_migration.control values(true,false);

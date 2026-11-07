@@ -1,5 +1,5 @@
 -- ARCH-MOD-01-12. Additive modern channels; legacy recipients remain compatible.
-create role svitlo_notifications_owner nologin nosuperuser nobypassrls;
+do $$ begin if not exists(select from pg_roles where rolname='svitlo_notifications_owner') then create role svitlo_notifications_owner nologin nosuperuser nobypassrls;end if;if exists(select from pg_roles where rolname='svitlo_notifications_owner' and (rolsuper or rolbypassrls or rolcanlogin)) then raise exception 'unexpected module role privilege';end if;end $$;
 create schema svitlo_notifications authorization svitlo_notifications_owner;
 grant usage on schema public,auth,svitlo_events,svitlo_admin to svitlo_notifications_owner;
 grant execute on function auth.uid(),svitlo_admin.account_allowed(uuid) to svitlo_notifications_owner;
