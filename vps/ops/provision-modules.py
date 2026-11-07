@@ -17,7 +17,7 @@ def private(path,value,uid=0):
  with os.fdopen(fd,'w') as f:f.write(value+'\n')
  os.chown(path,uid,uid);return value
 def prepare():
- for kind in ['search','billing','sources','notifications','migration']:
+ for kind in ['search','billing','sources','notifications','migration','charging']:
   directory=S/kind;marker=directory/'.arch-mod-01'
   if directory.exists() and not marker.exists():raise RuntimeError('Unowned module directory: '+kind)
   directory.mkdir(mode=0o755,exist_ok=True);private(marker,'ARCH-MOD-01')

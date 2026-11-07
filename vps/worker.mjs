@@ -1,3 +1,4 @@
+import {ChargingCollector} from './charging/collector.js';
 import {NotificationWorker} from './notifications/worker.js';
 import {notificationKey} from './notifications/service.js';
 import {configuredFcm} from './notifications/channel.js';
@@ -18,7 +19,9 @@ const searchClient=configuredMeili('write'),searchLoop=searchClient?new SearchIn
 const dictionaryLoop=searchClient?new DictionaryIndexer({pool:rt.p,client:searchClient,secret:rt.secret}).loop({stopping:()=>stopping,onError:code=>console.error(JSON.stringify({event:code}))}):Promise.resolve();
 const billingLoop=new BillingWorker({pool:rt.p,provider:configuredPlay(),vault:configuredVault(),onError:code=>console.error(JSON.stringify({event:code}))}).loop({stopping:()=>stopping});
 const notificationsLoop=new NotificationWorker({pool:rt.p,key:notificationKey(),channels:{fcm:configuredFcm(),webpush:{configured:rt.delivery==='pilot-enabled',send:rt.push}},onError:code=>console.error(JSON.stringify({event:code}))}).loop({stopping:()=>stopping});
+const chargingCollector=new ChargingCollector({pool:rt.p,onError:code=>console.error(JSON.stringify({event:code}))});
 async function tick(){
+  await chargingCollector.tick().catch(()=>console.error(JSON.stringify({event:'charging_refresh_failed'})));
   await rt.p.query('update svitlo_vps.worker_cycle set last_attempt=clock_timestamp() where id');
   let historyError=null;
   try{const history=await rt.sourceHistory.runDue();if(history.state!=='not_due'&&history.state!=='disabled')console.log(JSON.stringify({event:'source_history_cycle',...history}));}

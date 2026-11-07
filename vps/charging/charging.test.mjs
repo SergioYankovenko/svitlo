@@ -14,3 +14,33 @@ test('SQL defaults off without PostGIS; changed pin invalidates electrical revie
  const home=randomUUID(),line=randomUUID();await c.query('insert into svitlo_vps.catalog values($1)',[home]);await c.query('insert into svitlo_vps.address_lines values($1,$2,true)',[line,home]);await c.query("insert into svitlo_charging.bindings values($1,$2,$3,true,'operator exact proof',$4,now(),now()+interval '1 day','unknown')",[s.id,home,line,randomUUID()]);await c.query('select svitlo_charging.import_catalog($1)',[JSON.stringify([{...s,latitude:s.latitude+.01}])]);assert.equal((await c.query('select reviewed from svitlo_charging.bindings')).rows[0].reviewed,false);assert.equal((await c.query("select has_table_privilege('svitlo_stage_api','svitlo_charging.bindings','INSERT') value")).rows[0].value,false);
  }finally{await c.close();}
 });
+
+test('charging worker stays off until reviewed and applies a refreshed station once via a durable delivery',async()=>{
+ const {OpenChargeMap}=await import('./catalog.js'),{ChargingCollector}=await import('./collector.js'),{DomainJobs}=await import('../events/domain-jobs.js');
+ const c=new PGlite();let calls=0;
+ const pool={query:(...args)=>c.query(...args),connect:async()=>({query:(...args)=>c.query(...args),release(){}})};
+ try{
+  await c.exec('create role svitlo_stage_api;create role svitlo_stage_worker;create role svitlo_stage_session;create role svitlo_events_owner;create schema svitlo_events authorization svitlo_events_owner;grant usage on schema svitlo_events to svitlo_stage_worker;create schema svitlo_vps;create table svitlo_vps.catalog(id uuid primary key);create table svitlo_vps.address_lines(id uuid primary key,address_id uuid,active boolean);');
+  for(const file of ['domain-jobs.sql','charging.sql','charging-collector.sql'])await c.exec(await readFile(new URL('../sql/'+file,import.meta.url),'utf8'));
+  const policy={...provider,name:'Open Charge Map Contributors',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'};
+  const source=new OpenChargeMap({key:'fixture-key-not-secret',provider:policy,fetcher:async(url,opts)=>{
+   calls++;assert.equal(url.origin,'https://api.openchargemap.io');assert.equal(url.searchParams.get('chargepointid'),'100');
+   assert.equal(url.searchParams.get('includecomments'),'false');assert.equal(url.searchParams.get('verbose'),'true');
+   assert.equal(opts.redirect,'error');const updated=row();updated.AddressInfo.Title='Updated charging station';return Response.json([updated]);
+  }});
+  const collector=new ChargingCollector({pool,source,jobs:new DomainJobs(pool)});
+  await c.exec("update svitlo_charging.providers set reviewed=true");
+  await c.query('select svitlo_charging.import_catalog($1)',[JSON.stringify([normalizeOcm(row(),{provider:policy,now:Date.now()-7*3600000})])]);
+  await c.exec('set role svitlo_stage_worker');
+  assert.deepEqual(await collector.tick(),{state:'disabled'});assert.equal(calls,0);
+  await c.exec('reset role;update svitlo_charging.control set collector_enabled=true;set role svitlo_stage_worker');
+  assert.deepEqual(await collector.tick(),{state:'progress'});assert.equal(calls,1);
+  assert.deepEqual(await collector.tick(),{state:'idle'});assert.equal(calls,1);
+  await c.exec('reset role');
+  const got=(await c.query('select label from svitlo_charging.stations')).rows[0];
+  assert.equal(got.label,'Updated charging station');
+  assert.equal((await c.query("select count(*)::int n from svitlo_events.deliveries where consumer='charging-refresh-v1' and state='done'")).rows[0].n,1);
+  assert.equal((await c.query("select has_function_privilege('svitlo_stage_worker','svitlo_charging.import_catalog(jsonb)','EXECUTE') ok")).rows[0].ok,false);
+  assert.equal((await c.query('select svitlo_charging.capabilities() value')).rows[0].value.enabled,false);
+ }finally{await c.close();}
+});

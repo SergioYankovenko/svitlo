@@ -51,7 +51,7 @@ services:
     environment:
       <<: *environment
       SOURCE_HISTORY_ENABLED: 'true'
-    volumes: [/etc/svitlo/search/worker:/run/search:ro,/etc/svitlo/billing/worker:/run/billing:ro,/etc/svitlo/sources/worker:/run/sources:ro,/etc/svitlo/notifications/worker:/run/notifications:ro]
+    volumes: [/etc/svitlo/search/worker:/run/search:ro,/etc/svitlo/billing/worker:/run/billing:ro,/etc/svitlo/sources/worker:/run/sources:ro,/etc/svitlo/notifications/worker:/run/notifications:ro,/etc/svitlo/charging/worker:/run/charging:ro]
     command: [node,--use-system-ca,vps/worker.mjs]
     secrets: [worker_password,session_secret,pilot_vapid]
     healthcheck: {disable: true}

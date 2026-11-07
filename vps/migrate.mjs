@@ -67,6 +67,7 @@ try{
   migrations.push(['1042_charging.sql',await readFile('vps/sql/charging.sql','utf8')]);
   migrations.push(['1043_operations_console.sql',await readFile('vps/sql/operations-console.sql','utf8')]);
   migrations.push(['1044_migration_saga.sql',await readFile('vps/sql/migration-saga.sql','utf8')]);
+  migrations.push(['1045_charging_collector.sql',await readFile('vps/sql/charging-collector.sql','utf8')]);
   for(const [name,sql] of migrations){
     const hash=createHash('sha256').update(sql.replace(/\r\n/g,'\n')).digest('hex');
     const old=(await c.query('select sha256 from svitlo_vps.migrations where name=$1',[name])).rows[0];
