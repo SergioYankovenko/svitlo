@@ -4,9 +4,9 @@
 
 ## Завантаження
 
-[Відкрити сайт](https://sergioyankovenko.github.io/svitlo/) · [Встановити на Android](downloads/Svitlo-1.8.8.apk) · [Встановити на iPhone](https://sergioyankovenko.github.io/svitlo/app/) · [SHA-256 APK](downloads/Svitlo-1.8.8.sha256.txt)
+[Відкрити сайт](https://sergioyankovenko.github.io/svitlo/) · [Встановити на Android](downloads/Svitlo-1.8.9.apk) · [Встановити на iPhone](https://sergioyankovenko.github.io/svitlo/app/) · [SHA-256 APK](downloads/Svitlo-1.8.9.sha256.txt)
 
-Android 8.0+, versionCode 38. Розмір APK · 6 120 669 байтів. Оновлення встановлюється поверх попередньої версії зі збереженням адрес і віджетів.
+Android 8.0+, versionCode 39. Розмір APK · 6 120 669 байтів. Оновлення встановлюється поверх попередньої версії зі збереженням адрес і віджетів.
 
 На iPhone: відкрити посилання у Safari → «Поширити» → «На Початковий екран» → «Додати». Для сповіщень потрібні iOS 16.4+, відкриття зі встановленої іконки й дозвіл в опціях. Час доставки залежить від системи.
 
